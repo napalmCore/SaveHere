@@ -46,6 +46,8 @@ git clone https://github.com/gudarzi/SaveHere.git
 cd SaveHere
 ```
 
+- _if you're running v2.0, just do `dotnet run`. in v2.0, frontend and backend are integrated and docker has been removed. also, you need to have .net 8.0 installed._
+
 - (Optional) If you are upgrading from a previous version and the app is throwing errors at you, try removing everything inside `db`:
 ```bash
 sudo rm -rf db/
