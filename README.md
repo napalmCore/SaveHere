@@ -5,6 +5,11 @@
 </div>
 
 
+
+___In v3.0, I'm trying to rewrite the app in Blazor! It's still a work in progress, because I'm new to Blazor and I don't have much free time to work on it.___
+
+
+
 ## Table of Contents
 
 - [What this app does](#what-this-app-does)
