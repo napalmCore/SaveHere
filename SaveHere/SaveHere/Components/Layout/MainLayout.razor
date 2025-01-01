@@ -7,11 +7,11 @@
   <MudAppBar Elevation="1" Dense="true">
     <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@DrawerToggle" />
     <MudText Typo="Typo.h5" Class="mx-auto hover-link" Color="Color.Inherit" onclick="@NavigateToHome">SaveHere</MudText>
-    <MudSwitch @bind-Value="@_isDarkMode" ThumbIcon="@(_isDarkMode? Icons.Material.Filled.DarkMode : Icons.Material.Filled.LightMode)" ThumbIconColor="Color.Dark" Color="Color.Tertiary" LabelPosition="LabelPosition.End" Size="Size.Small">@(_isDarkMode ? "Dark" : "Light")</MudSwitch>
-    <MudIconButton Icon="@Icons.Custom.Brands.GitHub" Color="Color.Inherit" Href="#" Target="_blank" />
+    <MudToggleIconButton @bind-Toggled="_isDarkMode" Icon="@Icons.Material.Filled.LightMode" Color="@Color.Inherit" ToggledIcon="@Icons.Material.Filled.DarkMode" ToggledColor="@Color.Inherit"/>
+    <MudIconButton Icon="@Icons.Material.Filled.AccountCircle" Color="Color.Inherit" Href="#" Target="_blank" Edge="Edge.End"/>
   </MudAppBar>
 
-  <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="2">
+  <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="10">
     <NavMenu />
   </MudDrawer>
 
