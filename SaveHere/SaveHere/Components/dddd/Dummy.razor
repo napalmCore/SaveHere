@@ -1,0 +1,11 @@
+﻿@page "/dummy"
+
+<PageTitle>Dummy</PageTitle>
+
+<MudTextField @bind-Value="TextValue" Label="File URL" Variant="Variant.Outlined" Margin="Margin.Dense" HelperText="Enter The File URL To Upload To The Server" HelperTextOnFocus="true" Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.InsertLink" AdornmentColor="Color.Info" Clearable="true" Immediate="true"/>
+
+<MudText>@TextValue</MudText>
+
+@code {
+  public string TextValue { get; set; }
+}
