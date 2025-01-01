@@ -7,7 +7,7 @@
   <MudAppBar Elevation="1" Dense="true">
     <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@DrawerToggle" />
     <MudText Typo="Typo.h5" Class="mx-auto hover-link" Color="Color.Inherit" onclick="@NavigateToHome">SaveHere</MudText>
-    <MudSwitch @bind-Value="@_isDarkMode" ThumbIcon="@(_isDarkMode? Icons.Material.Filled.DarkMode : Icons.Material.Filled.LightMode)" ThumbIconColor="@(_isDarkMode? Color.Inherit:Color.Inherit)" Color="Color.Error" LabelPosition="LabelPosition.End" Size="Size.Small">@(_isDarkMode ? "Dark" : "Light")</MudSwitch>
+    <MudSwitch @bind-Value="@_isDarkMode" ThumbIcon="@(_isDarkMode? Icons.Material.Filled.DarkMode : Icons.Material.Filled.LightMode)" ThumbIconColor="Color.Inherit" Color="Color.Error" LabelPosition="LabelPosition.End" Size="Size.Small">@(_isDarkMode ? "Dark" : "Light")</MudSwitch>
     <MudIconButton Icon="@Icons.Custom.Brands.GitHub" Color="Color.Inherit" Href="#" Target="_blank" />
   </MudAppBar>
 
