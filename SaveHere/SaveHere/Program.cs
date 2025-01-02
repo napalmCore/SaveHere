@@ -2,10 +2,10 @@ using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using MudBlazor.Services;
-using SaveHere.Client.Pages;
 using SaveHere.Components;
 using SaveHere.Components.Account;
 using SaveHere.Data;
+using SaveHere.Models.db;
 
 namespace SaveHere
 {
@@ -14,6 +14,23 @@ namespace SaveHere
     public static void Main(string[] args)
     {
       var builder = WebApplication.CreateBuilder(args);
+
+      // Initializing the database
+      var dbPath = Path.Combine(Directory.GetCurrentDirectory(), "db");
+      if (!Directory.Exists(dbPath))
+      {
+        try
+        {
+          Directory.CreateDirectory(dbPath);
+        }
+        catch
+        {
+          throw new InvalidOperationException("Could not create the database directory.");
+        }
+      }
+      builder.Services.AddDbContext<AppDbContext>(options =>
+          options.UseSqlite($"Data Source={Path.Combine(dbPath, "database.sqlite3.db")}")
+      );
 
       // Add MudBlazor services
       builder.Services.AddMudServices();
@@ -74,6 +91,14 @@ namespace SaveHere
 
       // Add additional endpoints required by the Identity /Account Razor components.
       app.MapAdditionalIdentityEndpoints();
+
+      // Ensuring the database is created
+      using (var scope = app.Services.CreateScope())
+      {
+        var dbc = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        dbc.Database.EnsureCreated();
+        dbc.Database.Migrate();
+      }
 
       app.Run();
     }

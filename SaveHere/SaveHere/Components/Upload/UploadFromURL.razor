@@ -1,0 +1,75 @@
+﻿@page "/uploadfromurl"
+@using SaveHere.Models
+@using SaveHere.Models.db
+
+<PageTitle>Upload From URL</PageTitle>
+
+<MudStack>
+
+  <MudPaper Class="px-5 pt-4 mx-5 mt-5" Elevation="5">
+
+    <MudStack Row>
+
+      <MudTextField @bind-Value="UrlText" Label="File URL" Variant="Variant.Outlined" Margin="Margin.Dense"
+      HelperText="Enter The File URL To Upload To The Server" HelperTextOnFocus="true" Adornment="Adornment.End"
+      AdornmentIcon="@Icons.Material.Filled.InsertLink" AdornmentColor="Color.Info" Clearable="true"
+      Immediate="true" />
+
+      <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Add" Color="Color.Primary"
+      Style="text-transform:none; height:40px; margin-top:0.5rem;" Size="Size.Small" OnClick="AddURL">Add</MudButton>
+
+    </MudStack>
+
+  </MudPaper>
+
+  @if (!string.IsNullOrWhiteSpace(ErrorMessage))
+  {
+    <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Dense="true" Elevation="10" ContentAlignment="HorizontalAlignment.Center" Class="mx-5" ShowCloseIcon="true" CloseIconClicked="ClearErrorMessage">
+      @ErrorMessage
+    </MudAlert>
+  }
+
+  <MudPaper Class="pa-5 mx-5" Elevation="5">
+
+
+
+  </MudPaper>
+
+</MudStack>
+
+@code {
+  [Inject] public required AppDbContext _context { get; set; }
+
+  public string UrlText { get; set; } = "";
+  public string ErrorMessage { get; set; } = "";
+
+  public async Task AddURL()
+  {
+    if (!string.IsNullOrWhiteSpace(UrlText))
+    {
+      try
+      {
+        var newFileDownload = new FileDownloadQueueItem() { InputUrl = UrlText };
+        _context.FileDownloadQueueItems.Add(newFileDownload);
+        await _context.SaveChangesAsync();
+
+        ClearErrorMessage();
+      }
+      catch (Exception exception)
+      {
+        ErrorMessage = $"An Error Occurred While Adding The URL: {exception.Message}";
+      }
+    }
+    else
+    {
+      ErrorMessage = "Please Enter A Valid URL";
+    }
+
+    UrlText = "";
+  }
+
+  public void ClearErrorMessage()
+  {
+    ErrorMessage = "";
+  }
+}
