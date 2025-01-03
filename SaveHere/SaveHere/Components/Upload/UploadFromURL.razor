@@ -1,6 +1,11 @@
 ﻿@page "/uploadfromurl"
+@using Microsoft.EntityFrameworkCore
 @using SaveHere.Models
 @using SaveHere.Models.db
+
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
 
 <PageTitle>Upload From URL</PageTitle>
 
@@ -11,12 +16,12 @@
     <MudStack Row>
 
       <MudTextField @bind-Value="UrlText" Label="File URL" Variant="Variant.Outlined" Margin="Margin.Dense"
-      HelperText="Enter The File URL To Upload To The Server" HelperTextOnFocus="true" Adornment="Adornment.End"
-      AdornmentIcon="@Icons.Material.Filled.InsertLink" AdornmentColor="Color.Info" Clearable="true"
-      Immediate="true" />
+                    HelperText="Enter The File URL To Upload To The Server" HelperTextOnFocus="true" Adornment="Adornment.End"
+                    AdornmentIcon="@Icons.Material.Filled.InsertLink" AdornmentColor="Color.Info" Clearable="true"
+                    Immediate="true" />
 
       <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Add" Color="Color.Primary"
-      Style="text-transform:none; height:40px; margin-top:0.5rem;" Size="Size.Small" OnClick="AddURL">Add</MudButton>
+                 Style="text-transform:none; height:40px; margin-top:0.5rem;" Size="Size.Small" OnClick="AddURL">Add</MudButton>
 
     </MudStack>
 
@@ -29,11 +34,35 @@
     </MudAlert>
   }
 
-  <MudPaper Class="pa-5 mx-5" Elevation="5">
-
-
-
-  </MudPaper>
+  <MudTable Items="@_fileDownloadQueueItems" Dense="true" Hover="true" Loading="@_isLoadingTheList" Class="pa-5 mx-5" Elevation="5">
+    <ColGroup>
+      <col style="width: 60%" />
+      <col style="width: 10%" />
+      <col style="width: 10%" />
+      <col style="width: 20%" />
+    </ColGroup>
+    <HeaderContent>
+      <MudTh>URL</MudTh>
+      <MudTh>Status</MudTh>
+      <MudTh>Progress</MudTh>
+      <MudTh>Actions</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+      <MudTd DataLabel="URL" Style="word-break:break-all;">
+        @context.InputUrl
+      </MudTd>
+      <MudTd DataLabel="Status">@context.Status</MudTd>
+      <MudTd DataLabel="Progress">
+        <MudProgressLinear Value="@context.ProgressPercentage" Color="Color.Primary" Class="my-2" />
+      </MudTd>
+      <MudTd DataLabel="Actions">
+        @* <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" OnClick="() => PauseDownload(context)">Pause</MudButton>
+          <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small" OnClick="() => ResumeDownload(context)">Resume</MudButton>
+          <MudButton Variant="Variant.Filled" Color="Color.Error" Size="Size.Small" OnClick="() => CancelDownload(context)">Cancel</MudButton>
+          <MudButton Variant="Variant.Filled" Color="Color.Info" Size="Size.Small" OnClick="() => ToggleMoreOptions(context)">More</MudButton> *@
+      </MudTd>
+    </RowTemplate>
+  </MudTable>
 
 </MudStack>
 
@@ -42,6 +71,21 @@
 
   public string UrlText { get; set; } = "";
   public string ErrorMessage { get; set; } = "";
+
+  private List<FileDownloadQueueItem> _fileDownloadQueueItems = new();
+  private bool _isLoadingTheList = true;
+
+  protected override async Task OnInitializedAsync()
+  {
+    await LoadDownloadItemsList();
+  }
+
+  private async Task LoadDownloadItemsList()
+  {
+    _isLoadingTheList = true;
+    _fileDownloadQueueItems = await _context.FileDownloadQueueItems.ToListAsync();
+    _isLoadingTheList = false;
+  }
 
   public async Task AddURL()
   {
@@ -54,6 +98,8 @@
         await _context.SaveChangesAsync();
 
         ClearErrorMessage();
+
+        await LoadDownloadItemsList();
       }
       catch (Exception exception)
       {
