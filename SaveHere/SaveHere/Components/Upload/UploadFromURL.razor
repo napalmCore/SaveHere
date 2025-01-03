@@ -3,7 +3,8 @@
 @using SaveHere.Models
 @using SaveHere.Models.db
 
-@rendermode @(new InteractiveServerRenderMode(true))
+@* @rendermode @(new InteractiveServerRenderMode(true)) *@
+@rendermode InteractiveServer
 @attribute [StreamRendering]
 
 <MudPopoverProvider />
@@ -19,12 +20,12 @@
     <MudStack Row>
 
       <MudTextField @bind-Value="UrlText" Label="File URL" Variant="Variant.Outlined" Margin="Margin.Dense"
-      HelperText="Enter The File URL To Upload To The Server" HelperTextOnFocus="true" Adornment="Adornment.End"
-      AdornmentIcon="@Icons.Material.Filled.InsertLink" AdornmentColor="Color.Info" Clearable="true"
-      Immediate="true" />
+                    HelperText="Enter The File URL To Upload To The Server" HelperTextOnFocus="true" Adornment="Adornment.End"
+                    AdornmentIcon="@Icons.Material.Filled.InsertLink" AdornmentColor="Color.Info" Clearable="true"
+                    Immediate="true" />
 
       <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Add" Color="Color.Primary"
-      Style="text-transform:none; height:40px; margin-top:0.5rem;" Size="Size.Small" OnClick="AddURL">Add</MudButton>
+                 Style="text-transform:none; height:40px; margin-top:0.5rem;" Size="Size.Small" OnClick="AddURL">Add</MudButton>
 
     </MudStack>
 
@@ -32,9 +33,9 @@
 
   @if (!string.IsNullOrWhiteSpace(ErrorMessage))
   {
-      <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Dense="true" Elevation="10" ContentAlignment="HorizontalAlignment.Center" Class="mx-5" ShowCloseIcon="true" CloseIconClicked="ClearErrorMessage">
+    <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Dense="true" Elevation="10" ContentAlignment="HorizontalAlignment.Center" Class="mx-5" ShowCloseIcon="true" CloseIconClicked="ClearErrorMessage">
       @ErrorMessage
-      </MudAlert>
+    </MudAlert>
   }
 
   <MudTable Items="@_fileDownloadQueueItems" Dense="true" Hover="true" Loading="@_isLoadingTheList" Class="pa-5 mx-5" Elevation="5">
@@ -72,16 +73,16 @@
     <ChildRowContent>
       @if (context.ShowMoreOptions)
       {
-          <MudTr>
-            <MudTd ColSpan="4">
-              <MudPaper Class="pa-4" Elevation="0">
-                <MudStack>
-                  <MudTextField T="string" Label="Option 1" Variant="Variant.Outlined" Margin="Margin.Dense" />
-                  <MudTextField T="string" Label="Option 2" Variant="Variant.Outlined" Margin="Margin.Dense" />
-                </MudStack>
-              </MudPaper>
-            </MudTd>
-          </MudTr>
+        <MudTr>
+          <MudTd ColSpan="4">
+            <MudPaper Class="pa-4" Elevation="0">
+              <MudStack>
+                <MudTextField T="string" Label="Option 1" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                <MudTextField T="string" Label="Option 2" Variant="Variant.Outlined" Margin="Margin.Dense" />
+              </MudStack>
+            </MudPaper>
+          </MudTd>
+        </MudTr>
       }
     </ChildRowContent>
   </MudTable>
@@ -90,6 +91,7 @@
 
 @code {
   [Inject] public required AppDbContext _context { get; set; }
+  [Inject] private PersistentComponentState _persistentState { get; set; } = default!;
 
   public string UrlText { get; set; } = "";
   public string ErrorMessage { get; set; } = "";
@@ -99,7 +101,22 @@
 
   protected override async Task OnInitializedAsync()
   {
-    await LoadDownloadItemsList();
+    _persistentState.RegisterOnPersisting(PersistItems);
+
+    if (_persistentState.TryTakeFromJson<List<FileDownloadQueueItem>>(nameof(_fileDownloadQueueItems), out var savedItems) && savedItems != null)
+    {
+      _fileDownloadQueueItems = savedItems;
+    }
+    else
+    {
+      await LoadDownloadItemsList();
+    }
+  }
+
+  private Task PersistItems()
+  {
+    _persistentState.PersistAsJson(nameof(_fileDownloadQueueItems), _fileDownloadQueueItems);
+    return Task.CompletedTask;
   }
 
   private async Task LoadDownloadItemsList()
@@ -107,7 +124,7 @@
     try
     {
       _isLoadingTheList = true;
-      await Task.Delay(2000);
+      await Task.Delay(2000); // temp temp temp Remove this later!
       _fileDownloadQueueItems = await _context.FileDownloadQueueItems.ToListAsync();
     }
     catch (Exception exception)
