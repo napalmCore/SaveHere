@@ -3,6 +3,9 @@
 @using SaveHere.Models
 @using SaveHere.Models.db
 
+@rendermode @(new InteractiveServerRenderMode(false))
+@attribute [StreamRendering]
+
 <MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
@@ -16,12 +19,12 @@
     <MudStack Row>
 
       <MudTextField @bind-Value="UrlText" Label="File URL" Variant="Variant.Outlined" Margin="Margin.Dense"
-                    HelperText="Enter The File URL To Upload To The Server" HelperTextOnFocus="true" Adornment="Adornment.End"
-                    AdornmentIcon="@Icons.Material.Filled.InsertLink" AdornmentColor="Color.Info" Clearable="true"
-                    Immediate="true" />
+      HelperText="Enter The File URL To Upload To The Server" HelperTextOnFocus="true" Adornment="Adornment.End"
+      AdornmentIcon="@Icons.Material.Filled.InsertLink" AdornmentColor="Color.Info" Clearable="true"
+      Immediate="true" />
 
       <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Add" Color="Color.Primary"
-                 Style="text-transform:none; height:40px; margin-top:0.5rem;" Size="Size.Small" OnClick="AddURL">Add</MudButton>
+      Style="text-transform:none; height:40px; margin-top:0.5rem;" Size="Size.Small" OnClick="AddURL">Add</MudButton>
 
     </MudStack>
 
@@ -29,9 +32,9 @@
 
   @if (!string.IsNullOrWhiteSpace(ErrorMessage))
   {
-    <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Dense="true" Elevation="10" ContentAlignment="HorizontalAlignment.Center" Class="mx-5" ShowCloseIcon="true" CloseIconClicked="ClearErrorMessage">
+      <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Dense="true" Elevation="10" ContentAlignment="HorizontalAlignment.Center" Class="mx-5" ShowCloseIcon="true" CloseIconClicked="ClearErrorMessage">
       @ErrorMessage
-    </MudAlert>
+      </MudAlert>
   }
 
   <MudTable Items="@_fileDownloadQueueItems" Dense="true" Hover="true" Loading="@_isLoadingTheList" Class="pa-5 mx-5" Elevation="5">
@@ -53,15 +56,34 @@
       </MudTd>
       <MudTd DataLabel="Status">@context.Status</MudTd>
       <MudTd DataLabel="Progress">
-        <MudProgressLinear Value="@context.ProgressPercentage" Color="Color.Primary" Class="my-2" />
+        <MudProgressLinear Value="@context.ProgressPercentage" Color="Color.Tertiary" Striped="true" Class="mt-3">
+          <MudText Typo="Typo.body2" Color="Color.Inherit" Class="mb-5">
+            <b>@context.ProgressPercentage%</b>
+          </MudText>
+        </MudProgressLinear>
       </MudTd>
       <MudTd DataLabel="Actions">
-        @* <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" OnClick="() => PauseDownload(context)">Pause</MudButton>
-          <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small" OnClick="() => ResumeDownload(context)">Resume</MudButton>
-          <MudButton Variant="Variant.Filled" Color="Color.Error" Size="Size.Small" OnClick="() => CancelDownload(context)">Cancel</MudButton>
-          <MudButton Variant="Variant.Filled" Color="Color.Info" Size="Size.Small" OnClick="() => ToggleMoreOptions(context)">More</MudButton> *@
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" OnClick="() => PauseDownload(context)">Pause</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small" OnClick="() => ResumeDownload(context)">Resume</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Error" Size="Size.Small" OnClick="() => CancelDownload(context)">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Info" Size="Size.Small" OnClick="() => ToggleMoreOptions(context)">More</MudButton>
       </MudTd>
     </RowTemplate>
+    <ChildRowContent>
+      @if (context.ShowMoreOptions)
+      {
+          <MudTr>
+            <MudTd ColSpan="4">
+              <MudPaper Class="pa-4" Elevation="0">
+                <MudStack>
+                  <MudTextField T="string" Label="Option 1" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                  <MudTextField T="string" Label="Option 2" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudStack>
+              </MudPaper>
+            </MudTd>
+          </MudTr>
+      }
+    </ChildRowContent>
   </MudTable>
 
 </MudStack>
@@ -73,7 +95,7 @@
   public string ErrorMessage { get; set; } = "";
 
   private List<FileDownloadQueueItem> _fileDownloadQueueItems = new();
-  private bool _isLoadingTheList = true;
+  private bool _isLoadingTheList = false;
 
   protected override async Task OnInitializedAsync()
   {
@@ -82,9 +104,20 @@
 
   private async Task LoadDownloadItemsList()
   {
-    _isLoadingTheList = true;
-    _fileDownloadQueueItems = await _context.FileDownloadQueueItems.ToListAsync();
-    _isLoadingTheList = false;
+    try
+    {
+      _isLoadingTheList = true;
+      await Task.Delay(2000);
+      _fileDownloadQueueItems = await _context.FileDownloadQueueItems.ToListAsync();
+    }
+    catch (Exception exception)
+    {
+      ErrorMessage = $"An Error Occurred While Getting Items List: {exception.Message}";
+    }
+    finally
+    {
+      _isLoadingTheList = false;
+    }
   }
 
   public async Task AddURL()
@@ -118,4 +151,25 @@
   {
     ErrorMessage = "";
   }
+
+  private void PauseDownload(FileDownloadQueueItem item)
+  {
+    // Implement pause functionality
+  }
+
+  private void ResumeDownload(FileDownloadQueueItem item)
+  {
+    // Implement resume functionality
+  }
+
+  private void CancelDownload(FileDownloadQueueItem item)
+  {
+    // Implement cancel functionality
+  }
+
+  private void ToggleMoreOptions(FileDownloadQueueItem item)
+  {
+    item.ShowMoreOptions = !item.ShowMoreOptions;
+  }
+
 }
