@@ -7,6 +7,7 @@ using SaveHere.Components;
 using SaveHere.Components.Account;
 using SaveHere.Models;
 using SaveHere.Models.db;
+using SaveHere.Services;
 
 namespace SaveHere
 {
@@ -61,6 +62,10 @@ namespace SaveHere
           .AddDefaultTokenProviders();
 
       builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
+
+      builder.Services.AddSingleton<DownloadStateService>();
+
+      builder.Services.AddScoped<HttpClient>();
 
       var app = builder.Build();
 
