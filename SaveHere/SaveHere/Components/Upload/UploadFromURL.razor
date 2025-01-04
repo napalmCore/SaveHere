@@ -65,7 +65,7 @@
       </MudTd>
       <MudTd DataLabel="Actions">
         <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" OnClick="() => PauseDownload(context)">Pause</MudButton>
-        <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small" OnClick="() => ResumeDownload(context)">Resume</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small" OnClick="async() => await DeleteItem(context)">Delete</MudButton>
         <MudButton Variant="Variant.Filled" Color="Color.Error" Size="Size.Small" OnClick="() => CancelDownload(context)">Cancel</MudButton>
         <MudButton Variant="Variant.Filled" Color="Color.Info" Size="Size.Small" OnClick="() => ToggleMoreOptions(context)">More</MudButton>
       </MudTd>
@@ -124,7 +124,6 @@
     try
     {
       _isLoadingTheList = true;
-      await Task.Delay(2000); // temp temp temp Remove this later!
       _fileDownloadQueueItems = await _context.FileDownloadQueueItems.ToListAsync();
     }
     catch (Exception exception)
@@ -174,9 +173,18 @@
     // Implement pause functionality
   }
 
-  private void ResumeDownload(FileDownloadQueueItem item)
+  private async Task DeleteItem(FileDownloadQueueItem item)
   {
-    // Implement resume functionality
+    try
+    {
+      _context.FileDownloadQueueItems.Remove(item);
+      await _context.SaveChangesAsync();
+      await LoadDownloadItemsList();
+    }
+    catch (Exception exception)
+    {
+      ErrorMessage = $"An Error Occurred While Deleting The Item: {exception.Message}";
+    }
   }
 
   private void CancelDownload(FileDownloadQueueItem item)

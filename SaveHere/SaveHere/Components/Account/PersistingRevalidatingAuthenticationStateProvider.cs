@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
 using SaveHere.Client;
-using SaveHere.Data;
+using SaveHere.Models;
 using System.Diagnostics;
 using System.Security.Claims;
 

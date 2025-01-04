@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Identity;
-using SaveHere.Data;
+using SaveHere.Models;
 
 namespace SaveHere.Components.Account
 {

@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Primitives;
 using SaveHere.Components.Account.Pages;
 using SaveHere.Components.Account.Pages.Manage;
-using SaveHere.Data;
+using SaveHere.Models;
 using System.Security.Claims;
 using System.Text.Json;
 

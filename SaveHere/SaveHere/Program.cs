@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using MudBlazor.Services;
 using SaveHere.Components;
 using SaveHere.Components.Account;
-using SaveHere.Data;
+using SaveHere.Models;
 using SaveHere.Models.db;
 
 namespace SaveHere
@@ -53,13 +53,10 @@ namespace SaveHere
           })
           .AddIdentityCookies();
 
-      var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
-      builder.Services.AddDbContext<ApplicationDbContext>(options =>
-          options.UseSqlServer(connectionString));
       builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
       builder.Services.AddIdentityCore<ApplicationUser>(options => options.SignIn.RequireConfirmedAccount = true)
-          .AddEntityFrameworkStores<ApplicationDbContext>()
+          .AddEntityFrameworkStores<AppDbContext>()
           .AddSignInManager()
           .AddDefaultTokenProviders();
 

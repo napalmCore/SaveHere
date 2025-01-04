@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
-using SaveHere.Data;
+using SaveHere.Models;
 
 namespace SaveHere.Components.Account
 {
