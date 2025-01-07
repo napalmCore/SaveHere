@@ -28,7 +28,7 @@
                     Immediate="true" />
 
       <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Add" Color="Color.Primary"
-                 Style="text-transform:none; height:40px; margin-top:0.5rem;" Size="Size.Small" OnClick="AddURL">Add</MudButton>
+                 Style="text-transform:none; height:40px; margin-top:0.5rem;" Class="pr-5" Size="Size.Small" OnClick="AddURL">Add</MudButton>
 
     </MudStack>
 
@@ -182,11 +182,38 @@
   {
     try
     {
-      await StartFileDownload(item, DownloadState.GetOrAddTokenSource(item.Id));
+      item.Status = EQueueItemStatus.Downloading;
+      item.ProgressPercentage = 0;
+      _context.SaveChanges();
+
+      var downloadResult = await DownloadFile(item, DownloadState.GetOrAddTokenSource(item.Id).Token);
+
+      if (downloadResult)
+      {
+        item.Status = EQueueItemStatus.Finished;
+        // return Ok("File downloaded successfully.");
+      }
+      else
+      {
+        item.Status = EQueueItemStatus.Paused;
+        // return BadRequest("There was an issue in downloading the file!");
+      }
+    }
+    catch (OperationCanceledException)
+    {
+      item.Status = EQueueItemStatus.Cancelled;
+      // return Ok("File download was cancelled.");
     }
     catch (Exception exception)
     {
-      ErrorMessage = $"An Error Occurred While Adding The URL: {exception.Message}";
+      // Log the exception
+      // return StatusCode(500, $"An error occurred while downloading the file.\n{ex.Message}");
+      ErrorMessage = $"An Error Occurred While Trying To Download: {exception.Message}";
+    }
+    finally
+    {
+      item.Status = EQueueItemStatus.Finished;
+      await _context.SaveChangesAsync();
       DownloadState.RemoveTokenSource(item.Id);
     }
   }
@@ -194,6 +221,7 @@
   private async Task PauseDownload(FileDownloadQueueItem item)
   {
     // Implement pause functionality
+    ErrorMessage = "Not Implemented Yet!";
   }
 
   private async void CancelDownload(FileDownloadQueueItem item)
@@ -203,10 +231,11 @@
       tokenSource?.Cancel();
       DownloadState.RemoveTokenSource(item.Id);
 
-      item.Status = EQueueItemStatus.Cancelled;
-      await _context.SaveChangesAsync();
-      await LoadDownloadItemsList();
     }
+
+    item.Status = EQueueItemStatus.Cancelled;
+    await _context.SaveChangesAsync();
+    await LoadDownloadItemsList();
   }
 
   private async Task DeleteItem(FileDownloadQueueItem item)
@@ -229,78 +258,30 @@
     item.ShowMoreOptions = !item.ShowMoreOptions;
   }
 
-  public async Task StartFileDownload(FileDownloadQueueItem item, CancellationTokenSource cts)
-  {
-    Console.WriteLine("StartFileDownload");
-    // Console.WriteLine(request.Id);
-    // Console.WriteLine(request.UseHeadersForFilename);
-    // Console.WriteLine(request.proxyServer.Host);
-
-    item.Status = EQueueItemStatus.Downloading;
-    item.ProgressPercentage = 0;
-    _context.SaveChanges();
-
-    try
-    {
-      var downloadResult = await DownloadFile(item, cts.Token);
-
-      if (downloadResult)
-      {
-        item.Status = EQueueItemStatus.Finished;
-        await _context.SaveChangesAsync();
-        // return Ok("File downloaded successfully.");
-      }
-      else
-      {
-        item.Status = EQueueItemStatus.Paused;
-        await _context.SaveChangesAsync();
-        // return BadRequest("There was an issue in downloading the file!");
-      }
-    }
-    catch (OperationCanceledException)
-    {
-      item.Status = EQueueItemStatus.Cancelled;
-      await _context.SaveChangesAsync();
-      // return Ok("File download was cancelled.");
-    }
-    catch (Exception exception)
-    {
-      // Log the exception
-      // return StatusCode(500, $"An error occurred while downloading the file.\n{ex.Message}");
-    }
-    finally
-    {
-      DownloadState.RemoveTokenSource(item.Id);
-    }
-  }
-
   public async Task<bool> DownloadFile(FileDownloadQueueItem queueItem, CancellationToken cancellationToken)
   {
-    bool UseHeadersForFilename = false;
+    bool UseHeadersForFilename = true;
     ProxyServer? proxyServer = null;
 
-    Console.WriteLine("Downloading file...step1");
     // Validate the URL (must use either HTTP or HTTPS schemes)
     if (string.IsNullOrEmpty(queueItem.InputUrl) ||
         !Uri.TryCreate(queueItem.InputUrl, UriKind.Absolute, out Uri? uriResult) ||
         !(uriResult.Scheme == Uri.UriSchemeHttp || uriResult.Scheme == Uri.UriSchemeHttps))
     {
-      return false;
+      throw new Exception("Invalid URL");
     }
 
     try
     {
-        var httpClient = _httpClient;
-      Console.WriteLine("Downloading file...step2");
-      Console.WriteLine(proxyServer);
+      var httpClient = _httpClient;
       if (proxyServer != null && !(string.IsNullOrWhiteSpace(proxyServer.Protocol) || string.IsNullOrWhiteSpace(proxyServer.Host) || proxyServer.Port == 0))
       {
         var url = proxyServer.Protocol + "://" + proxyServer.Host + ":" + proxyServer.Port;
-        Console.WriteLine(url);
+
         var proxy = new WebProxy
           {
             Address = new Uri(url),
-            BypassProxyOnLocal = false,
+            BypassProxyOnLocal = true,
             //Credentials = new NetworkCredential(username, password)
           };
 
@@ -314,23 +295,20 @@
 
       }
 
-
       var fileName = Helpers.ExtractFileNameFromUrl(queueItem.InputUrl);
 
       try
       {
         var res = await httpClient.GetAsync("https://dummy.me");
-
       }
-      catch (System.Exception e)
+      catch (Exception e)
       {
-
-        Console.WriteLine(e.Message);
+        throw e;
       }
 
       var response = await httpClient.GetAsync(queueItem.InputUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
 
-      if (!response.IsSuccessStatusCode) return false;
+      if (!response.IsSuccessStatusCode) throw new Exception("Can't Read Headers From The Response");
 
       if (UseHeadersForFilename)
       {
@@ -358,11 +336,13 @@
         }
       }
 
+      var downloadPath = Path.Combine(Directory.GetCurrentDirectory(), "downloads");
+
       // Construct the file path using the base directory and the sanitized filename
-      var localFilePath = Path.GetFullPath(Path.Combine("/app/downloads", fileName));
+      var localFilePath = Path.GetFullPath(Path.Combine(downloadPath, fileName));
 
       // Ensure the file path is within the intended directory
-      if (!localFilePath.StartsWith(Path.GetFullPath("/app/downloads"), StringComparison.OrdinalIgnoreCase))
+      if (!localFilePath.StartsWith(Path.GetFullPath(downloadPath), StringComparison.OrdinalIgnoreCase))
       {
         throw new UnauthorizedAccessException("Invalid file path.");
       }
@@ -383,7 +363,7 @@
         }
 
         fileName = $"{fileNameWithoutExtension}_{digit}{fileExtension}";
-        localFilePath = Path.Combine("/app/downloads", fileName);
+        localFilePath = Path.Combine(downloadPath, fileName);
         tempFilePath = localFilePath + ".tmp";
         digit++;
       }
@@ -512,15 +492,14 @@
           UnixFileMode.UserWrite | UnixFileMode.GroupWrite | UnixFileMode.OtherWrite |
           UnixFileMode.UserExecute | UnixFileMode.GroupExecute | UnixFileMode.OtherExecute);
     }
-    catch (OperationCanceledException)
+    catch (OperationCanceledException ec)
     {
       // Rethrow the OperationCanceledException to be caught by the caller
-      throw;
+      throw ec;
     }
     catch (Exception e)
     {
-      Console.WriteLine(e.Message);
-      return false;
+      throw e;
     }
 
     return true;

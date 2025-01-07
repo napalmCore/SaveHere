@@ -34,6 +34,20 @@ namespace SaveHere
           options.UseSqlite($"Data Source={Path.Combine(dbPath, "database.sqlite3.db")}")
       );
 
+      // Creating the download directory
+      var downloadPath = Path.Combine(Directory.GetCurrentDirectory(), "downloads");
+      if (!Directory.Exists(downloadPath))
+      {
+        try
+        {
+          Directory.CreateDirectory(downloadPath);
+        }
+        catch
+        {
+          throw new InvalidOperationException("Could not create the download directory.");
+        }
+      }
+
       // Add MudBlazor services
       builder.Services.AddMudServices();
 
