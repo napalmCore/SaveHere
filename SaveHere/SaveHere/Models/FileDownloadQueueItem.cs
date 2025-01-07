@@ -13,7 +13,9 @@ namespace SaveHere.Models
 
     public int ProgressPercentage { get; set; } = 0;
 
-    public bool ShowMoreOptions { get; set; } = false;
+    public bool bShowMoreOptions { get; set; } = false;
+
+    public bool bShouldGetFilenameFromHttpHeaders { get; set; } = true;
   }
 
   public enum EQueueItemStatus

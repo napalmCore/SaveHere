@@ -79,14 +79,13 @@
       </MudTd>
     </RowTemplate>
     <ChildRowContent>
-      @if (context.ShowMoreOptions)
+      @if (context.bShowMoreOptions)
       {
         <MudTr>
           <MudTd ColSpan="4">
-            <MudPaper Class="pa-4" Elevation="0">
+            <MudPaper Class="pa-5" Elevation="10">
               <MudStack>
-                <MudTextField T="string" Label="Option 1" Variant="Variant.Outlined" Margin="Margin.Dense" />
-                <MudTextField T="string" Label="Option 2" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                <MudCheckBox @bind-Value="@context.bShouldGetFilenameFromHttpHeaders" Label="Use Headers For Filename" Color="Color.Primary" />
               </MudStack>
             </MudPaper>
           </MudTd>
@@ -255,12 +254,11 @@
 
   private void ToggleMoreOptions(FileDownloadQueueItem item)
   {
-    item.ShowMoreOptions = !item.ShowMoreOptions;
+    item.bShowMoreOptions = !item.bShowMoreOptions;
   }
 
   public async Task<bool> DownloadFile(FileDownloadQueueItem queueItem, CancellationToken cancellationToken)
   {
-    bool UseHeadersForFilename = true;
     ProxyServer? proxyServer = null;
 
     // Validate the URL (must use either HTTP or HTTPS schemes)
@@ -310,7 +308,7 @@
 
       if (!response.IsSuccessStatusCode) throw new Exception("Can't Read Headers From The Response");
 
-      if (UseHeadersForFilename)
+      if (queueItem.bShouldGetFilenameFromHttpHeaders)
       {
         var contentDisposition = response.Content.Headers.ContentDisposition;
 
