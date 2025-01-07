@@ -366,3 +366,4 @@ FodyWeavers.xsd
 downloads/*
 /backend/db
 /SaveHere/SaveHere/db
+/SaveHere/SaveHere/downloads
