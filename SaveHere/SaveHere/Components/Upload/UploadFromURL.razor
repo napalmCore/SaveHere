@@ -75,7 +75,7 @@
         </MudButton>
         <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small" OnClick="async() => await DeleteItem(context)">Delete</MudButton>
         <MudButton Variant="Variant.Filled" Color="Color.Error" Size="Size.Small" OnClick="() => CancelDownload(context)">Cancel</MudButton>
-        <MudButton Variant="Variant.Filled" Color="Color.Info" Size="Size.Small" OnClick="() => ToggleMoreOptions(context)">More</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Info" Size="Size.Small" OnClick="() => ToggleMoreOptions(context)">@(context.bShowMoreOptions?"Close":"More")</MudButton>
       </MudTd>
     </RowTemplate>
     <ChildRowContent>
@@ -297,7 +297,7 @@
 
       try
       {
-        var res = await httpClient.GetAsync("https://dummy.me");
+        var res = await httpClient.GetAsync("https://google.com");
       }
       catch (Exception e)
       {

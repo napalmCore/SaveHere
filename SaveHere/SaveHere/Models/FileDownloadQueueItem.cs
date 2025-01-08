@@ -7,6 +7,8 @@ namespace SaveHere.Models
     [Key]
     public int Id { get; set; }
 
+    [Required]
+    [Url]
     public string? InputUrl { get; set; }
 
     public EQueueItemStatus Status { get; set; } = EQueueItemStatus.Paused;
