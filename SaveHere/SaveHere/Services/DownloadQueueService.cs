@@ -267,19 +267,15 @@ namespace SaveHere.Services
           using var stream = new FileStream(tempFilePath, restartDownload ? FileMode.Create : FileMode.Append, FileAccess.Write);
           var contentLength = response.Content.Headers.ContentLength;
 
-          var buffer = new byte[81920]; // 80KB buffer (default buffer size used by Microsoft's CopyTo method in Stream)
+          // 80KB buffer (default buffer size used by Microsoft's CopyTo method in Stream)
+          var buffer = new byte[81920];
+
           int bytesRead;
-          double elapsedNanoSeconds;
-          double elapsedNanoSecondsAvg;
-          double bytesPerSecond;
-          double bytesPerSecondAvg;
-
-          // To avoid slowing down the process we should not be saving changes to the context on every iteration
-          double saveIntervalInSeconds = 0.5; // saving and updating every 0.5 second
-          double debounceInSeconds = 0;
-
-          var stopwatch = Stopwatch.StartNew();
-          var stopwatchAvg = Stopwatch.StartNew();
+          double speedMeasurementPeriodInSeconds = 1;
+          long bytesReadInLastPeriod = 0;
+          long bytesReadInTotal = 0;
+          var speedMeasurementStopwatch = Stopwatch.StartNew();
+          var speedMeasurementTotalStopwatch = Stopwatch.StartNew();
 
           // Ignore progress reporting when the ContentLength's header is not available
           if (!contentLength.HasValue)
@@ -294,22 +290,17 @@ namespace SaveHere.Services
 
               await stream.WriteAsync(buffer, 0, bytesRead, cancellationToken);
               totalBytesRead += bytesRead;
+              bytesReadInLastPeriod += bytesRead;
+              bytesReadInTotal += bytesRead;
 
-              // Calculate download speed
-              elapsedNanoSeconds = stopwatch.Elapsed.TotalNanoseconds;
-              bytesPerSecond = elapsedNanoSeconds > 0 ? bytesRead / elapsedNanoSeconds * 1e9 : 0;
-              elapsedNanoSecondsAvg = stopwatchAvg.Elapsed.TotalNanoseconds;
-              bytesPerSecondAvg = elapsedNanoSecondsAvg > 0 ? totalBytesRead / elapsedNanoSecondsAvg * 1e9 : 0;
-              stopwatch.Restart();
-
-              // Inform the client at regular intervals
-              debounceInSeconds += elapsedNanoSeconds / 1e9;
-              if (debounceInSeconds >= saveIntervalInSeconds)
+              var totalMeasurementSeconds = speedMeasurementStopwatch.Elapsed.TotalSeconds;
+              if (totalMeasurementSeconds >= speedMeasurementPeriodInSeconds)
               {
-                queueItem.CurrentDownloadSpeed=bytesPerSecond;
-                queueItem.AverageDownloadSpeed = bytesPerSecondAvg;
-                progress?.Report(queueItem.ProgressPercentage);
-                debounceInSeconds = 0;
+                queueItem.CurrentDownloadSpeed = bytesReadInLastPeriod / totalMeasurementSeconds;
+                queueItem.AverageDownloadSpeed = bytesReadInTotal / speedMeasurementTotalStopwatch.Elapsed.TotalSeconds;
+                await _context.SaveChangesAsync(cancellationToken);
+                bytesReadInLastPeriod = 0;
+                speedMeasurementStopwatch.Restart();
               }
             }
 
@@ -332,25 +323,19 @@ namespace SaveHere.Services
 
               await stream.WriteAsync(buffer, 0, bytesRead, cancellationToken);
               totalBytesRead += bytesRead;
+              bytesReadInLastPeriod += bytesRead;
+              bytesReadInTotal += bytesRead;
               queueItem.ProgressPercentage = (int)(100.0 * totalBytesRead / totalContentLength);
               progress?.Report(queueItem.ProgressPercentage);
 
-              // Calculate download speed
-              elapsedNanoSeconds = stopwatch.Elapsed.TotalNanoseconds;
-              bytesPerSecond = elapsedNanoSeconds > 0 ? bytesRead / elapsedNanoSeconds * 1e9 : 0;
-              elapsedNanoSecondsAvg = stopwatchAvg.Elapsed.TotalNanoseconds;
-              bytesPerSecondAvg = elapsedNanoSecondsAvg > 0 ? totalBytesRead / elapsedNanoSecondsAvg * 1e9 : 0;
-              stopwatch.Restart();
-
-              // Save progress to the database and inform the client at regular intervals
-              debounceInSeconds += elapsedNanoSeconds / 1e9;
-              if (debounceInSeconds >= saveIntervalInSeconds)
+              var totalMeasurementSeconds = speedMeasurementStopwatch.Elapsed.TotalSeconds;
+              if (totalMeasurementSeconds >= speedMeasurementPeriodInSeconds)
               {
-                queueItem.CurrentDownloadSpeed = bytesPerSecond;
-                queueItem.AverageDownloadSpeed = bytesPerSecondAvg;
+                queueItem.CurrentDownloadSpeed = bytesReadInLastPeriod / totalMeasurementSeconds;
+                queueItem.AverageDownloadSpeed = bytesReadInTotal / speedMeasurementTotalStopwatch.Elapsed.TotalSeconds;
                 await _context.SaveChangesAsync(cancellationToken);
-                progress?.Report(queueItem.ProgressPercentage);
-                debounceInSeconds = 0;
+                bytesReadInLastPeriod = 0;
+                speedMeasurementStopwatch.Restart();
               }
             }
 

@@ -62,16 +62,21 @@
       <MudTd DataLabel="Progress">
         <MudStack Spacing="0">
 
-          <MudText Typo="Typo.subtitle2" Align="Align.Left" Class="ma-0 pa-0">@FormatSpeed(context.CurrentDownloadSpeed)</MudText>
+          <MudText Typo="Typo.body2" Align="Align.Left" Class="ma-0 pa-0">
+            spd @FormatSpeed(context.CurrentDownloadSpeed)
+          </MudText>
 
-          <MudProgressLinear Value="@context.ProgressPercentage" Color="Color.Tertiary" Striped="true" Class="">
-            <MudText Typo="Typo.body2" Color="Color.Inherit" Class="">
+          <MudStack Row="true" Spacing="1" Justify="Justify.SpaceBetween">
+            <MudProgressLinear Value="@context.ProgressPercentage" Color="Color.Tertiary" Striped="true" Class="ma-0 pa-0" Size="Size.Large" />
+
+            <MudText Typo="Typo.inherit" Color="Color.Warning" Class="ma-0 pa-0" Align="Align.Right" Inline="true" Style="font-size:10px;">
               @context.ProgressPercentage%
             </MudText>
-          </MudProgressLinear>
+          </MudStack>
 
-
-          <MudText Typo="Typo.subtitle2" Align="Align.Left" Class="ma-0 pa-0">@FormatSpeed(context.AverageDownloadSpeed)</MudText>
+          <MudText Typo="Typo.body2" Align="Align.Left" Class="ma-0 pa-0">
+            avg @FormatSpeed(context.AverageDownloadSpeed)
+          </MudText>
 
         </MudStack>
       </MudTd>
@@ -92,7 +97,7 @@
       {
         <MudTr>
           <MudTd ColSpan="4">
-            <MudPaper Class="pa-5" Elevation="10">
+            <MudPaper Class="pa-5" Elevation="0" Outlined="true">
               <MudStack>
                 <MudCheckBox @bind-Value="@context.bShouldGetFilenameFromHttpHeaders" Label="Use Headers For Filename" Color="Color.Primary" />
               </MudStack>
