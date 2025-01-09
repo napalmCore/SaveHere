@@ -75,7 +75,7 @@
         </MudButton>
         <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small" OnClick="async() => await DeleteItem(context)">Delete</MudButton>
         <MudButton Variant="Variant.Filled" Color="Color.Error" Size="Size.Small" OnClick="() => CancelDownload(context)">Cancel</MudButton>
-        <MudButton Variant="Variant.Filled" Color="Color.Info" Size="Size.Small" OnClick="() => ToggleMoreOptions(context)">@(context.bShowMoreOptions?"Close":"More")</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Info" Size="Size.Small" OnClick="() => ToggleMoreOptions(context)">@(context.bShowMoreOptions ? "Close" : "More")</MudButton>
       </MudTd>
     </RowTemplate>
     <ChildRowContent>
@@ -101,6 +101,7 @@
   [Inject] private PersistentComponentState _persistentState { get; set; } = default!;
   [Inject] public required DownloadStateService DownloadState { get; set; }
   [Inject] private HttpClient _httpClient { get; set; } = default!;
+  [Inject] public IDownloadQueueService DownloadQueueService { get; set; } = default!;
 
   public string UrlText { get; set; } = "";
   public string ErrorMessage { get; set; } = "";
@@ -133,7 +134,7 @@
     try
     {
       _isLoadingTheList = true;
-      _fileDownloadQueueItems = await _context.FileDownloadQueueItems.ToListAsync();
+      _fileDownloadQueueItems = await DownloadQueueService.GetQueueItemsAsync();
     }
     catch (Exception exception)
     {
@@ -181,39 +182,17 @@
   {
     try
     {
-      item.Status = EQueueItemStatus.Downloading;
-      item.ProgressPercentage = 0;
-      _context.SaveChanges();
-
-      var downloadResult = await DownloadFile(item, DownloadState.GetOrAddTokenSource(item.Id).Token);
-
-      if (downloadResult)
+      var progress = new Progress<int>(percent =>
       {
-        item.Status = EQueueItemStatus.Finished;
-        // return Ok("File downloaded successfully.");
-      }
-      else
-      {
-        item.Status = EQueueItemStatus.Paused;
-        // return BadRequest("There was an issue in downloading the file!");
-      }
-    }
-    catch (OperationCanceledException)
-    {
-      item.Status = EQueueItemStatus.Cancelled;
-      // return Ok("File download was cancelled.");
+        item.ProgressPercentage = percent;
+        InvokeAsync(StateHasChanged);
+      });
+
+      await DownloadQueueService.StartDownloadAsync(item.Id, progress);
     }
     catch (Exception exception)
     {
-      // Log the exception
-      // return StatusCode(500, $"An error occurred while downloading the file.\n{ex.Message}");
       ErrorMessage = $"An Error Occurred While Trying To Download: {exception.Message}";
-    }
-    finally
-    {
-      item.Status = EQueueItemStatus.Finished;
-      await _context.SaveChangesAsync();
-      DownloadState.RemoveTokenSource(item.Id);
     }
   }
 
@@ -229,7 +208,6 @@
     {
       tokenSource?.Cancel();
       DownloadState.RemoveTokenSource(item.Id);
-
     }
 
     item.Status = EQueueItemStatus.Cancelled;
@@ -256,252 +234,5 @@
   {
     item.bShowMoreOptions = !item.bShowMoreOptions;
   }
-
-  public async Task<bool> DownloadFile(FileDownloadQueueItem queueItem, CancellationToken cancellationToken)
-  {
-    ProxyServer? proxyServer = null;
-
-    // Validate the URL (must use either HTTP or HTTPS schemes)
-    if (string.IsNullOrEmpty(queueItem.InputUrl) ||
-        !Uri.TryCreate(queueItem.InputUrl, UriKind.Absolute, out Uri? uriResult) ||
-        !(uriResult.Scheme == Uri.UriSchemeHttp || uriResult.Scheme == Uri.UriSchemeHttps))
-    {
-      throw new Exception("Invalid URL");
-    }
-
-    try
-    {
-      var httpClient = _httpClient;
-      if (proxyServer != null && !(string.IsNullOrWhiteSpace(proxyServer.Protocol) || string.IsNullOrWhiteSpace(proxyServer.Host) || proxyServer.Port == 0))
-      {
-        var url = proxyServer.Protocol + "://" + proxyServer.Host + ":" + proxyServer.Port;
-
-        var proxy = new WebProxy
-          {
-            Address = new Uri(url),
-            BypassProxyOnLocal = true,
-            //Credentials = new NetworkCredential(username, password)
-          };
-
-        var httpClientHandler = new HttpClientHandler
-          {
-            Proxy = proxy,
-            UseProxy = true
-          };
-
-        httpClient = new HttpClient(httpClientHandler);
-
-      }
-
-      var fileName = Helpers.ExtractFileNameFromUrl(queueItem.InputUrl);
-
-      try
-      {
-        var res = await httpClient.GetAsync("https://google.com");
-      }
-      catch (Exception e)
-      {
-        throw e;
-      }
-
-      var response = await httpClient.GetAsync(queueItem.InputUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
-
-      if (!response.IsSuccessStatusCode) throw new Exception("Can't Read Headers From The Response");
-
-      if (queueItem.bShouldGetFilenameFromHttpHeaders)
-      {
-        var contentDisposition = response.Content.Headers.ContentDisposition;
-
-        if (contentDisposition != null)
-        {
-          if (!string.IsNullOrEmpty(contentDisposition.FileNameStar)) fileName = System.Web.HttpUtility.UrlDecode(contentDisposition.FileNameStar.Replace("\"", ""));
-          else if (!string.IsNullOrEmpty(contentDisposition.FileName)) fileName = System.Web.HttpUtility.UrlDecode(contentDisposition.FileName.Replace("\"", ""));
-        }
-      }
-
-      // Ensure the filename is safe by removing invalid characters and making sure it cannot end up being empty
-      fileName = string.Join("_", fileName.Split(Path.GetInvalidFileNameChars(), StringSplitOptions.RemoveEmptyEntries)).TrimEnd('.');
-      if (string.IsNullOrWhiteSpace(fileName)) fileName = "unnamed_" + DateTime.Now.ToString("yyyyMMddHHmmss");
-
-      // Try to determine the file extension based on common mime types if the filename doesn't have one already
-      if (string.IsNullOrEmpty(Path.GetExtension(fileName)))
-      {
-        var contentType = response.Content.Headers.ContentType?.MediaType;
-
-        if (contentType != null && Helpers.CommonMimeTypes.TryGetValue(contentType, out var extension))
-        {
-          fileName += extension;
-        }
-      }
-
-      var downloadPath = Path.Combine(Directory.GetCurrentDirectory(), "downloads");
-
-      // Construct the file path using the base directory and the sanitized filename
-      var localFilePath = Path.GetFullPath(Path.Combine(downloadPath, fileName));
-
-      // Ensure the file path is within the intended directory
-      if (!localFilePath.StartsWith(Path.GetFullPath(downloadPath), StringComparison.OrdinalIgnoreCase))
-      {
-        throw new UnauthorizedAccessException("Invalid file path.");
-      }
-
-      // Check for existing temp file and corresponding final file
-      string fileNameWithoutExtension = Path.GetFileNameWithoutExtension(fileName);
-      string fileExtension = Path.GetExtension(fileName);
-      var tempFilePath = localFilePath + ".tmp";
-      long totalBytesRead = 0;
-      int digit = 1;
-
-      while (System.IO.File.Exists(tempFilePath) || System.IO.File.Exists(localFilePath))
-      {
-        if (System.IO.File.Exists(tempFilePath))
-        {
-          totalBytesRead = new FileInfo(tempFilePath).Length;
-          break;
-        }
-
-        fileName = $"{fileNameWithoutExtension}_{digit}{fileExtension}";
-        localFilePath = Path.Combine(downloadPath, fileName);
-        tempFilePath = localFilePath + ".tmp";
-        digit++;
-      }
-
-      var requestMessage = new HttpRequestMessage(HttpMethod.Get, queueItem.InputUrl);
-
-      if (totalBytesRead > 0)
-      {
-        requestMessage.Headers.Range = new System.Net.Http.Headers.RangeHeaderValue(totalBytesRead, null);
-      }
-
-      response = await _httpClient.SendAsync(requestMessage, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
-
-      if (!response.IsSuccessStatusCode) return false;
-
-      // If the server supports resumption (HTTP 206), do not restart the download from scratch
-      bool restartDownload = response.StatusCode != System.Net.HttpStatusCode.PartialContent;
-
-      if (restartDownload)
-      {
-        totalBytesRead = 0;
-      }
-
-      using (var download = await response.Content.ReadAsStreamAsync())
-      {
-        using var stream = new FileStream(tempFilePath, restartDownload ? FileMode.Create : FileMode.Append, FileAccess.Write);
-        var contentLength = response.Content.Headers.ContentLength;
-
-        var buffer = new byte[81920]; // 80KB buffer (default buffer size used by Microsoft's CopyTo method in Stream)
-        int bytesRead;
-        double elapsedNanoSeconds;
-        double elapsedNanoSecondsAvg;
-        double bytesPerSecond;
-        double bytesPerSecondAvg;
-
-        // To avoid slowing down the process we should not be saving changes to the context on every iteration
-        double saveIntervalInSeconds = 0.5; // saving and updating every 0.5 second
-        double debounceInSeconds = 0;
-
-        var stopwatch = Stopwatch.StartNew();
-        var stopwatchAvg = Stopwatch.StartNew();
-
-        // Ignore progress reporting when the ContentLength's header is not available
-        if (!contentLength.HasValue)
-        {
-          while ((bytesRead = await download.ReadAsync(buffer, 0, buffer.Length, cancellationToken)) != 0)
-          {
-            // Check if cancellation is requested
-            if (cancellationToken.IsCancellationRequested)
-            {
-              throw new OperationCanceledException(cancellationToken);
-            }
-
-            await stream.WriteAsync(buffer, 0, bytesRead, cancellationToken);
-            totalBytesRead += bytesRead;
-
-            // Calculate download speed
-            elapsedNanoSeconds = stopwatch.Elapsed.TotalNanoseconds;
-            bytesPerSecond = elapsedNanoSeconds > 0 ? bytesRead / elapsedNanoSeconds * 1e9 : 0;
-            elapsedNanoSecondsAvg = stopwatchAvg.Elapsed.TotalNanoseconds;
-            bytesPerSecondAvg = elapsedNanoSecondsAvg > 0 ? totalBytesRead / elapsedNanoSecondsAvg * 1e9 : 0;
-            stopwatch.Restart();
-
-            // Inform the client at regular intervals
-            debounceInSeconds += elapsedNanoSeconds / 1e9;
-            if (debounceInSeconds >= saveIntervalInSeconds)
-            {
-              // await WebSocketHandler.SendMessageAsync($"speed:{queueItem.Id}:{bytesPerSecond:F2}");
-              // await WebSocketHandler.SendMessageAsync($"speedavg:{queueItem.Id}:{bytesPerSecondAvg:F2}");
-              debounceInSeconds = 0;
-            }
-          }
-
-          queueItem.ProgressPercentage = 100;
-          // await WebSocketHandler.SendMessageAsync($"progress:{queueItem.Id}:{queueItem.ProgressPercentage}");
-          await _context.SaveChangesAsync(cancellationToken);
-        }
-        else
-        {
-          // Adjusted for correct progress reporting when resuming download
-          long totalContentLength = contentLength.Value + totalBytesRead;
-
-          while ((bytesRead = await download.ReadAsync(buffer, 0, buffer.Length, cancellationToken)) != 0)
-          {
-            // Check if cancellation is requested
-            if (cancellationToken.IsCancellationRequested)
-            {
-              throw new OperationCanceledException(cancellationToken);
-            }
-
-            await stream.WriteAsync(buffer, 0, bytesRead, cancellationToken);
-            totalBytesRead += bytesRead;
-            queueItem.ProgressPercentage = (int)(100.0 * totalBytesRead / totalContentLength);
-
-            // Calculate download speed
-            elapsedNanoSeconds = stopwatch.Elapsed.TotalNanoseconds;
-            bytesPerSecond = elapsedNanoSeconds > 0 ? bytesRead / elapsedNanoSeconds * 1e9 : 0;
-            elapsedNanoSecondsAvg = stopwatchAvg.Elapsed.TotalNanoseconds;
-            bytesPerSecondAvg = elapsedNanoSecondsAvg > 0 ? totalBytesRead / elapsedNanoSecondsAvg * 1e9 : 0;
-            stopwatch.Restart();
-
-            // Save progress to the database and inform the client at regular intervals
-            debounceInSeconds += elapsedNanoSeconds / 1e9;
-            if (debounceInSeconds >= saveIntervalInSeconds)
-            {
-              await _context.SaveChangesAsync(cancellationToken);
-              // await WebSocketHandler.SendMessageAsync($"progress:{queueItem.Id}:{queueItem.ProgressPercentage}");
-              // await WebSocketHandler.SendMessageAsync($"speed:{queueItem.Id}:{bytesPerSecond:F2}");
-              // await WebSocketHandler.SendMessageAsync($"speedavg:{queueItem.Id}:{bytesPerSecondAvg:F2}");
-              debounceInSeconds = 0;
-            }
-          }
-
-          // Save any remaining changes
-          // await WebSocketHandler.SendMessageAsync($"progress:{queueItem.Id}:{queueItem.ProgressPercentage}");
-          await _context.SaveChangesAsync(cancellationToken);
-        }
-      }
-
-      // Rename temp file to final file
-      System.IO.File.Move(tempFilePath, localFilePath);
-
-      // Fixing file permissions on linux
-      if (OperatingSystem.IsLinux()) System.IO.File.SetUnixFileMode(localFilePath,
-          UnixFileMode.UserRead | UnixFileMode.GroupRead | UnixFileMode.OtherRead |
-          UnixFileMode.UserWrite | UnixFileMode.GroupWrite | UnixFileMode.OtherWrite |
-          UnixFileMode.UserExecute | UnixFileMode.GroupExecute | UnixFileMode.OtherExecute);
-    }
-    catch (OperationCanceledException ec)
-    {
-      // Rethrow the OperationCanceledException to be caught by the caller
-      throw ec;
-    }
-    catch (Exception e)
-    {
-      throw e;
-    }
-
-    return true;
-  }
-
 
 }

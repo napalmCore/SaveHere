@@ -81,6 +81,8 @@ namespace SaveHere
 
       builder.Services.AddScoped<HttpClient>();
 
+      builder.Services.AddScoped<IDownloadQueueService, DownloadQueueService>();
+
       var app = builder.Build();
 
       // Configure the HTTP request pipeline.
