@@ -306,15 +306,15 @@ namespace SaveHere.Services
               debounceInSeconds += elapsedNanoSeconds / 1e9;
               if (debounceInSeconds >= saveIntervalInSeconds)
               {
-                // await WebSocketHandler.SendMessageAsync($"speed:{queueItem.Id}:{bytesPerSecond:F2}");
-                // await WebSocketHandler.SendMessageAsync($"speedavg:{queueItem.Id}:{bytesPerSecondAvg:F2}");
+                queueItem.CurrentDownloadSpeed=bytesPerSecond;
+                queueItem.AverageDownloadSpeed = bytesPerSecondAvg;
+                progress?.Report(queueItem.ProgressPercentage);
                 debounceInSeconds = 0;
               }
             }
 
             queueItem.ProgressPercentage = 100;
             progress?.Report(queueItem.ProgressPercentage);
-            // await WebSocketHandler.SendMessageAsync($"progress:{queueItem.Id}:{queueItem.ProgressPercentage}");
             await _context.SaveChangesAsync(cancellationToken);
           }
           else
@@ -346,16 +346,15 @@ namespace SaveHere.Services
               debounceInSeconds += elapsedNanoSeconds / 1e9;
               if (debounceInSeconds >= saveIntervalInSeconds)
               {
+                queueItem.CurrentDownloadSpeed = bytesPerSecond;
+                queueItem.AverageDownloadSpeed = bytesPerSecondAvg;
                 await _context.SaveChangesAsync(cancellationToken);
-                // await WebSocketHandler.SendMessageAsync($"progress:{queueItem.Id}:{queueItem.ProgressPercentage}");
-                // await WebSocketHandler.SendMessageAsync($"speed:{queueItem.Id}:{bytesPerSecond:F2}");
-                // await WebSocketHandler.SendMessageAsync($"speedavg:{queueItem.Id}:{bytesPerSecondAvg:F2}");
+                progress?.Report(queueItem.ProgressPercentage);
                 debounceInSeconds = 0;
               }
             }
 
             // Save any remaining changes
-            // await WebSocketHandler.SendMessageAsync($"progress:{queueItem.Id}:{queueItem.ProgressPercentage}");
             await _context.SaveChangesAsync(cancellationToken);
           }
         }

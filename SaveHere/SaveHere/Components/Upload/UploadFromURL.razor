@@ -60,11 +60,20 @@
       </MudTd>
       <MudTd DataLabel="Status">@context.Status</MudTd>
       <MudTd DataLabel="Progress">
-        <MudProgressLinear Value="@context.ProgressPercentage" Color="Color.Tertiary" Striped="true" Class="mt-3">
-          <MudText Typo="Typo.body2" Color="Color.Inherit" Class="mb-5">
-            <b>@context.ProgressPercentage%</b>
-          </MudText>
-        </MudProgressLinear>
+        <MudStack Spacing="0">
+
+          <MudText Typo="Typo.subtitle2" Align="Align.Left" Class="ma-0 pa-0">@FormatSpeed(context.CurrentDownloadSpeed)</MudText>
+
+          <MudProgressLinear Value="@context.ProgressPercentage" Color="Color.Tertiary" Striped="true" Class="">
+            <MudText Typo="Typo.body2" Color="Color.Inherit" Class="">
+              @context.ProgressPercentage%
+            </MudText>
+          </MudProgressLinear>
+
+
+          <MudText Typo="Typo.subtitle2" Align="Align.Left" Class="ma-0 pa-0">@FormatSpeed(context.AverageDownloadSpeed)</MudText>
+
+        </MudStack>
       </MudTd>
       <MudTd DataLabel="Actions">
         <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" OnClick="async() =>
@@ -233,6 +242,15 @@
   private void ToggleMoreOptions(FileDownloadQueueItem item)
   {
     item.bShowMoreOptions = !item.bShowMoreOptions;
+  }
+
+  private string FormatSpeed(double speed)
+  {
+    if (speed == 0) return "0";
+    else if (speed < 1024) return $"{speed:F2} B/s";
+    else if (speed < 1024 * 1024) return $"{speed / 1024:F2} KB/s";
+    else if (speed < 1024 * 1024 * 1024) return $"{speed / 1024 / 1024:F2} MB/s";
+    else return $"{speed / 1024 / 1024 / 1024:F2} GB/s";
   }
 
 }
