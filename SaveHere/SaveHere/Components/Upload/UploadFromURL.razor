@@ -143,35 +143,26 @@
       await LoadDownloadItemsList();
     }
 
-    // Set up signalR connection
-    hubConnection = new HubConnectionBuilder()
-      .WithUrl(NavigationManager.ToAbsoluteUri("/DownloadProgressHub"), options =>
-      {
-        options.AccessTokenProvider = () =>
-        {
-          return Task.FromResult<string?>(null);
-        };
-        options.HttpMessageHandlerFactory = (handler) =>
-        {
-          if (handler is HttpClientHandler clientHandler)
-          {
-            clientHandler.UseDefaultCredentials = true;
-          }
-          return handler;
-        };
-      })
-      .WithAutomaticReconnect()
-      .Build();
+    // Get Basic Auth credentials from environment variables or configuration
+    var basicAuthUsername = Environment.GetEnvironmentVariable("BASIC_AUTH_USERNAME");
+    var basicAuthPassword = Environment.GetEnvironmentVariable("BASIC_AUTH_PASSWORD");
 
-    hubConnection.Closed += async (error) =>
+    if (!string.IsNullOrWhiteSpace(basicAuthUsername) && !string.IsNullOrWhiteSpace(basicAuthPassword))
     {
-      if (error != null)
-      {
-        ErrorMessage = $"SignalR Connection Closed: {error.Message}";
-      }
-      await Task.Delay(new Random().Next(0, 3) * 1000);
-      await hubConnection.StartAsync();
-    };
+      string credentials = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes($"{basicAuthUsername}:{basicAuthPassword}"));
+
+      hubConnection = new HubConnectionBuilder()
+        .WithUrl(NavigationManager.ToAbsoluteUri("/DownloadProgressHub"), options => options.Headers.Add("Authorization", $"Basic {credentials}"))
+        .WithAutomaticReconnect()
+        .Build();
+    }
+    else
+    {
+      hubConnection = new HubConnectionBuilder()
+        .WithUrl(NavigationManager.ToAbsoluteUri("/DownloadProgressHub"))
+        .WithAutomaticReconnect()
+        .Build();
+    }
 
     hubConnection.On<DownloadProgress>("DownloadProgressUpdate", (update) =>
     {
