@@ -11,8 +11,6 @@
 @using System.Diagnostics
 @using Microsoft.AspNetCore.SignalR.Client
 
-@inject NavigationManager NavigationManager
-
 @rendermode InteractiveServer
 @attribute [StreamRendering]
 
@@ -122,6 +120,7 @@
   [Inject] public required DownloadStateService DownloadState { get; set; }
   [Inject] private HttpClient _httpClient { get; set; } = default!;
   [Inject] public IDownloadQueueService DownloadQueueService { get; set; } = default!;
+  [Inject] private NavigationManager NavigationManager { get; set; } = default!;
 
   private HubConnection? hubConnection;
 
@@ -146,7 +145,21 @@
 
     // Set up signalR connection
     hubConnection = new HubConnectionBuilder()
-      .WithUrl(NavigationManager.ToAbsoluteUri("/DownloadProgressHub"))
+      .WithUrl(NavigationManager.ToAbsoluteUri("/DownloadProgressHub"), options =>
+      {
+        options.AccessTokenProvider = () =>
+        {
+          return Task.FromResult<string?>(null);
+        };
+        options.HttpMessageHandlerFactory = (handler) =>
+        {
+          if (handler is HttpClientHandler clientHandler)
+          {
+            clientHandler.UseDefaultCredentials = true;
+          }
+          return handler;
+        };
+      })
       .WithAutomaticReconnect()
       .Build();
 
