@@ -1,4 +1,7 @@
 ﻿@page "/uploadfromurl"
+
+@implements IAsyncDisposable
+
 @using Microsoft.EntityFrameworkCore
 @using SaveHere.Models
 @using SaveHere.Models.db
@@ -6,6 +9,9 @@
 @using SaveHere.Helpers
 @using System.Net
 @using System.Diagnostics
+@using Microsoft.AspNetCore.SignalR.Client
+
+@inject NavigationManager NavigationManager
 
 @rendermode InteractiveServer
 @attribute [StreamRendering]
@@ -117,8 +123,10 @@
   [Inject] private HttpClient _httpClient { get; set; } = default!;
   [Inject] public IDownloadQueueService DownloadQueueService { get; set; } = default!;
 
-  public string UrlText { get; set; } = "";
-  public string ErrorMessage { get; set; } = "";
+  private HubConnection? hubConnection;
+
+  private string UrlText { get; set; } = "";
+  private string ErrorMessage { get; set; } = "";
 
   private List<FileDownloadQueueItem> _fileDownloadQueueItems = new();
   private bool _isLoadingTheList = false;
@@ -134,6 +142,44 @@
     else
     {
       await LoadDownloadItemsList();
+    }
+
+    // Set up signalR connection
+    hubConnection = new HubConnectionBuilder()
+      .WithUrl(NavigationManager.ToAbsoluteUri("/DownloadProgressHub"))
+      .WithAutomaticReconnect()
+      .Build();
+
+    hubConnection.Closed += async (error) =>
+    {
+      if (error != null)
+      {
+        ErrorMessage = $"SignalR Connection Closed: {error.Message}";
+      }
+      await Task.Delay(new Random().Next(0, 3) * 1000);
+      await hubConnection.StartAsync();
+    };
+
+    hubConnection.On<DownloadProgress>("DownloadProgressUpdate", (update) =>
+    {
+      var item = _fileDownloadQueueItems.FirstOrDefault(x => x.Id == update.ItemId);
+      if (item != null)
+      {
+        item.ProgressPercentage = update.ProgressPercentage;
+        item.CurrentDownloadSpeed = update.CurrentSpeed;
+        item.AverageDownloadSpeed = update.AverageSpeed;
+        InvokeAsync(StateHasChanged);
+      }
+    });
+
+    await hubConnection.StartAsync();
+  }
+
+  public async ValueTask DisposeAsync()
+  {
+    if (hubConnection is not null)
+    {
+      await hubConnection.DisposeAsync();
     }
   }
 
@@ -187,7 +233,7 @@
     UrlText = "";
   }
 
-  public void ClearErrorMessage()
+  private void ClearErrorMessage()
   {
     ErrorMessage = "";
   }
@@ -196,10 +242,18 @@
   {
     try
     {
-      var progress = new Progress<int>(percent =>
+      var progress = new Progress<DownloadProgress>(async update =>
       {
-        item.ProgressPercentage = percent;
-        InvokeAsync(StateHasChanged);
+        item.ProgressPercentage = update.ProgressPercentage;
+        item.CurrentDownloadSpeed = update.CurrentSpeed;
+        item.AverageDownloadSpeed = update.AverageSpeed;
+
+        if (hubConnection is not null)
+        {
+          await hubConnection.SendAsync("DownloadProgressUpdate", update);
+        }
+
+        await InvokeAsync(StateHasChanged);
       });
 
       await DownloadQueueService.StartDownloadAsync(item.Id, progress);
@@ -216,7 +270,7 @@
     ErrorMessage = "Not Implemented Yet!";
   }
 
-  private async void CancelDownload(FileDownloadQueueItem item)
+  private async Task CancelDownload(FileDownloadQueueItem item)
   {
     if (DownloadState.TryGetTokenSource(item.Id, out var tokenSource))
     {

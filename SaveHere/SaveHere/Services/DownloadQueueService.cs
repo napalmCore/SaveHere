@@ -12,7 +12,7 @@ namespace SaveHere.Services
     Task<FileDownloadQueueItem?> GetQueueItemByIdAsync(int id);
     Task<FileDownloadQueueItem> AddQueueItemAsync(string url);
     Task DeleteQueueItemAsync(int id);
-    Task<bool> StartDownloadAsync(int id, IProgress<int>? progress = null);
+    Task StartDownloadAsync(int id, IProgress<DownloadProgress> progress);
     Task PauseDownloadAsync(int id);
     Task CancelDownloadAsync(int id);
   }
@@ -84,13 +84,31 @@ namespace SaveHere.Services
       }
     }
 
-    public async Task<bool> StartDownloadAsync(int id, IProgress<int>? progress = null)
+    public async Task PauseDownloadAsync(int id)
+    {
+      var item = await GetQueueItemByIdAsync(id);
+      if (item == null) return;
+      if (item.Status != EQueueItemStatus.Downloading) return;
+      var tokenSource = _downloadStateService.GetOrAddTokenSource(id);
+      tokenSource.Cancel();
+    }
+
+    public async Task CancelDownloadAsync(int id)
+    {
+      var item = await GetQueueItemByIdAsync(id);
+      if (item == null) return;
+      if (item.Status == EQueueItemStatus.Cancelled) return;
+      var tokenSource = _downloadStateService.GetOrAddTokenSource(id);
+      tokenSource.Cancel();
+    }
+
+    public async Task StartDownloadAsync(int id, IProgress<DownloadProgress> progress)
     {
       var item = await GetQueueItemByIdAsync(id);
 
-      if (item == null) return false;
+      if (item == null) throw new Exception("Item not found");
 
-      if (item.Status == EQueueItemStatus.Downloading) return false;
+      if (item.Status == EQueueItemStatus.Downloading) throw new Exception("Item is already downloading");
 
       var tokenSource = _downloadStateService.GetOrAddTokenSource(id);
       var token = tokenSource.Token;
@@ -101,12 +119,10 @@ namespace SaveHere.Services
         item.ProgressPercentage = 0;
         await UpdateQueueItemAsync(item);
 
-        var downloadSuccess = await DownloadFile(item, progress, token);
+        await DownloadFile(item, progress, token);
 
-        item.Status = downloadSuccess ? EQueueItemStatus.Finished : EQueueItemStatus.Cancelled;
+        item.Status = EQueueItemStatus.Finished;
         await UpdateQueueItemAsync(item);
-
-        return downloadSuccess;
       }
       catch (OperationCanceledException)
       {
@@ -127,25 +143,7 @@ namespace SaveHere.Services
       }
     }
 
-    public async Task PauseDownloadAsync(int id)
-    {
-      var item = await GetQueueItemByIdAsync(id);
-      if (item == null) return;
-      if (item.Status != EQueueItemStatus.Downloading) return;
-      var tokenSource = _downloadStateService.GetOrAddTokenSource(id);
-      tokenSource.Cancel();
-    }
-
-    public async Task CancelDownloadAsync(int id)
-    {
-      var item = await GetQueueItemByIdAsync(id);
-      if (item == null) return;
-      if (item.Status == EQueueItemStatus.Cancelled) return;
-      var tokenSource = _downloadStateService.GetOrAddTokenSource(id);
-      tokenSource.Cancel();
-    }
-
-    public async Task<bool> DownloadFile(FileDownloadQueueItem queueItem, IProgress<int>? progress, CancellationToken cancellationToken)
+    public async Task DownloadFile(FileDownloadQueueItem queueItem, IProgress<DownloadProgress> progress, CancellationToken cancellationToken)
     {
       // Validate the URL (must use either HTTP or HTTPS schemes)
       if (string.IsNullOrEmpty(queueItem.InputUrl) ||
@@ -230,9 +228,9 @@ namespace SaveHere.Services
         long totalBytesRead = 0;
         int digit = 1;
 
-        while (System.IO.File.Exists(tempFilePath) || System.IO.File.Exists(localFilePath))
+        while (File.Exists(tempFilePath) || File.Exists(localFilePath))
         {
-          if (System.IO.File.Exists(tempFilePath))
+          if (File.Exists(tempFilePath))
           {
             totalBytesRead = new FileInfo(tempFilePath).Length;
             break;
@@ -305,7 +303,14 @@ namespace SaveHere.Services
             }
 
             queueItem.ProgressPercentage = 100;
-            progress?.Report(queueItem.ProgressPercentage);
+            var downloadProgress = new DownloadProgress()
+            {
+              ItemId = queueItem.Id,
+              ProgressPercentage = 100,
+              CurrentSpeed = 0,
+              AverageSpeed = 0
+            };
+            progress?.Report(downloadProgress);
             await _context.SaveChangesAsync(cancellationToken);
           }
           else
@@ -326,7 +331,6 @@ namespace SaveHere.Services
               bytesReadInLastPeriod += bytesRead;
               bytesReadInTotal += bytesRead;
               queueItem.ProgressPercentage = (int)(100.0 * totalBytesRead / totalContentLength);
-              progress?.Report(queueItem.ProgressPercentage);
 
               var totalMeasurementSeconds = speedMeasurementStopwatch.Elapsed.TotalSeconds;
               if (totalMeasurementSeconds >= speedMeasurementPeriodInSeconds)
@@ -337,6 +341,15 @@ namespace SaveHere.Services
                 bytesReadInLastPeriod = 0;
                 speedMeasurementStopwatch.Restart();
               }
+
+              var downloadProgress = new DownloadProgress()
+              {
+                ItemId = queueItem.Id,
+                ProgressPercentage = queueItem.ProgressPercentage,
+                CurrentSpeed = queueItem.CurrentDownloadSpeed,
+                AverageSpeed = queueItem.AverageDownloadSpeed
+              };
+              progress?.Report(downloadProgress);
             }
 
             // Save any remaining changes
@@ -345,10 +358,10 @@ namespace SaveHere.Services
         }
 
         // Rename temp file to final file
-        System.IO.File.Move(tempFilePath, localFilePath);
+        File.Move(tempFilePath, localFilePath);
 
         // Fixing file permissions on linux
-        if (OperatingSystem.IsLinux()) System.IO.File.SetUnixFileMode(localFilePath,
+        if (OperatingSystem.IsLinux()) File.SetUnixFileMode(localFilePath,
             UnixFileMode.UserRead | UnixFileMode.GroupRead | UnixFileMode.OtherRead |
             UnixFileMode.UserWrite | UnixFileMode.GroupWrite | UnixFileMode.OtherWrite |
             UnixFileMode.UserExecute | UnixFileMode.GroupExecute | UnixFileMode.OtherExecute);
@@ -357,8 +370,6 @@ namespace SaveHere.Services
       {
         throw;
       }
-
-      return true;
     }
 
   }

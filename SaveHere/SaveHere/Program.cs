@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using MudBlazor.Services;
 using SaveHere.Components;
 using SaveHere.Components.Account;
+using SaveHere.Hubs;
 using SaveHere.Models;
 using SaveHere.Models.db;
 using SaveHere.Services;
@@ -77,6 +78,8 @@ namespace SaveHere
 
       builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
 
+      builder.Services.AddSignalR();
+
       builder.Services.AddSingleton<DownloadStateService>();
 
       builder.Services.AddScoped<HttpClient>();
@@ -111,6 +114,8 @@ namespace SaveHere
 
       // Add additional endpoints required by the Identity /Account Razor components.
       app.MapAdditionalIdentityEndpoints();
+
+      app.MapHub<DownloadProgressHub>("/DownloadProgressHub");
 
       // Ensuring the database is created
       using (var scope = app.Services.CreateScope())
