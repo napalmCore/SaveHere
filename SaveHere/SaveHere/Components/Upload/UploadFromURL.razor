@@ -246,6 +246,11 @@
   {
     try
     {
+      // if (hubConnection is not null)
+      // {
+      //   await hubConnection.InvokeAsync("JoinDownloadGroup", item.Id.ToString());
+      // }
+
       var progress = new Progress<DownloadProgress>(async update =>
       {
         item.ProgressPercentage = update.ProgressPercentage;
@@ -254,7 +259,7 @@
 
         if (hubConnection is not null)
         {
-          await hubConnection.SendAsync("DownloadProgressUpdate", update);
+          await hubConnection.InvokeAsync("UpdateProgress", update);
         }
 
         await InvokeAsync(StateHasChanged);

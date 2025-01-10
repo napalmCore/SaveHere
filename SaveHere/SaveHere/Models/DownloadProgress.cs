@@ -2,9 +2,9 @@
 {
   public class DownloadProgress
   {
-    public int ItemId { get; init; }
-    public int ProgressPercentage { get; init; }
-    public double CurrentSpeed { get; init; }
-    public double AverageSpeed { get; init; }
+    public required int ItemId { get; init; }
+    public required int ProgressPercentage { get; init; }
+    public required double CurrentSpeed { get; init; }
+    public required double AverageSpeed { get; init; }
   }
 }
