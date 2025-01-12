@@ -282,21 +282,21 @@ else
       //   await hubConnection.InvokeAsync("JoinDownloadGroup", item.Id.ToString());
       // }
 
-      var progress = new Progress<DownloadProgress>(async update =>
-      {
-        item.ProgressPercentage = update.ProgressPercentage;
-        item.CurrentDownloadSpeed = update.CurrentSpeed;
-        item.AverageDownloadSpeed = update.AverageSpeed;
+      // var progress = new Progress<DownloadProgress>(async update =>
+      // {
+      //   item.ProgressPercentage = update.ProgressPercentage;
+      //   item.CurrentDownloadSpeed = update.CurrentSpeed;
+      //   item.AverageDownloadSpeed = update.AverageSpeed;
 
-        if (hubConnection is not null)
-        {
-          await hubConnection.InvokeAsync("UpdateProgress", update);
-        }
+      //   if (hubConnection is not null)
+      //   {
+      //     await hubConnection.InvokeAsync("UpdateProgress", update);
+      //   }
 
-        await InvokeAsync(StateHasChanged);
-      });
+      //   await InvokeAsync(StateHasChanged);
+      // });
 
-      await DownloadQueueService.StartDownloadAsync(item.Id, progress);
+      await DownloadQueueService.StartDownloadAsync(item.Id);
     }
     catch (Exception exception)
     {

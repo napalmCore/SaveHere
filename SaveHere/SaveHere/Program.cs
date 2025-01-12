@@ -80,6 +80,8 @@ namespace SaveHere
 
       builder.Services.AddSignalR();
 
+      builder.Services.AddSingleton<IProgressHubService, ProgressHubService>();
+
       builder.Services.AddSingleton<DownloadStateService>();
 
       builder.Services.AddScoped<HttpClient>();

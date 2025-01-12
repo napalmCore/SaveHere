@@ -20,13 +20,13 @@ namespace SaveHere.Hubs
     //  await base.OnDisconnectedAsync(exception);
     //}
 
-    public async Task UpdateProgress(DownloadProgress update)
-    {
+    //public async Task UpdateProgress(DownloadProgress update)
+    //{
       // Send to all clients except the sender
       //await Clients.Others.SendAsync("DownloadProgressUpdate", update);
 
-      await Clients.All.SendAsync("DownloadProgressUpdate", update);
-    }
+    //  await Clients.All.SendAsync("DownloadProgressUpdate", update);
+    //}
 
     //public async Task JoinDownloadGroup(string downloadId)
     //{

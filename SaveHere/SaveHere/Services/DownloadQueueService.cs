@@ -12,7 +12,7 @@ namespace SaveHere.Services
     Task<FileDownloadQueueItem?> GetQueueItemByIdAsync(int id);
     Task<FileDownloadQueueItem> AddQueueItemAsync(string url);
     Task DeleteQueueItemAsync(int id);
-    Task StartDownloadAsync(int id, IProgress<DownloadProgress> progress);
+    Task StartDownloadAsync(int id);
     Task PauseDownloadAsync(int id);
     Task CancelDownloadAsync(int id);
   }
@@ -23,13 +23,15 @@ namespace SaveHere.Services
     private readonly DownloadStateService _downloadStateService;
     private readonly HttpClient _httpClient;
     private readonly ILogger<DownloadQueueService> _logger;
+    private readonly IProgressHubService _progressHubService;
 
-    public DownloadQueueService(AppDbContext context, DownloadStateService downloadStateService, HttpClient httpClient, ILogger<DownloadQueueService> logger)
+    public DownloadQueueService(AppDbContext context, DownloadStateService downloadStateService, HttpClient httpClient, ILogger<DownloadQueueService> logger, IProgressHubService progressHubService)
     {
       _context = context;
       _downloadStateService = downloadStateService;
       _httpClient = httpClient;
       _logger = logger;
+      _progressHubService = progressHubService;
     }
 
     public async Task<List<FileDownloadQueueItem>> GetQueueItemsAsync()
@@ -102,7 +104,7 @@ namespace SaveHere.Services
       tokenSource.Cancel();
     }
 
-    public async Task StartDownloadAsync(int id, IProgress<DownloadProgress> progress)
+    public async Task StartDownloadAsync(int id)
     {
       var item = await GetQueueItemByIdAsync(id);
 
@@ -119,7 +121,7 @@ namespace SaveHere.Services
         item.ProgressPercentage = 0;
         await UpdateQueueItemAsync(item);
 
-        await DownloadFile(item, progress, token);
+        await DownloadFile(item, token);
 
         item.Status = EQueueItemStatus.Finished;
         await UpdateQueueItemAsync(item);
@@ -143,7 +145,7 @@ namespace SaveHere.Services
       }
     }
 
-    public async Task DownloadFile(FileDownloadQueueItem queueItem, IProgress<DownloadProgress> progress, CancellationToken cancellationToken)
+    public async Task DownloadFile(FileDownloadQueueItem queueItem, CancellationToken cancellationToken)
     {
       // Validate the URL (must use either HTTP or HTTPS schemes)
       if (string.IsNullOrEmpty(queueItem.InputUrl) ||
@@ -310,7 +312,7 @@ namespace SaveHere.Services
               CurrentSpeed = 0,
               AverageSpeed = 0
             };
-            progress?.Report(downloadProgress);
+            await _progressHubService.BroadcastProgressUpdate(downloadProgress);
             await _context.SaveChangesAsync(cancellationToken);
           }
           else
@@ -349,7 +351,7 @@ namespace SaveHere.Services
                 CurrentSpeed = queueItem.CurrentDownloadSpeed,
                 AverageSpeed = queueItem.AverageDownloadSpeed
               };
-              progress?.Report(downloadProgress);
+              await _progressHubService.BroadcastProgressUpdate(downloadProgress);
             }
 
             // Save any remaining changes
