@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using MudBlazor.Services;
 using SaveHere.Components;
 using SaveHere.Components.Account;
+using SaveHere.Helpers;
 using SaveHere.Hubs;
 using SaveHere.Models;
 using SaveHere.Models.db;
@@ -36,18 +37,7 @@ namespace SaveHere
       );
 
       // Creating the download directory
-      var downloadPath = Path.Combine(Directory.GetCurrentDirectory(), "downloads");
-      if (!Directory.Exists(downloadPath))
-      {
-        try
-        {
-          Directory.CreateDirectory(downloadPath);
-        }
-        catch
-        {
-          throw new InvalidOperationException("Could not create the download directory.");
-        }
-      }
+      DirectoryBrowser.InitializeDownloadsDirectory();
 
       // Add MudBlazor services
       builder.Services.AddMudServices();

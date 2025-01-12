@@ -41,12 +41,12 @@ else
       <MudStack Row>
 
         <MudTextField @bind-Value="UrlText" Label="File URL" Variant="Variant.Outlined" Margin="Margin.Dense"
-                      HelperText="Enter The File URL To Upload To The Server" HelperTextOnFocus="true" Adornment="Adornment.End"
-                      AdornmentIcon="@Icons.Material.Filled.InsertLink" AdornmentColor="Color.Info" Clearable="true"
-                      Immediate="true" />
+        HelperText="Enter The File URL To Upload To The Server" HelperTextOnFocus="true" Adornment="Adornment.End"
+        AdornmentIcon="@Icons.Material.Filled.InsertLink" AdornmentColor="Color.Info" Clearable="true"
+        Immediate="true" />
 
         <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Add" Color="Color.Primary"
-                   Style="text-transform:none; height:40px; margin-top:0.5rem;" Class="pr-5" Size="Size.Small" OnClick="AddURL">Add</MudButton>
+        Style="text-transform:none; height:40px; margin-top:0.5rem;" Class="pr-5" Size="Size.Small" OnClick="AddURL">Add</MudButton>
 
       </MudStack>
 
@@ -127,6 +127,26 @@ else
     </MudTable>
 
   </MudStack>
+
+  <MudTable Items="@_downloadDirectoryContents" Dense="true" Hover="true" Class="pa-5 mx-5 my-3" Elevation="5">
+    <HeaderContent>
+      <MudTh>Name</MudTh>
+      <MudTh>Length</MudTh>
+      <MudTh>Actions</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+      <MudTd DataLabel="Name" Style="word-break:break-all;">
+        @context.Name
+      </MudTd>
+      <MudTd DataLabel="Length">
+        @FormatSize(context.Length)
+      </MudTd>
+      <MudTd DataLabel="Actions">
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small" OnClick="() => DeleteFile(context)">Delete</MudButton>
+      </MudTd>
+    </RowTemplate>
+  </MudTable>
+
 }
 
 @code {
@@ -148,10 +168,13 @@ else
   private List<FileDownloadQueueItem> _fileDownloadQueueItems = new();
   private bool _isLoadingTheList = false;
 
+  private List<FileItem> _downloadDirectoryContents = new();
+
   protected override async Task OnInitializedAsync()
   {
     persistingSubscription = _persistentState.RegisterOnPersisting(PersistItems);
 
+    // Loading downloads list
     if (_persistentState.TryTakeFromJson<List<FileDownloadQueueItem>>(nameof(_fileDownloadQueueItems), out var savedItems) && savedItems != null)
     {
       _fileDownloadQueueItems = savedItems;
@@ -159,6 +182,16 @@ else
     else
     {
       await LoadDownloadItemsList();
+    }
+
+    // Loading download directory files list
+    if (_persistentState.TryTakeFromJson<List<FileItem>>(nameof(_downloadDirectoryContents), out var savedItems2) && savedItems2 != null)
+    {
+      _downloadDirectoryContents = savedItems2;
+    }
+    else
+    {
+      LoadDownloadDirectoryContentsList();
     }
 
     // Get Basic Auth credentials from environment variables or configuration
@@ -190,6 +223,7 @@ else
         item.ProgressPercentage = update.ProgressPercentage;
         item.CurrentDownloadSpeed = update.CurrentSpeed;
         item.AverageDownloadSpeed = update.AverageSpeed;
+        LoadDownloadDirectoryContentsList(); // Temporary! To Do: Implement notifications for cancellation and finishing of downloads
         InvokeAsync(StateHasChanged);
       }
     });
@@ -221,6 +255,7 @@ else
   private Task PersistItems()
   {
     _persistentState.PersistAsJson(nameof(_fileDownloadQueueItems), _fileDownloadQueueItems);
+    _persistentState.PersistAsJson(nameof(_downloadDirectoryContents), _downloadDirectoryContents);
     return Task.CompletedTask;
   }
 
@@ -238,6 +273,18 @@ else
     finally
     {
       _isLoadingTheList = false;
+    }
+  }
+
+  private void LoadDownloadDirectoryContentsList()
+  {
+    try
+    {
+      _downloadDirectoryContents = DirectoryBrowser.GetDownloadsContent().OfType<FileItem>().ToList();
+    }
+    catch (DirectoryAccessException ex)
+    {
+      throw;
     }
   }
 
@@ -277,25 +324,6 @@ else
   {
     try
     {
-      // if (hubConnection is not null)
-      // {
-      //   await hubConnection.InvokeAsync("JoinDownloadGroup", item.Id.ToString());
-      // }
-
-      // var progress = new Progress<DownloadProgress>(async update =>
-      // {
-      //   item.ProgressPercentage = update.ProgressPercentage;
-      //   item.CurrentDownloadSpeed = update.CurrentSpeed;
-      //   item.AverageDownloadSpeed = update.AverageSpeed;
-
-      //   if (hubConnection is not null)
-      //   {
-      //     await hubConnection.InvokeAsync("UpdateProgress", update);
-      //   }
-
-      //   await InvokeAsync(StateHasChanged);
-      // });
-
       await DownloadQueueService.StartDownloadAsync(item.Id);
     }
     catch (Exception exception)
@@ -321,6 +349,7 @@ else
     item.Status = EQueueItemStatus.Cancelled;
     await _context.SaveChangesAsync();
     await LoadDownloadItemsList();
+    LoadDownloadDirectoryContentsList();
   }
 
   private async Task DeleteItem(FileDownloadQueueItem item)
@@ -331,6 +360,20 @@ else
       DownloadState.RemoveTokenSource(item.Id);
       await _context.SaveChangesAsync();
       await LoadDownloadItemsList();
+    }
+    catch (Exception exception)
+    {
+      ErrorMessage = $"An Error Occurred While Deleting The Item: {exception.Message}";
+    }
+  }
+
+  private void DeleteFile(FileItem item)
+  {
+    try
+    {
+      DirectoryBrowser.DeleteFileItem(item);
+      LoadDownloadDirectoryContentsList();
+      StateHasChanged();
     }
     catch (Exception exception)
     {
@@ -350,6 +393,15 @@ else
     else if (speed < 1024 * 1024) return $"{speed / 1024:F2} KB/s";
     else if (speed < 1024 * 1024 * 1024) return $"{speed / 1024 / 1024:F2} MB/s";
     else return $"{speed / 1024 / 1024 / 1024:F2} GB/s";
+  }
+
+  private string FormatSize(double size)
+  {
+    if (size == 0) return "0";
+    else if (size < 1024) return $"{size:F2} B";
+    else if (size < 1024 * 1024) return $"{size / 1024:F2} KB";
+    else if (size < 1024 * 1024 * 1024) return $"{size / 1024 / 1024:F2} MB";
+    else return $"{size / 1024 / 1024 / 1024:F2} GB";
   }
 
 }
