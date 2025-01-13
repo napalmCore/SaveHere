@@ -20,7 +20,7 @@
 
 <PageTitle>Upload From URL</PageTitle>
 
-@if (!_isFullyLoaded)
+  @if (!_isFullyLoaded)
 {
   <div style="display: flex; align-items: center; justify-content: center; width: 100%; height: 100%;">
     <div style="position: relative;">
@@ -41,12 +41,12 @@ else
       <MudStack Row>
 
         <MudTextField @bind-Value="UrlText" Label="File URL" Variant="Variant.Outlined" Margin="Margin.Dense"
-        HelperText="Enter The File URL To Upload To The Server" HelperTextOnFocus="true" Adornment="Adornment.End"
-        AdornmentIcon="@Icons.Material.Filled.InsertLink" AdornmentColor="Color.Info" Clearable="true"
-        Immediate="true" />
+                      HelperText="Enter The File URL To Upload To The Server" HelperTextOnFocus="true" Adornment="Adornment.End"
+                      AdornmentIcon="@Icons.Material.Filled.InsertLink" AdornmentColor="Color.Info" Clearable="true"
+                      Immediate="true" />
 
         <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Add" Color="Color.Primary"
-        Style="text-transform:none; height:40px; margin-top:0.5rem;" Class="pr-5" Size="Size.Small" OnClick="AddURL">Add</MudButton>
+                   Style="text-transform:none; height:40px; margin-top:0.5rem;" Class="pr-5" Size="Size.Small" OnClick="AddURL">Add</MudButton>
 
       </MudStack>
 
@@ -60,24 +60,18 @@ else
     }
 
     <MudTable Items="@_fileDownloadQueueItems" Dense="true" Hover="true" Loading="@_isLoadingTheList" Class="pa-5 mx-5" Elevation="5">
-      <ColGroup>
-        <col style="width: 60%" />
-        <col style="width: 10%" />
-        <col style="width: 10%" />
-        <col style="width: 20%" />
-      </ColGroup>
       <HeaderContent>
-        <MudTh>URL</MudTh>
-        <MudTh>Status</MudTh>
-        <MudTh>Progress</MudTh>
-        <MudTh>Actions</MudTh>
+        <MudTh Style="width:100%;">URL</MudTh>
+        <MudTh Style="text-align:center; min-width:100px">Status</MudTh>
+        <MudTh Style="text-align:center; min-width:200px">Progress</MudTh>
+        <MudTh Style="text-align:center; min-width:315px;">Actions</MudTh>
       </HeaderContent>
       <RowTemplate>
-        <MudTd DataLabel="URL" Style="word-break:break-all;">
+        <MudTd Style="word-break:break-all;" DataLabel="URL">
           @context.InputUrl
         </MudTd>
-        <MudTd DataLabel="Status">@context.Status</MudTd>
-        <MudTd DataLabel="Progress">
+        <MudTd Style="text-align:center;" DataLabel="Status">@context.Status</MudTd>
+        <MudTd Style="text-align:center" DataLabel="Progress">
           <MudStack Spacing="0">
 
             <MudText Typo="Typo.body2" Align="Align.Left" Class="ma-0 pa-0">
@@ -85,7 +79,7 @@ else
             </MudText>
 
             <MudStack Row="true" Spacing="1" Justify="Justify.SpaceBetween">
-              <MudProgressLinear Value="@context.ProgressPercentage" Color="Color.Tertiary" Striped="true" Class="ma-0 pa-0" Size="Size.Large" />
+              <MudProgressLinear Value="@context.ProgressPercentage" Color="Color.Tertiary" Striped="true" Class="ma-0 pa-0 sv-progressbar" Style="width: 100%;" Size="Size.Large" />
 
               <MudText Typo="Typo.inherit" Color="Color.Warning" Class="ma-0 pa-0" Align="Align.Right" Inline="true" Style="font-size:10px;">
                 @context.ProgressPercentage%
@@ -98,10 +92,11 @@ else
 
           </MudStack>
         </MudTd>
-        <MudTd DataLabel="Actions">
+        <MudTd Style="text-align:right;" DataLabel="Actions">
           <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" OnClick="async() =>
             {
-            if (context.Status==EQueueItemStatus.Downloading) await PauseDownload(context); else await StartDownload(context);
+            // if (context.Status==EQueueItemStatus.Downloading) await PauseDownload(context); else await StartDownload(context);
+            if (context.Status==EQueueItemStatus.Downloading) return; else await StartDownload(context);
             }">
             @(context.Status == EQueueItemStatus.Downloading ? "Pause" : "Start")
           </MudButton>
@@ -148,6 +143,17 @@ else
   </MudTable>
 
 }
+
+<style type="text/css" media="screen and (max-width:599px)">
+  .mud-xs-table .mud-table-cell::before {
+    word-break: keep-all !important;
+    min-width: 55px !important;
+  }
+
+  .sv-progressbar {
+    width: 50vw !important;
+  }
+</style>
 
 @code {
   [Inject] public required AppDbContext _context { get; set; }
@@ -282,7 +288,7 @@ else
     {
       _downloadDirectoryContents = DirectoryBrowser.GetDownloadsContent().OfType<FileItem>().ToList();
     }
-    catch (DirectoryAccessException ex)
+    catch /* (DirectoryAccessException ex) */
     {
       throw;
     }
@@ -330,12 +336,6 @@ else
     {
       ErrorMessage = $"An Error Occurred While Trying To Download: {exception.Message}";
     }
-  }
-
-  private async Task PauseDownload(FileDownloadQueueItem item)
-  {
-    // Implement pause functionality
-    ErrorMessage = "Not Implemented Yet!";
   }
 
   private async Task CancelDownload(FileDownloadQueueItem item)
