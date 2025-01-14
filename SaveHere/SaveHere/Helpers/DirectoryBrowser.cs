@@ -2,7 +2,7 @@
 {
   public static class DirectoryBrowser
   {
-    private static string _downloadsPath;
+    private static string _downloadsPath = ".";
 
     public static string DownloadsPath
     {
@@ -97,25 +97,25 @@
 
   public class FileSystemItem
   {
-    public string Name { get; set; }
-    public string FullName { get; set; }
-    public string Type { get; set; }
+    public string Name { get; set; } = "a.bbb";
+    public string FullName { get; set; } = "C:\\a.bbb";
+    public string Type { get; set; } = "bbb";
   }
 
   public class FileItem : FileSystemItem
   {
     public long Length { get; set; }
-    public string Extension { get; set; }
+    public string Extension { get; set; } = "bbb";
   }
 
   public class DirectoryItem : FileSystemItem
   {
-    public List<FileSystemItem> Children { get; set; }
+    public List<FileSystemItem> Children { get; set; }=new List<FileSystemItem>();
   }
 
   public class DirectoryAccessException : Exception
   {
-    public DirectoryAccessException(string message, Exception innerException = null)
+    public DirectoryAccessException(string message, Exception? innerException = null)
         : base(message, innerException)
     {
     }
