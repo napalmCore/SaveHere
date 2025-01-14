@@ -26,7 +26,7 @@
     <div style="position: relative;">
       <MudProgressCircular Color="Color.Success" Indeterminate="true" Class="ma-5" Style="width: 100px; height: 100px;" />
       <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -66%); text-align: center;">
-        <div style="font-size: 12px;">Loading...</div>
+        <div style="font-size: 12px;">Loading</div>
         <div style="font-size: 12px">Please Wait</div>
       </div>
     </div>
@@ -75,11 +75,11 @@ else
           <MudStack Spacing="0" Class="sv-custom-progress-stack">
 
             <MudText Typo="Typo.body2" Align="Align.Left" Class="ma-0 pa-0">
-              spd @FormatSpeed(context.CurrentDownloadSpeed)
+              speed @FormatSpeed(context.CurrentDownloadSpeed)
             </MudText>
 
             <MudStack Row="true" Spacing="1" Justify="Justify.SpaceBetween">
-              <MudProgressLinear Value="@context.ProgressPercentage" Color="Color.Tertiary" Striped="true" Class="ma-0 pa-0 sv-progressbar" Style="width: 100%;" Size="Size.Large" />
+              <MudProgressLinear Value="@context.ProgressPercentage" Color="Color.Tertiary" Striped="@(context.Status==EQueueItemStatus.Downloading)" Class="ma-0 pa-0 sv-progressbar" Style="width: 100%;" Size="Size.Large" />
 
               <MudText Typo="Typo.inherit" Color="Color.Warning" Class="ma-0 pa-0" Align="Align.Right" Inline="true" Style="font-size:10px;">
                 @context.ProgressPercentage%
@@ -87,7 +87,7 @@ else
             </MudStack>
 
             <MudText Typo="Typo.body2" Align="Align.Left" Class="ma-0 pa-0">
-              avg @FormatSpeed(context.AverageDownloadSpeed)
+              average @FormatSpeed(context.AverageDownloadSpeed)
             </MudText>
 
           </MudStack>
@@ -228,48 +228,15 @@ else
       LoadDownloadDirectoryContentsList();
     }
 
-    // Get Basic Auth credentials from environment variables or configuration
-    var basicAuthUsername = Environment.GetEnvironmentVariable("BASIC_AUTH_USERNAME");
-    var basicAuthPassword = Environment.GetEnvironmentVariable("BASIC_AUTH_PASSWORD");
-
-    if (!string.IsNullOrWhiteSpace(basicAuthUsername) && !string.IsNullOrWhiteSpace(basicAuthPassword))
-    {
-      string credentials = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes($"{basicAuthUsername}:{basicAuthPassword}"));
-
-      hubConnection = new HubConnectionBuilder()
-        .WithUrl(NavigationManager.ToAbsoluteUri("/DownloadProgressHub"), options => options.Headers.Add("Authorization", $"Basic {credentials}"))
-        .WithAutomaticReconnect()
-        .Build();
-    }
-    else
-    {
-      hubConnection = new HubConnectionBuilder()
-        .WithUrl(NavigationManager.ToAbsoluteUri("/DownloadProgressHub"))
-        .WithAutomaticReconnect()
-        .Build();
-    }
-
-    hubConnection.On<DownloadProgress>("DownloadProgressUpdate", (update) =>
-    {
-      var item = _fileDownloadQueueItems.FirstOrDefault(x => x.Id == update.ItemId);
-      if (item != null)
-      {
-        item.ProgressPercentage = update.ProgressPercentage;
-        item.CurrentDownloadSpeed = update.CurrentSpeed;
-        item.AverageDownloadSpeed = update.AverageSpeed;
-        LoadDownloadDirectoryContentsList(); // Temporary! To Do: Implement notifications for cancellation and finishing of downloads
-        InvokeAsync(StateHasChanged);
-      }
-    });
-
-    await hubConnection.StartAsync();
+    await InitializeHubConnection();
   }
 
   protected override async Task OnAfterRenderAsync(bool firstRender)
   {
     await base.OnAfterRenderAsync(firstRender);
 
-    if (firstRender) return;
+    if (!firstRender) return;
+    // if (firstRender) return;
     if (_isFullyLoaded) return;
 
     _isFullyLoaded = true;
@@ -291,6 +258,47 @@ else
     _persistentState.PersistAsJson(nameof(_fileDownloadQueueItems), _fileDownloadQueueItems);
     _persistentState.PersistAsJson(nameof(_downloadDirectoryContents), _downloadDirectoryContents);
     return Task.CompletedTask;
+  }
+
+  private async Task InitializeHubConnection()
+  {
+    // Get Basic Auth credentials from environment variables or configuration
+    var basicAuthUsername = Environment.GetEnvironmentVariable("BASIC_AUTH_USERNAME");
+    var basicAuthPassword = Environment.GetEnvironmentVariable("BASIC_AUTH_PASSWORD");
+
+    if (!string.IsNullOrWhiteSpace(basicAuthUsername) && !string.IsNullOrWhiteSpace(basicAuthPassword))
+    {
+      string credentials = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes($"{basicAuthUsername}:{basicAuthPassword}"));
+
+      hubConnection = new HubConnectionBuilder()
+        .WithUrl(NavigationManager.ToAbsoluteUri("/DownloadProgressHub"), options => options.Headers.Add("Authorization", $"Basic {credentials}"))
+        .WithAutomaticReconnect()
+        .Build();
+    }
+    else
+    {
+      hubConnection = new HubConnectionBuilder()
+        .WithUrl(NavigationManager.ToAbsoluteUri("/DownloadProgressHub"))
+        .WithAutomaticReconnect()
+        .Build();
+    }
+
+    hubConnection.On<DownloadProgress>("DownloadProgressUpdate", OnDownloadProgressUpdate);
+
+    await hubConnection.StartAsync();
+  }
+
+  private void OnDownloadProgressUpdate(DownloadProgress update)
+  {
+    var item = _fileDownloadQueueItems.FirstOrDefault(x => x.Id == update.ItemId);
+    if (item != null)
+    {
+      item.ProgressPercentage = update.ProgressPercentage;
+      item.CurrentDownloadSpeed = update.CurrentSpeed;
+      item.AverageDownloadSpeed = update.AverageSpeed;
+      LoadDownloadDirectoryContentsList(); // Temporary! To Do: Implement notifications for cancellation and finishing of downloads
+      InvokeAsync(StateHasChanged);
+    }
   }
 
   private async Task LoadDownloadItemsList()
