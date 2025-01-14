@@ -34,9 +34,9 @@
 }
 else
 {
-  <MudStack>
+  <MudStack Class="sv-main-stack">
 
-    <MudPaper Class="px-5 pt-4 mx-5 mt-5" Elevation="5">
+    <MudPaper Class="px-5 pt-4 mx-5 mt-5 sv-paper" Elevation="5">
 
       <MudStack Row>
 
@@ -59,20 +59,20 @@ else
       </MudAlert>
     }
 
-    <MudTable Items="@_fileDownloadQueueItems" Dense="true" Hover="true" Loading="@_isLoadingTheList" Class="pa-5 mx-5" Elevation="5">
+    <MudTable Items="@_fileDownloadQueueItems" Dense="true" Hover="true" Loading="@_isLoadingTheList" Class="pa-5 mx-5 sv-table" Elevation="5">
       <HeaderContent>
         <MudTh Style="width:100%;">URL</MudTh>
         <MudTh Style="text-align:center; min-width:100px">Status</MudTh>
         <MudTh Style="text-align:center; min-width:200px">Progress</MudTh>
-        <MudTh Style="text-align:center; min-width:315px;">Actions</MudTh>
+        <MudTh Style="text-align:center;">Actions</MudTh>
       </HeaderContent>
       <RowTemplate>
-        <MudTd Style="word-break:break-all;" DataLabel="URL">
+        <MudTd Style="word-break:break-all;" DataLabel="URL" Class="sv-table-custom-row-1">
           @context.InputUrl
         </MudTd>
-        <MudTd Style="text-align:center;" DataLabel="Status">@context.Status</MudTd>
-        <MudTd Style="text-align:center" DataLabel="Progress">
-          <MudStack Spacing="0">
+        <MudTd Style="text-align:center;" Class="sv-table-custom-row-1" DataLabel="Status">@context.Status</MudTd>
+        <MudTd Style="text-align:center" class="sv-table-custom-row-1" DataLabel="Progress">
+          <MudStack Spacing="0" Class="sv-custom-progress-stack">
 
             <MudText Typo="Typo.body2" Align="Align.Left" Class="ma-0 pa-0">
               spd @FormatSpeed(context.CurrentDownloadSpeed)
@@ -92,25 +92,25 @@ else
 
           </MudStack>
         </MudTd>
-        <MudTd Style="text-align:right;" DataLabel="Actions">
-          <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" OnClick="async() =>
+        <MudTd Style="text-align:end;" Class="sv-table-custom-row-1" DataLabel="Actions">
+          <MudStack Row="true" Style="gap:5px;">
+            <MudButton Variant="Variant.Filled" Color="@(context.Status==EQueueItemStatus.Downloading?Color.Error:Color.Tertiary)" Size="Size.Small" OnClick="async() =>
             {
-            // if (context.Status==EQueueItemStatus.Downloading) await PauseDownload(context); else await StartDownload(context);
-            if (context.Status==EQueueItemStatus.Downloading) return; else await StartDownload(context);
+            if (context.Status==EQueueItemStatus.Downloading) await CancelDownload(context); else await StartDownload(context);
             }">
-            @(context.Status == EQueueItemStatus.Downloading ? "Pause" : "Start")
-          </MudButton>
-          <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small" OnClick="async() => await DeleteItem(context)">Delete</MudButton>
-          <MudButton Variant="Variant.Filled" Color="Color.Error" Size="Size.Small" OnClick="() => CancelDownload(context)">Cancel</MudButton>
-          <MudButton Variant="Variant.Filled" Color="Color.Info" Size="Size.Small" OnClick="() => ToggleMoreOptions(context)">@(context.bShowMoreOptions ? "Close" : "More")</MudButton>
+              @(context.Status == EQueueItemStatus.Downloading ? "Cancel" : "Start")
+            </MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small" OnClick="async() => await DeleteItem(context)">Delete</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Info" Size="Size.Small" OnClick="() => ToggleMoreOptions(context)">@(context.bShowMoreOptions ? "Close" : "More")</MudButton>
+          </MudStack>
         </MudTd>
       </RowTemplate>
       <ChildRowContent>
         @if (context.bShowMoreOptions)
         {
-          <MudTr>
-            <MudTd ColSpan="4">
-              <MudPaper Class="pa-5" Elevation="0" Outlined="true">
+          <MudTr Style="justify-content: start;">
+            <MudTd ColSpan="4" Style="justify-content: start; width:100%;">
+              <MudPaper Class="pa-5" Elevation="0" Outlined="true" Style="start; width:100%;">
                 <MudStack>
                   <MudCheckBox @bind-Value="@context.bShouldGetFilenameFromHttpHeaders" Label="Use Headers For Filename" Color="Color.Primary" />
                 </MudStack>
@@ -121,27 +121,28 @@ else
       </ChildRowContent>
     </MudTable>
 
+    <MudTable Items="@_downloadDirectoryContents" Dense="true" Hover="true" Class="pa-5 mx-5 my-3 sv-table" Elevation="5">
+      <HeaderContent>
+        <MudTh Style="width:100%;">Name</MudTh>
+        <MudTh>Length</MudTh>
+        <MudTh Style="text-align:center;">Actions</MudTh>
+      </HeaderContent>
+      <RowTemplate>
+        <MudTd DataLabel="Name" Style="word-break:break-all;">
+          @context.Name
+        </MudTd>
+        <MudTd DataLabel="Length" Style="white-space:nowrap">
+          @FormatSize(context.Length)
+        </MudTd>
+        <MudTd DataLabel="Actions" Style="text-align:end;">
+          <MudStack Row="true" Style="gap:5px;">
+            <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small" OnClick="() => DeleteFile(context)">Delete</MudButton>
+          </MudStack>
+        </MudTd>
+      </RowTemplate>
+    </MudTable>
+
   </MudStack>
-
-  <MudTable Items="@_downloadDirectoryContents" Dense="true" Hover="true" Class="pa-5 mx-5 my-3" Elevation="5">
-    <HeaderContent>
-      <MudTh>Name</MudTh>
-      <MudTh>Length</MudTh>
-      <MudTh>Actions</MudTh>
-    </HeaderContent>
-    <RowTemplate>
-      <MudTd DataLabel="Name" Style="word-break:break-all;">
-        @context.Name
-      </MudTd>
-      <MudTd DataLabel="Length">
-        @FormatSize(context.Length)
-      </MudTd>
-      <MudTd DataLabel="Actions">
-        <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small" OnClick="() => DeleteFile(context)">Delete</MudButton>
-      </MudTd>
-    </RowTemplate>
-  </MudTable>
-
 }
 
 <style type="text/css" media="screen and (max-width:599px)">
@@ -150,8 +151,35 @@ else
     min-width: 55px !important;
   }
 
-  .sv-progressbar {
-    width: 50vw !important;
+  .sv-custom-progress-stack {
+    width: 100% !important;
+  }
+
+  .sv-table {
+    margin: 5px !important;
+    padding: 5px !important;
+  }
+
+  .sv-paper {
+    margin: 5px !important;
+    padding: 5px !important;
+  }
+
+  .sv-main-stack {
+    gap: 3px !important;
+  }
+
+  .mud-xs-table.mud-table-dense .mud-table-cell {
+    padding: 6px;
+  }
+
+  .sv-table-custom-row-1 {
+    justify-content: start !important;
+  }
+
+  .mud-table-dense * .mud-table-row .mud-table-cell:last-child {
+    padding-right: 0;
+    padding-inline-end: 0;
   }
 </style>
 
