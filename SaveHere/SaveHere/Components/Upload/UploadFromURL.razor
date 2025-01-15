@@ -62,8 +62,8 @@ else
     <MudTable Items="@_fileDownloadQueueItems" Dense="true" Hover="true" Loading="@_isLoadingTheList" Class="pa-5 mx-5 sv-table" Elevation="5">
       <HeaderContent>
         <MudTh Style="width:100%;">URL</MudTh>
-        <MudTh Style="text-align:center;">Status</MudTh>
-        <MudTh Style="text-align:center; min-width:150px;">Progress</MudTh>
+        <MudTh Style="text-align:center; min-width:125px;">Status</MudTh>
+        <MudTh Style="text-align:center; min-width:200px;">Progress</MudTh>
         <MudTh Style="text-align:center;">Actions</MudTh>
       </HeaderContent>
       <RowTemplate>
@@ -74,9 +74,12 @@ else
         <MudTd Style="text-align:center" class="sv-table-custom-row-1" DataLabel="Progress">
           <MudStack Spacing="0" Class="sv-custom-progress-stack">
 
-            <MudText Typo="Typo.body2" Align="Align.Left" Class="ma-0 pa-0" Style="white-space:nowrap">
-              @FormatSpeed(context.CurrentDownloadSpeed) <span style="font-size:0.66rem;">speed</span>
-            </MudText>
+            <div style="display:flex; justify-content:space-between;">
+              <span style="font-size:0.66rem;">speed</span>
+              <MudText Typo="Typo.body2" Align="Align.Left" Class="ma-0 pa-0" Style="white-space:nowrap">
+                @FormatSpeed(context.CurrentDownloadSpeed)
+              </MudText>
+            </div>
 
             <MudStack Row="true" Spacing="1" Justify="Justify.SpaceBetween">
               <MudProgressLinear Value="@context.ProgressPercentage" Color="Color.Tertiary" Striped="@(context.Status==EQueueItemStatus.Downloading)" Class="ma-0 pa-0 sv-progressbar" Style="width: 100%;" Size="Size.Large" />
@@ -86,9 +89,12 @@ else
               </MudText>
             </MudStack>
 
-            <MudText Typo="Typo.body2" Align="Align.Left" Class="ma-0 pa-0" Style="white-space:nowrap">
-              @FormatSpeed(context.AverageDownloadSpeed) <span style="font-size:0.66rem;">average</span>
-            </MudText>
+            <div style="display:flex; justify-content:space-between;">
+              <span style="font-size:0.66rem;">average</span>
+              <MudText Typo="Typo.body2" Align="Align.Left" Class="ma-0 pa-0" Style="white-space:nowrap">
+                @FormatSpeed(context.AverageDownloadSpeed)
+              </MudText>
+            </div>
 
           </MudStack>
         </MudTd>
