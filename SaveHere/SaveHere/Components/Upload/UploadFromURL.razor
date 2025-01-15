@@ -467,10 +467,14 @@ else
   {
     try
     {
-      _context.FileDownloadQueueItems.Remove(item);
-      DownloadState.RemoveTokenSource(item.Id);
-      await _context.SaveChangesAsync();
-      await LoadDownloadItemsList();
+      var itemToDelete = await _context.FileDownloadQueueItems.FindAsync(item.Id);
+      if (itemToDelete != null)
+      {
+        _context.FileDownloadQueueItems.Remove(itemToDelete);
+        DownloadState.RemoveTokenSource(item.Id);
+        await _context.SaveChangesAsync();
+        await LoadDownloadItemsList();
+      }
     }
     catch (Exception exception)
     {
