@@ -43,7 +43,7 @@ else
         <MudTextField @bind-Value="UrlText" Label="File URL" Variant="Variant.Outlined" Margin="Margin.Dense"
                       HelperText="Enter The File URL To Upload To The Server" HelperTextOnFocus="true" Adornment="Adornment.End"
                       AdornmentIcon="@Icons.Material.Filled.InsertLink" AdornmentColor="Color.Info" Clearable="true"
-                      Immediate="true" />
+                      Immediate="true" @onkeydown="HandleUrlInputKeyDown" TextUpdateSuppression="false" />
 
         <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Add" Color="Color.Primary"
                    Style="text-transform:none; height:40px; margin-top:0.5rem;" Class="pr-5" Size="Size.Small" OnClick="AddURL">Add</MudButton>
@@ -417,7 +417,8 @@ else
         _context.FileDownloadQueueItems.Add(newFileDownload);
         await _context.SaveChangesAsync();
 
-        ClearErrorMessage();
+        UrlText = "";
+        StateHasChanged();
 
         await LoadDownloadItemsList();
       }
@@ -430,8 +431,6 @@ else
     {
       ErrorMessage = "Please Enter A Valid URL";
     }
-
-    UrlText = "";
   }
 
   private void ClearErrorMessage()
@@ -517,6 +516,14 @@ else
     else if (size < 1024 * 1024) return $"{size / 1024:F2} KB";
     else if (size < 1024 * 1024 * 1024) return $"{size / 1024 / 1024:F2} MB";
     else return $"{size / 1024 / 1024 / 1024:F2} GB";
+  }
+
+  private async Task HandleUrlInputKeyDown(KeyboardEventArgs e)
+  {
+    if (e.Key == "Enter")
+    {
+      await AddURL();
+    }
   }
 
 }
