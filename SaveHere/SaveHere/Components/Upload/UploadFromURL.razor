@@ -94,7 +94,7 @@ else
         </MudTd>
         <MudTd Style="text-align:end;" Class="sv-table-custom-row-1" DataLabel="Actions">
           <MudStack Row="true" Style="gap:5px;">
-            <MudButton Variant="Variant.Filled" Color="@(context.Status==EQueueItemStatus.Downloading?Color.Error:Color.Tertiary)" Size="Size.Small" OnClick="async() =>
+            <MudButton Variant="Variant.Filled" Color="@(context.Status==EQueueItemStatus.Downloading?Color.Error:Color.Success)" Size="Size.Small" OnClick="async() =>
             {
             if (context.Status==EQueueItemStatus.Downloading) await CancelDownload(context); else await StartDownload(context);
             }">
@@ -283,12 +283,29 @@ else
         .Build();
     }
 
-    hubConnection.On<DownloadProgress>("DownloadProgressUpdate", OnDownloadProgressUpdate);
+    hubConnection.On<DownloadProgress>("DownloadProgressUpdate", OnDownloadProgressUpdateAsync);
+    hubConnection.On<int, string>("DownloadStateChanged", OnDownloadStateUpdateAsync);
 
-    await hubConnection.StartAsync();
+    try
+    {
+      await hubConnection.StartAsync();
+
+      // Subscribe to updates for all current downloads
+      if (_fileDownloadQueueItems != null)
+      {
+        foreach (var item in _fileDownloadQueueItems.Where(x => x.Status == EQueueItemStatus.Downloading))
+        {
+          await hubConnection.SendAsync("SubscribeToDownload", item.Id);
+        }
+      }
+    }
+    catch (Exception ex)
+    {
+      ErrorMessage = $"Failed to connect to progress updates: {ex.Message}";
+    }
   }
 
-  private void OnDownloadProgressUpdate(DownloadProgress update)
+  private async Task OnDownloadProgressUpdateAsync(DownloadProgress update)
   {
     var item = _fileDownloadQueueItems.FirstOrDefault(x => x.Id == update.ItemId);
     if (item != null)
@@ -296,8 +313,43 @@ else
       item.ProgressPercentage = update.ProgressPercentage;
       item.CurrentDownloadSpeed = update.CurrentSpeed;
       item.AverageDownloadSpeed = update.AverageSpeed;
-      LoadDownloadDirectoryContentsList(); // Temporary! To Do: Implement notifications for cancellation and finishing of downloads
-      InvokeAsync(StateHasChanged);
+
+      // If download is complete, refresh the directory contents
+      if (update.ProgressPercentage > 99)
+      {
+        LoadDownloadDirectoryContentsList();
+      }
+
+      await InvokeAsync(StateHasChanged);
+    }
+    else
+    {
+      // If we don't have the item in our list, refresh the whole list
+      await LoadDownloadItemsList();
+      await InvokeAsync(StateHasChanged);
+    }
+  }
+
+  private async Task OnDownloadStateUpdateAsync(int itemId, string newStatus)
+  {
+    var item = _fileDownloadQueueItems.FirstOrDefault(x => x.Id == itemId);
+    if (item != null)
+    {
+      await InvokeAsync(() =>
+      {
+        item.Status = Enum.Parse<EQueueItemStatus>(newStatus);
+        if (newStatus == EQueueItemStatus.Finished.ToString() ||
+            newStatus == EQueueItemStatus.Cancelled.ToString())
+        {
+          LoadDownloadDirectoryContentsList();
+        }
+        StateHasChanged();
+      });
+    }
+    else
+    {
+      await LoadDownloadItemsList();
+      await InvokeAsync(StateHasChanged);
     }
   }
 
@@ -306,7 +358,27 @@ else
     try
     {
       _isLoadingTheList = true;
-      _fileDownloadQueueItems = await DownloadQueueService.GetQueueItemsAsync();
+      var items = await DownloadQueueService.GetQueueItemsAsync();
+
+      // Update the list while preserving existing items to prevent UI flicker
+      foreach (var newItem in items)
+      {
+        var existingItem = _fileDownloadQueueItems.FirstOrDefault(x => x.Id == newItem.Id);
+        if (existingItem != null)
+        {
+          existingItem.Status = newItem.Status;
+          existingItem.ProgressPercentage = newItem.ProgressPercentage;
+          existingItem.CurrentDownloadSpeed = newItem.CurrentDownloadSpeed;
+          existingItem.AverageDownloadSpeed = newItem.AverageDownloadSpeed;
+        }
+        else
+        {
+          _fileDownloadQueueItems.Add(newItem);
+        }
+      }
+
+      // Remove items that no longer exist
+      _fileDownloadQueueItems.RemoveAll(x => !items.Any(y => y.Id == x.Id));
     }
     catch (Exception exception)
     {
@@ -376,16 +448,14 @@ else
 
   private async Task CancelDownload(FileDownloadQueueItem item)
   {
-    if (DownloadState.TryGetTokenSource(item.Id, out var tokenSource))
+    try
     {
-      tokenSource?.Cancel();
-      DownloadState.RemoveTokenSource(item.Id);
+      await DownloadQueueService.CancelDownloadAsync(item.Id);
     }
-
-    item.Status = EQueueItemStatus.Cancelled;
-    await _context.SaveChangesAsync();
-    await LoadDownloadItemsList();
-    LoadDownloadDirectoryContentsList();
+    catch (Exception exception)
+    {
+      ErrorMessage = $"An Error Occurred While Canceling The Download: {exception.Message}";
+    }
   }
 
   private async Task DeleteItem(FileDownloadQueueItem item)

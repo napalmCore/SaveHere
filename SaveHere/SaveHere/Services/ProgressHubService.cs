@@ -7,13 +7,14 @@ namespace SaveHere.Services
   public interface IProgressHubService
   {
     Task BroadcastProgressUpdate(DownloadProgress progress);
+    Task BroadcastStateChange(int itemId, string newStatus);
   }
 
   public class ProgressHubService : IProgressHubService
   {
-    private readonly IHubContext<DownloadProgressHub> _hubContext;
+    private readonly IHubContext<ProgressHub> _hubContext;
 
-    public ProgressHubService(IHubContext<DownloadProgressHub> hubContext)
+    public ProgressHubService(IHubContext<ProgressHub> hubContext)
     {
       _hubContext = hubContext;
     }
@@ -23,5 +24,9 @@ namespace SaveHere.Services
       await _hubContext.Clients.All.SendAsync("DownloadProgressUpdate", progress);
     }
 
+    public async Task BroadcastStateChange(int itemId, string newStatus)
+    {
+      await _hubContext.Clients.All.SendAsync("DownloadStateChanged", itemId, newStatus);
+    }
   }
 }

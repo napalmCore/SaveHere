@@ -19,15 +19,15 @@ namespace SaveHere.Services
 
   public class DownloadQueueService : IDownloadQueueService
   {
-    private readonly AppDbContext _context;
+    private readonly IDbContextFactory<AppDbContext> _contextFactory;
     private readonly DownloadStateService _downloadStateService;
     private readonly HttpClient _httpClient;
     private readonly ILogger<DownloadQueueService> _logger;
     private readonly IProgressHubService _progressHubService;
 
-    public DownloadQueueService(AppDbContext context, DownloadStateService downloadStateService, HttpClient httpClient, ILogger<DownloadQueueService> logger, IProgressHubService progressHubService)
+    public DownloadQueueService(IDbContextFactory<AppDbContext> contextFactory, DownloadStateService downloadStateService, HttpClient httpClient, ILogger<DownloadQueueService> logger, IProgressHubService progressHubService)
     {
-      _context = context;
+      _contextFactory = contextFactory;
       _downloadStateService = downloadStateService;
       _httpClient = httpClient;
       _logger = logger;
@@ -36,12 +36,14 @@ namespace SaveHere.Services
 
     public async Task<List<FileDownloadQueueItem>> GetQueueItemsAsync()
     {
-      return await _context.FileDownloadQueueItems.ToListAsync();
+      await using var context = await _contextFactory.CreateDbContextAsync();
+      return await context.FileDownloadQueueItems.ToListAsync();
     }
 
     public async Task<FileDownloadQueueItem?> GetQueueItemByIdAsync(int id)
     {
-      return await _context.FileDownloadQueueItems.FindAsync(id);
+      await using var context = await _contextFactory.CreateDbContextAsync();
+      return await context.FileDownloadQueueItems.FindAsync(id);
     }
 
     public async Task<FileDownloadQueueItem> AddQueueItemAsync(string url)
@@ -63,16 +65,18 @@ namespace SaveHere.Services
         ProgressPercentage = 0
       };
 
-      _context.FileDownloadQueueItems.Add(item);
-      await _context.SaveChangesAsync();
+      await using var context = await _contextFactory.CreateDbContextAsync();
+      context.FileDownloadQueueItems.Add(item);
+      await context.SaveChangesAsync();
 
       return item;
     }
 
     public async Task UpdateQueueItemAsync(FileDownloadQueueItem item)
     {
-      _context.FileDownloadQueueItems.Update(item);
-      await _context.SaveChangesAsync();
+      await using var context = await _contextFactory.CreateDbContextAsync();
+      context.FileDownloadQueueItems.Update(item);
+      await context.SaveChangesAsync();
     }
 
     public async Task DeleteQueueItemAsync(int id)
@@ -80,9 +84,10 @@ namespace SaveHere.Services
       var item = await GetQueueItemByIdAsync(id);
       if (item != null)
       {
-        _context.FileDownloadQueueItems.Remove(item);
+        await using var context = await _contextFactory.CreateDbContextAsync();
+        context.FileDownloadQueueItems.Remove(item);
         _downloadStateService.RemoveTokenSource(id);
-        await _context.SaveChangesAsync();
+        await context.SaveChangesAsync();
       }
     }
 
@@ -114,7 +119,6 @@ namespace SaveHere.Services
       var item = await GetQueueItemByIdAsync(id);
 
       if (item == null) throw new Exception("Item not found");
-
       if (item.Status == EQueueItemStatus.Downloading) throw new Exception("Item is already downloading");
 
       var tokenSource = _downloadStateService.GetOrAddTokenSource(id);
@@ -125,16 +129,19 @@ namespace SaveHere.Services
         item.Status = EQueueItemStatus.Downloading;
         item.ProgressPercentage = 0;
         await UpdateQueueItemAsync(item);
+        await _progressHubService.BroadcastStateChange(id, item.Status.ToString());
 
         await DownloadFile(item, token);
 
         item.Status = EQueueItemStatus.Finished;
         await UpdateQueueItemAsync(item);
+        await _progressHubService.BroadcastStateChange(id, item.Status.ToString());
       }
       catch (OperationCanceledException)
       {
         item.Status = EQueueItemStatus.Cancelled;
         await UpdateQueueItemAsync(item);
+        await _progressHubService.BroadcastStateChange(id, item.Status.ToString());
         throw;
       }
       catch (Exception ex)
@@ -142,6 +149,7 @@ namespace SaveHere.Services
         _logger.LogError(ex, "Error downloading the file for item {id}", id);
         item.Status = EQueueItemStatus.Paused;
         await UpdateQueueItemAsync(item);
+        await _progressHubService.BroadcastStateChange(id, item.Status.ToString());
         throw;
       }
       finally
@@ -282,6 +290,28 @@ namespace SaveHere.Services
           var speedMeasurementStopwatch = Stopwatch.StartNew();
           var speedMeasurementTotalStopwatch = Stopwatch.StartNew();
 
+          async Task UpdateProgress(int progress, double currentSpeed, double averageSpeed)
+          {
+            await using var context = await _contextFactory.CreateDbContextAsync();
+            var item = await context.FileDownloadQueueItems.FindAsync(queueItem.Id);
+            if (item != null)
+            {
+              item.ProgressPercentage = progress;
+              item.CurrentDownloadSpeed = currentSpeed;
+              item.AverageDownloadSpeed = averageSpeed;
+              await context.SaveChangesAsync(cancellationToken);
+            }
+
+            var downloadProgress = new DownloadProgress()
+            {
+              ItemId = queueItem.Id,
+              ProgressPercentage = progress,
+              CurrentSpeed = currentSpeed,
+              AverageSpeed = averageSpeed
+            };
+            await _progressHubService.BroadcastProgressUpdate(downloadProgress);
+          }
+
           // Ignore progress reporting when the ContentLength's header is not available
           if (!contentLength.HasValue)
           {
@@ -301,24 +331,15 @@ namespace SaveHere.Services
               var totalMeasurementSeconds = speedMeasurementStopwatch.Elapsed.TotalSeconds;
               if (totalMeasurementSeconds >= speedMeasurementPeriodInSeconds)
               {
-                queueItem.CurrentDownloadSpeed = bytesReadInLastPeriod / totalMeasurementSeconds;
-                queueItem.AverageDownloadSpeed = bytesReadInTotal / speedMeasurementTotalStopwatch.Elapsed.TotalSeconds;
-                await _context.SaveChangesAsync(cancellationToken);
+                await UpdateProgress(
+                            100,
+                            bytesReadInLastPeriod / totalMeasurementSeconds,
+                            bytesReadInTotal / speedMeasurementTotalStopwatch.Elapsed.TotalSeconds);
+
                 bytesReadInLastPeriod = 0;
                 speedMeasurementStopwatch.Restart();
               }
             }
-
-            queueItem.ProgressPercentage = 100;
-            var downloadProgress = new DownloadProgress()
-            {
-              ItemId = queueItem.Id,
-              ProgressPercentage = 100,
-              CurrentSpeed = 0,
-              AverageSpeed = 0
-            };
-            await _progressHubService.BroadcastProgressUpdate(downloadProgress);
-            await _context.SaveChangesAsync(cancellationToken);
           }
           else
           {
@@ -337,35 +358,40 @@ namespace SaveHere.Services
               totalBytesRead += bytesRead;
               bytesReadInLastPeriod += bytesRead;
               bytesReadInTotal += bytesRead;
-              queueItem.ProgressPercentage = (int)(100.0 * totalBytesRead / totalContentLength);
+
+              var progress = (int)(100.0 * totalBytesRead / totalContentLength);
 
               var totalMeasurementSeconds = speedMeasurementStopwatch.Elapsed.TotalSeconds;
               if (totalMeasurementSeconds >= speedMeasurementPeriodInSeconds)
               {
-                queueItem.CurrentDownloadSpeed = bytesReadInLastPeriod / totalMeasurementSeconds;
-                queueItem.AverageDownloadSpeed = bytesReadInTotal / speedMeasurementTotalStopwatch.Elapsed.TotalSeconds;
-                await _context.SaveChangesAsync(cancellationToken);
+                await UpdateProgress(
+                            progress,
+                            bytesReadInLastPeriod / totalMeasurementSeconds,
+                            bytesReadInTotal / speedMeasurementTotalStopwatch.Elapsed.TotalSeconds);
+
                 bytesReadInLastPeriod = 0;
                 speedMeasurementStopwatch.Restart();
               }
-
-              var downloadProgress = new DownloadProgress()
-              {
-                ItemId = queueItem.Id,
-                ProgressPercentage = queueItem.ProgressPercentage,
-                CurrentSpeed = queueItem.CurrentDownloadSpeed,
-                AverageSpeed = queueItem.AverageDownloadSpeed
-              };
-              await _progressHubService.BroadcastProgressUpdate(downloadProgress);
             }
+          }
 
-            // Save any remaining changes
-            await _context.SaveChangesAsync(cancellationToken);
+          // Complete the download
+          stream.Close();
+          File.Move(tempFilePath, localFilePath);
+
+          // Update final status with a new context
+          await using (var context = await _contextFactory.CreateDbContextAsync())
+          {
+            var item = await context.FileDownloadQueueItems.FindAsync(queueItem.Id);
+            if (item != null)
+            {
+              item.Status = EQueueItemStatus.Finished;
+              item.ProgressPercentage = 100;
+              item.CurrentDownloadSpeed = 0;
+              await context.SaveChangesAsync();
+            }
           }
         }
-
-        // Rename temp file to final file
-        File.Move(tempFilePath, localFilePath);
 
         // Fixing file permissions on linux
         if (OperatingSystem.IsLinux()) File.SetUnixFileMode(localFilePath,

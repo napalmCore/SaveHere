@@ -32,7 +32,7 @@ namespace SaveHere
           throw new InvalidOperationException("Could not create the database directory.");
         }
       }
-      builder.Services.AddDbContext<AppDbContext>(options =>
+      builder.Services.AddDbContextFactory<AppDbContext>(options =>
           options.UseSqlite($"Data Source={Path.Combine(dbPath, "database.sqlite3.db")}")
       );
 
@@ -107,7 +107,7 @@ namespace SaveHere
       // Add additional endpoints required by the Identity /Account Razor components.
       app.MapAdditionalIdentityEndpoints();
 
-      app.MapHub<DownloadProgressHub>("/DownloadProgressHub");
+      app.MapHub<ProgressHub>("/DownloadProgressHub");
 
       // Ensuring the database is created
       using (var scope = app.Services.CreateScope())
