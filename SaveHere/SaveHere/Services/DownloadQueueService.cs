@@ -100,6 +100,11 @@ namespace SaveHere.Services
       var item = await GetQueueItemByIdAsync(id);
       if (item == null) return;
       if (item.Status == EQueueItemStatus.Cancelled) return;
+
+      // Update status immediately
+      item.Status = EQueueItemStatus.Cancelled;
+      await UpdateQueueItemAsync(item);
+
       var tokenSource = _downloadStateService.GetOrAddTokenSource(id);
       tokenSource.Cancel();
     }
