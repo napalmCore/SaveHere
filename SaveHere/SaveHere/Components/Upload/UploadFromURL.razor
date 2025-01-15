@@ -62,8 +62,8 @@ else
     <MudTable Items="@_fileDownloadQueueItems" Dense="true" Hover="true" Loading="@_isLoadingTheList" Class="pa-5 mx-5 sv-table" Elevation="5">
       <HeaderContent>
         <MudTh Style="width:100%;">URL</MudTh>
-        <MudTh Style="text-align:center; min-width:100px">Status</MudTh>
-        <MudTh Style="text-align:center; min-width:200px">Progress</MudTh>
+        <MudTh Style="text-align:center;">Status</MudTh>
+        <MudTh Style="text-align:center; min-width:150px;">Progress</MudTh>
         <MudTh Style="text-align:center;">Actions</MudTh>
       </HeaderContent>
       <RowTemplate>
@@ -74,8 +74,8 @@ else
         <MudTd Style="text-align:center" class="sv-table-custom-row-1" DataLabel="Progress">
           <MudStack Spacing="0" Class="sv-custom-progress-stack">
 
-            <MudText Typo="Typo.body2" Align="Align.Left" Class="ma-0 pa-0">
-              speed @FormatSpeed(context.CurrentDownloadSpeed)
+            <MudText Typo="Typo.body2" Align="Align.Left" Class="ma-0 pa-0" Style="white-space:nowrap">
+              @FormatSpeed(context.CurrentDownloadSpeed) <span style="font-size:0.66rem;">speed</span>
             </MudText>
 
             <MudStack Row="true" Spacing="1" Justify="Justify.SpaceBetween">
@@ -86,15 +86,15 @@ else
               </MudText>
             </MudStack>
 
-            <MudText Typo="Typo.body2" Align="Align.Left" Class="ma-0 pa-0">
-              average @FormatSpeed(context.AverageDownloadSpeed)
+            <MudText Typo="Typo.body2" Align="Align.Left" Class="ma-0 pa-0" Style="white-space:nowrap">
+              @FormatSpeed(context.AverageDownloadSpeed) <span style="font-size:0.66rem;">average</span>
             </MudText>
 
           </MudStack>
         </MudTd>
         <MudTd Style="text-align:end;" Class="sv-table-custom-row-1" DataLabel="Actions">
           <MudStack Row="true" Style="gap:5px;">
-            <MudButton Variant="Variant.Filled" Color="@(context.Status==EQueueItemStatus.Downloading?Color.Error:Color.Success)" Size="Size.Small" OnClick="async() =>
+            <MudButton Variant="Variant.Filled" Color="@(context.Status==EQueueItemStatus.Downloading?Color.Error:Color.Success)" Size="Size.Small" Style="min-width:75px;" OnClick="async() =>
             {
             if (context.Status==EQueueItemStatus.Downloading) await CancelDownload(context); else await StartDownload(context);
             }">
