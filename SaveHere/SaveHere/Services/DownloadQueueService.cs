@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using SaveHere.Models;
 using SaveHere.Models.db;
+using System;
 using System.Diagnostics;
 using System.Net;
 
@@ -127,13 +128,13 @@ namespace SaveHere.Services
       try
       {
         item.Status = EQueueItemStatus.Downloading;
-        item.ProgressPercentage = 0;
         await UpdateQueueItemAsync(item);
         await _progressHubService.BroadcastStateChange(id, item.Status.ToString());
 
         await DownloadFile(item, token);
 
         item.Status = EQueueItemStatus.Finished;
+        item.ProgressPercentage = 100;
         await UpdateQueueItemAsync(item);
         await _progressHubService.BroadcastStateChange(id, item.Status.ToString());
       }
@@ -312,7 +313,7 @@ namespace SaveHere.Services
             await _progressHubService.BroadcastProgressUpdate(downloadProgress);
           }
 
-          // Ignore progress reporting when the ContentLength's header is not available
+          // when we don't know the file size
           if (!contentLength.HasValue)
           {
             while ((bytesRead = await download.ReadAsync(buffer, 0, buffer.Length, cancellationToken)) != 0)
@@ -331,10 +332,7 @@ namespace SaveHere.Services
               var totalMeasurementSeconds = speedMeasurementStopwatch.Elapsed.TotalSeconds;
               if (totalMeasurementSeconds >= speedMeasurementPeriodInSeconds)
               {
-                await UpdateProgress(
-                            100,
-                            bytesReadInLastPeriod / totalMeasurementSeconds,
-                            bytesReadInTotal / speedMeasurementTotalStopwatch.Elapsed.TotalSeconds);
+                await UpdateProgress(99, bytesReadInLastPeriod / totalMeasurementSeconds, bytesReadInTotal / speedMeasurementTotalStopwatch.Elapsed.TotalSeconds);
 
                 bytesReadInLastPeriod = 0;
                 speedMeasurementStopwatch.Restart();
@@ -364,10 +362,7 @@ namespace SaveHere.Services
               var totalMeasurementSeconds = speedMeasurementStopwatch.Elapsed.TotalSeconds;
               if (totalMeasurementSeconds >= speedMeasurementPeriodInSeconds)
               {
-                await UpdateProgress(
-                            progress,
-                            bytesReadInLastPeriod / totalMeasurementSeconds,
-                            bytesReadInTotal / speedMeasurementTotalStopwatch.Elapsed.TotalSeconds);
+                await UpdateProgress(progress, bytesReadInLastPeriod / totalMeasurementSeconds, bytesReadInTotal / speedMeasurementTotalStopwatch.Elapsed.TotalSeconds);
 
                 bytesReadInLastPeriod = 0;
                 speedMeasurementStopwatch.Restart();
@@ -385,10 +380,19 @@ namespace SaveHere.Services
             var item = await context.FileDownloadQueueItems.FindAsync(queueItem.Id);
             if (item != null)
             {
-              item.Status = EQueueItemStatus.Finished;
               item.ProgressPercentage = 100;
-              item.CurrentDownloadSpeed = 0;
+              item.Status = EQueueItemStatus.Finished;
+
               await context.SaveChangesAsync();
+
+              var downloadProgress = new DownloadProgress()
+              {
+                ItemId = queueItem.Id,
+                ProgressPercentage = 100,
+                CurrentSpeed = item.CurrentDownloadSpeed,
+                AverageSpeed = item.AverageDownloadSpeed
+              };
+              await _progressHubService.BroadcastProgressUpdate(downloadProgress);
             }
           }
         }

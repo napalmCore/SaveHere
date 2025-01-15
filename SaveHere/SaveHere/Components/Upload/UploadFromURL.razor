@@ -338,8 +338,7 @@ else
       await InvokeAsync(() =>
       {
         item.Status = Enum.Parse<EQueueItemStatus>(newStatus);
-        if (newStatus == EQueueItemStatus.Finished.ToString() ||
-            newStatus == EQueueItemStatus.Cancelled.ToString())
+        if (newStatus == EQueueItemStatus.Finished.ToString() || newStatus == EQueueItemStatus.Cancelled.ToString())
         {
           LoadDownloadDirectoryContentsList();
         }
