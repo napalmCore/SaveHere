@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Hosting.StaticWebAssets;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyModel;
 using MudBlazor.Services;
 using SaveHere.Components;
 using SaveHere.Components.Account;
@@ -114,20 +115,41 @@ namespace SaveHere
         var filePath = Path.Combine(DirectoryBrowser.DownloadsPath, filename);
         if (!File.Exists(filePath)) return Results.NotFound();
 
-        var contentType = "application/octet-stream";
         var fileInfo = new FileInfo(filePath);
+        var contentType = "application/octet-stream";
+
+        var rangeHeader = context.Request.Headers.Range.ToString();
+        context.Response.Headers.Append("Accept-Ranges", "bytes");
 
         // Set content disposition to attachment to force download
         context.Response.Headers.Append("Content-Disposition", $"attachment; filename=\"{fileInfo.Name}\"");
 
-        var fileStream = new FileStream(
-          filePath,
-          FileMode.Open,
-          FileAccess.Read,
-          FileShare.Read
-        );
+        // If no range is specified, return the full file
+        if (string.IsNullOrEmpty(rangeHeader))
+        {
+          context.Response.ContentLength = fileInfo.Length;
+          var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+          return Results.Stream(fs, contentType, fileInfo.Name);
+        }
 
-        return Results.Stream(fileStream, contentType, fileInfo.Name);
+        // Parse the range header
+        var range = rangeHeader.Replace("bytes=", "").Split('-');
+        var start = long.Parse(range[0]);
+        var end = range[1] == "" ? fileInfo.Length - 1 : long.Parse(range[1]);
+        var length = end - start + 1;
+
+        // Set response headers for partial content
+        context.Response.StatusCode = StatusCodes.Status206PartialContent;
+        context.Response.Headers.Append("Content-Range", $"bytes {start}-{end}/{fileInfo.Length}");
+        context.Response.ContentLength = length;
+
+        // Create a stream for the requested range
+        var fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+        fileStream.Seek(start, SeekOrigin.Begin);
+
+        // Create a limited stream that will only read the requested range
+        var limitedStream = new LimitedStream(fileStream, length);
+        return Results.Stream(limitedStream, contentType, fileInfo.Name);
       });
 
       // Ensuring the database is created
