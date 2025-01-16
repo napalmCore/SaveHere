@@ -135,18 +135,19 @@ else
       <MudTable Items="@_downloadDirectoryContents" Dense="true" Hover="true" Class="pa-5 mx-5 my-3 sv-table" Elevation="5">
         <HeaderContent>
           <MudTh Style="width:100%;">Name</MudTh>
-          <MudTh>Length</MudTh>
+          <MudTh>Size</MudTh>
           <MudTh Style="text-align:center;">Actions</MudTh>
         </HeaderContent>
         <RowTemplate>
           <MudTd DataLabel="Name" Style="word-break:break-all;">
             @context.Name
           </MudTd>
-          <MudTd DataLabel="Length" Style="white-space:nowrap">
+          <MudTd DataLabel="Size" Style="white-space:nowrap">
             @Helpers.FormatSize(context.Length)
           </MudTd>
           <MudTd DataLabel="Actions" Style="text-align:end;">
             <MudStack Row="true" Style="gap:5px;">
+              <MudButton Variant="Variant.Filled" Color="Color.Success" Size="Size.Small" Href="@($"/downloads/{WebUtility.UrlEncode(context.Name)}")" Target="_blank">Download</MudButton>
               <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small" OnClick="() => DeleteFile(context)">Delete</MudButton>
             </MudStack>
           </MudTd>

@@ -109,6 +109,27 @@ namespace SaveHere
 
       app.MapHub<ProgressHub>("/DownloadProgressHub");
 
+      app.MapGet("/downloads/{filename}", async (string filename, HttpContext context) =>
+      {
+        var filePath = Path.Combine(DirectoryBrowser.DownloadsPath, filename);
+        if (!File.Exists(filePath)) return Results.NotFound();
+
+        var contentType = "application/octet-stream";
+        var fileInfo = new FileInfo(filePath);
+
+        // Set content disposition to attachment to force download
+        context.Response.Headers.Append("Content-Disposition", $"attachment; filename=\"{fileInfo.Name}\"");
+
+        var fileStream = new FileStream(
+          filePath,
+          FileMode.Open,
+          FileAccess.Read,
+          FileShare.Read
+        );
+
+        return Results.Stream(fileStream, contentType, fileInfo.Name);
+      });
+
       // Ensuring the database is created
       using (var scope = app.Services.CreateScope())
       {
