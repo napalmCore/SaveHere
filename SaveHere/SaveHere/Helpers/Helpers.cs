@@ -4,6 +4,24 @@ namespace SaveHere.Helpers
 {
   public static class Helpers
   {
+    public static string FormatSpeed(double speed)
+    {
+      if (speed == 0) return "0";
+      else if (speed < 1024) return $"{speed:F2} B/s";
+      else if (speed < 1024 * 1024) return $"{speed / 1024:F2} KB/s";
+      else if (speed < 1024 * 1024 * 1024) return $"{speed / 1024 / 1024:F2} MB/s";
+      else return $"{speed / 1024 / 1024 / 1024:F2} GB/s";
+    }
+
+    public static string FormatSize(double size)
+    {
+      if (size == 0) return "0";
+      else if (size < 1024) return $"{size:F2} B";
+      else if (size < 1024 * 1024) return $"{size / 1024:F2} KB";
+      else if (size < 1024 * 1024 * 1024) return $"{size / 1024 / 1024:F2} MB";
+      else return $"{size / 1024 / 1024 / 1024:F2} GB";
+    }
+
     public static string ExtractFileNameFromUrl(string url)
     {
       // Decode the URL
