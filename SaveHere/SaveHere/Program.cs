@@ -109,7 +109,7 @@ namespace SaveHere
 
       app.MapHub<ProgressHub>("/DownloadProgressHub");
 
-      app.MapGet("/downloads/{filename}", async (string filename, HttpContext context) =>
+      app.MapGet("/downloads/{filename}", (string filename, HttpContext context) =>
       {
         var filePath = Path.Combine(DirectoryBrowser.DownloadsPath, filename);
         if (!File.Exists(filePath)) return Results.NotFound();
