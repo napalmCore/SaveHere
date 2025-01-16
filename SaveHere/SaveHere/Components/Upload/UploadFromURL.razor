@@ -59,94 +59,100 @@ else
       </MudAlert>
     }
 
-    <MudTable Items="@_fileDownloadQueueItems" Dense="true" Hover="true" Loading="@_isLoadingTheList" Class="pa-5 mx-5 sv-table" Elevation="5">
-      <HeaderContent>
-        <MudTh Style="width:100%;">URL</MudTh>
-        <MudTh Style="text-align:center; min-width:125px;">Status</MudTh>
-        <MudTh Style="text-align:center; min-width:200px;">Progress</MudTh>
-        <MudTh Style="text-align:center;">Actions</MudTh>
-      </HeaderContent>
-      <RowTemplate>
-        <MudTd Style="word-break:break-all;" DataLabel="URL" Class="sv-table-custom-row-1">
-          @context.InputUrl
-        </MudTd>
-        <MudTd Style="text-align:center;" Class="sv-table-custom-row-1" DataLabel="Status">@context.Status</MudTd>
-        <MudTd Style="text-align:center" class="sv-table-custom-row-1" DataLabel="Progress">
-          <MudStack Spacing="0" Class="sv-custom-progress-stack">
+    @if (_fileDownloadQueueItems is not null && _fileDownloadQueueItems.Any())
+    {
+      <MudTable Items="@_fileDownloadQueueItems" Dense="true" Hover="true" Loading="@_isLoadingTheList" Class="pa-5 mx-5 sv-table" Elevation="5">
+        <HeaderContent>
+          <MudTh Style="width:100%;">URL</MudTh>
+          <MudTh Style="text-align:center; min-width:125px;">Status</MudTh>
+          <MudTh Style="text-align:center; min-width:200px;">Progress</MudTh>
+          <MudTh Style="text-align:center;">Actions</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+          <MudTd Style="word-break:break-all;" DataLabel="URL" Class="sv-table-custom-row-1">
+            @context.InputUrl
+          </MudTd>
+          <MudTd Style="text-align:center;" Class="sv-table-custom-row-1" DataLabel="Status">@context.Status</MudTd>
+          <MudTd Style="text-align:center" class="sv-table-custom-row-1" DataLabel="Progress">
+            <MudStack Spacing="0" Class="sv-custom-progress-stack">
 
-            <div style="display:flex; justify-content:space-between;">
-              <span style="font-size:0.66rem;">speed</span>
-              <MudText Typo="Typo.body2" Align="Align.Left" Class="ma-0 pa-0" Style="white-space:nowrap">
-                @FormatSpeed(context.CurrentDownloadSpeed)
-              </MudText>
-            </div>
+              <div style="display:flex; justify-content:space-between;">
+                <span style="font-size:0.66rem;">speed</span>
+                <MudText Typo="Typo.body2" Align="Align.Left" Class="ma-0 pa-0" Style="white-space:nowrap">
+                  @FormatSpeed(context.CurrentDownloadSpeed)
+                </MudText>
+              </div>
 
-            <MudStack Row="true" Spacing="1" Justify="Justify.SpaceBetween">
-              <MudProgressLinear Value="@context.ProgressPercentage" Color="Color.Tertiary" Striped="@(context.Status==EQueueItemStatus.Downloading)" Class="ma-0 pa-0 sv-progressbar" Style="width: 100%;" Size="Size.Large" />
+              <MudStack Row="true" Spacing="1" Justify="Justify.SpaceBetween">
+                <MudProgressLinear Value="@context.ProgressPercentage" Color="Color.Tertiary" Striped="@(context.Status==EQueueItemStatus.Downloading)" Class="ma-0 pa-0 sv-progressbar" Style="width: 100%;" Size="Size.Large" />
 
-              <MudText Typo="Typo.inherit" Color="Color.Warning" Class="ma-0 pa-0" Align="Align.Right" Inline="true" Style="font-size:10px;">
-                @context.ProgressPercentage%
-              </MudText>
+                <MudText Typo="Typo.inherit" Color="Color.Warning" Class="ma-0 pa-0" Align="Align.Right" Inline="true" Style="font-size:10px;">
+                  @context.ProgressPercentage%
+                </MudText>
+              </MudStack>
+
+              <div style="display:flex; justify-content:space-between;">
+                <span style="font-size:0.66rem;">average</span>
+                <MudText Typo="Typo.body2" Align="Align.Left" Class="ma-0 pa-0" Style="white-space:nowrap">
+                  @FormatSpeed(context.AverageDownloadSpeed)
+                </MudText>
+              </div>
+
             </MudStack>
-
-            <div style="display:flex; justify-content:space-between;">
-              <span style="font-size:0.66rem;">average</span>
-              <MudText Typo="Typo.body2" Align="Align.Left" Class="ma-0 pa-0" Style="white-space:nowrap">
-                @FormatSpeed(context.AverageDownloadSpeed)
-              </MudText>
-            </div>
-
-          </MudStack>
-        </MudTd>
-        <MudTd Style="text-align:end;" Class="sv-table-custom-row-1" DataLabel="Actions">
-          <MudStack Row="true" Style="gap:5px;">
-            <MudButton Variant="Variant.Filled" Color="@(context.Status==EQueueItemStatus.Downloading?Color.Error:Color.Success)" Size="Size.Small" Style="min-width:75px;" OnClick="async() =>
+          </MudTd>
+          <MudTd Style="text-align:end;" Class="sv-table-custom-row-1" DataLabel="Actions">
+            <MudStack Row="true" Style="gap:5px;">
+              <MudButton Variant="Variant.Filled" Color="@(context.Status==EQueueItemStatus.Downloading?Color.Error:Color.Success)" Size="Size.Small" Style="min-width:75px;" OnClick="async() =>
             {
             if (context.Status==EQueueItemStatus.Downloading) await CancelDownload(context); else await StartDownload(context);
             }">
-              @(context.Status == EQueueItemStatus.Downloading ? "Cancel" : "Start")
-            </MudButton>
-            <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small" OnClick="async() => await DeleteItem(context)">Delete</MudButton>
-            <MudButton Variant="Variant.Filled" Color="Color.Info" Size="Size.Small" OnClick="() => ToggleMoreOptions(context)">@(context.bShowMoreOptions ? "Close" : "More")</MudButton>
-          </MudStack>
-        </MudTd>
-      </RowTemplate>
-      <ChildRowContent>
-        @if (context.bShowMoreOptions)
-        {
-          <MudTr Style="justify-content: start;">
-            <MudTd ColSpan="4" Style="justify-content: start; width:100%;">
-              <MudPaper Class="pa-5" Elevation="0" Outlined="true" Style="start; width:100%;">
-                <MudStack>
-                  <MudCheckBox @bind-Value="@context.bShouldGetFilenameFromHttpHeaders" Label="Use Headers For Filename" Color="Color.Primary" />
-                </MudStack>
-              </MudPaper>
-            </MudTd>
-          </MudTr>
-        }
-      </ChildRowContent>
-    </MudTable>
+                @(context.Status == EQueueItemStatus.Downloading ? "Cancel" : "Start")
+              </MudButton>
+              <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small" OnClick="async() => await DeleteItem(context)">Delete</MudButton>
+              <MudButton Variant="Variant.Filled" Color="Color.Info" Size="Size.Small" OnClick="() => ToggleMoreOptions(context)">@(context.bShowMoreOptions ? "Close" : "More")</MudButton>
+            </MudStack>
+          </MudTd>
+        </RowTemplate>
+        <ChildRowContent>
+          @if (context.bShowMoreOptions)
+          {
+            <MudTr Style="justify-content: start;">
+              <MudTd ColSpan="4" Style="justify-content: start; width:100%;">
+                <MudPaper Class="pa-5" Elevation="0" Outlined="true" Style="start; width:100%;">
+                  <MudStack>
+                    <MudCheckBox @bind-Value="@context.bShouldGetFilenameFromHttpHeaders" Label="Use Headers For Filename" Color="Color.Primary" />
+                  </MudStack>
+                </MudPaper>
+              </MudTd>
+            </MudTr>
+          }
+        </ChildRowContent>
+      </MudTable>
+    }
 
-    <MudTable Items="@_downloadDirectoryContents" Dense="true" Hover="true" Class="pa-5 mx-5 my-3 sv-table" Elevation="5">
-      <HeaderContent>
-        <MudTh Style="width:100%;">Name</MudTh>
-        <MudTh>Length</MudTh>
-        <MudTh Style="text-align:center;">Actions</MudTh>
-      </HeaderContent>
-      <RowTemplate>
-        <MudTd DataLabel="Name" Style="word-break:break-all;">
-          @context.Name
-        </MudTd>
-        <MudTd DataLabel="Length" Style="white-space:nowrap">
-          @FormatSize(context.Length)
-        </MudTd>
-        <MudTd DataLabel="Actions" Style="text-align:end;">
-          <MudStack Row="true" Style="gap:5px;">
-            <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small" OnClick="() => DeleteFile(context)">Delete</MudButton>
-          </MudStack>
-        </MudTd>
-      </RowTemplate>
-    </MudTable>
+    @if (_downloadDirectoryContents is not null && _downloadDirectoryContents.Any())
+    {
+      <MudTable Items="@_downloadDirectoryContents" Dense="true" Hover="true" Class="pa-5 mx-5 my-3 sv-table" Elevation="5">
+        <HeaderContent>
+          <MudTh Style="width:100%;">Name</MudTh>
+          <MudTh>Length</MudTh>
+          <MudTh Style="text-align:center;">Actions</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+          <MudTd DataLabel="Name" Style="word-break:break-all;">
+            @context.Name
+          </MudTd>
+          <MudTd DataLabel="Length" Style="white-space:nowrap">
+            @FormatSize(context.Length)
+          </MudTd>
+          <MudTd DataLabel="Actions" Style="text-align:end;">
+            <MudStack Row="true" Style="gap:5px;">
+              <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small" OnClick="() => DeleteFile(context)">Delete</MudButton>
+            </MudStack>
+          </MudTd>
+        </RowTemplate>
+      </MudTable>
+    }
 
   </MudStack>
 }
