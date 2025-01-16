@@ -173,7 +173,7 @@ namespace SaveHere.Services
       {
         var httpClient = _httpClient;
 
-        ProxyServer? proxyServer = null;
+        ProxyServer? proxyServer = null; // To Do: Add proxy server
         if (proxyServer != null && !(string.IsNullOrWhiteSpace(proxyServer.Protocol) || string.IsNullOrWhiteSpace(proxyServer.Host) || proxyServer.Port == 0))
         {
           var url = proxyServer.Protocol + "://" + proxyServer.Host + ":" + proxyServer.Port;
