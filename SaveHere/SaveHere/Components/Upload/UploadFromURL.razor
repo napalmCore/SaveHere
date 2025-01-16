@@ -3,6 +3,7 @@
 @implements IAsyncDisposable
 
 @using Microsoft.EntityFrameworkCore
+@using SaveHere.Components.Dialogs
 @using SaveHere.Models
 @using SaveHere.Models.db
 @using SaveHere.Services
@@ -106,10 +107,10 @@ else
             {
             if (context.Status==EQueueItemStatus.Downloading) await CancelDownload(context); else await StartDownload(context);
             }">
-                @(context.Status == EQueueItemStatus.Downloading ? "Cancel" : "Start")
+                @(context.Status == EQueueItemStatus.Downloading ? "Stop" : "Start")
               </MudButton>
               <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small" OnClick="async() => await DeleteQueueItem(context)">Delete</MudButton>
-              <MudButton Variant="Variant.Filled" Color="Color.Info" Size="Size.Small" OnClick="() => ToggleMoreOptions(context)">@(context.bShowMoreOptions ? "Close" : "More")</MudButton>
+              <MudButton Variant="Variant.Filled" Color="Color.Info" Size="Size.Small" OnClick="() => ToggleMoreOptions(context)">@(context.bShowMoreOptions ? "Collapse" : "Options")</MudButton>
             </MudStack>
           </MudTd>
         </RowTemplate>
@@ -146,7 +147,18 @@ else
             @Helpers.FormatSize(context.Length)
           </MudTd>
           <MudTd DataLabel="Actions" Style="text-align:end;">
-            <MudStack Row="true" Style="gap:5px;">
+            <MudStack Row="true" Style="gap:5px; justify-content:end">
+              @{
+                var ext = Path.GetExtension(context.Name).ToLowerInvariant();
+                var isVideo = new[] { ".mp4", ".webm", ".avi", ".mov", ".mkv" }.Contains(ext);
+                var isAudio = new[] { ".mp3", ".wav", ".ogg", ".m4a", ".flac" }.Contains(ext);
+              }
+              @if (isVideo || isAudio)
+              {
+                <MudButton OnClick="@(() => OpenMediaDialogAsync(context, isVideo, isAudio))" Variant="Variant.Filled" Color="Color.Warning" Size="Size.Small">
+                  Play
+                </MudButton>
+              }
               <MudButton Variant="Variant.Filled" Color="Color.Success" Size="Size.Small" Href="@($"/downloads/{WebUtility.UrlEncode(context.Name)}")" Target="_blank">Download</MudButton>
               <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small" OnClick="() => DeleteFile(context)">Delete</MudButton>
             </MudStack>
@@ -196,12 +208,19 @@ else
   }
 </style>
 
+<style>
+  .my-custom-media-dialog {
+    backdrop-filter: blur(10px);
+  }
+</style>
+
 @code {
   [Inject] public required AppDbContext _context { get; set; }
   [Inject] private PersistentComponentState _persistentState { get; set; } = default!;
   [Inject] public required DownloadStateService DownloadState { get; set; }
   [Inject] public IDownloadQueueService DownloadQueueService { get; set; } = default!;
   [Inject] private NavigationManager NavigationManager { get; set; } = default!;
+  [Inject] private IDialogService DialogService { get; set; } = default!;
 
   private bool _isFullyLoaded;
   private PersistingComponentStateSubscription persistingSubscription;
@@ -511,6 +530,24 @@ else
     {
       await AddURL();
     }
+  }
+
+  private Task OpenMediaDialogAsync(FileItem fileItem, bool isVideo, bool isAudio)
+  {
+    var parameters = new DialogParameters<MediaDialog>
+    {
+        {x=>x.MediaUrl, $"/stream/{WebUtility.UrlEncode(fileItem.Name)}"},
+        {x=>x.IsVideo, isVideo},
+        {x=>x.IsAudio, isAudio}
+    };
+
+    var options = new DialogOptions
+      {
+        BackgroundClass = "my-custom-media-dialog",
+        CloseButton = true
+      };
+
+    return DialogService.ShowAsync<MediaDialog>("", parameters, options);
   }
 
 }
