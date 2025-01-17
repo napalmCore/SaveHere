@@ -1,14 +1,14 @@
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/8cac9045-7b28-4ec8-b309-2f1f1cd969c1" alt="Screenshot of SaveHere App"/>
+  <br>
+</p>
+
 <div align="center">
   <h1>SaveHere</h1>
   <h4>Minimal Cloud Download Manager</h4>
-  <img src="https://github.com/user-attachments/assets/8cac9045-7b28-4ec8-b309-2f1f1cd969c1" alt="Screenshot of SaveHere App">
+  <h6>In v3.0, the app has been rewritten from scratch in .Net Blazor</h6>
+  <img >
 </div>
-
-
-
-
-___In v3.0, the app has been rewritten from scratch in .Net Blazor.___
-
 
 
 ## Table of Contents
