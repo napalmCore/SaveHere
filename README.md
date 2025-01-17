@@ -6,6 +6,7 @@
 
 
 
+
 ___In v3.0, the app has been rewritten from scratch in .Net Blazor.___
 
 
@@ -62,9 +63,34 @@ dotnet SaveHere.dll --urls=http://127.0.0.1:7777
 
 Now the app is running at localhost `127.0.0.1` port `7777`.
 
+If you're running the app behind a basic auth, set these 2 environment variables before running the app.
+
+Linux
+```bash
+export BASIC_AUTH_USERNAME="your_username"
+export BASIC_AUTH_PASSWORD="your_password"
+```
+
+Windows cmd
+```cmd
+set BASIC_AUTH_USERNAME=your_username
+set BASIC_AUTH_PASSWORD=your_password
+```
+
+Windows powershell
+```powershel
+$env:BASIC_AUTH_USERNAME = "your_username"
+$env:BASIC_AUTH_PASSWORD = "your_password"
+```
 
 ## To Do
 - [ ] Add user accounts and set their access policies
+- [ ] Add youtube downloader
+- [ ] Add spotify downloader
+- [ ] Add rjmusic downloader
+- [ ] Add terminal
+- [ ] Add full file manager
+- [ ] Add temporary short links
 - [x] Check [issues](https://github.com/gudarzi/SaveHere/issues) for more!
 
 
