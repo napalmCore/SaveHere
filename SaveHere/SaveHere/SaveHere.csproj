@@ -7,14 +7,13 @@
     <UserSecretsId>aspnet-SaveHere-79a10a8e-8678-4a74-9f74-ed46c4e3cf27</UserSecretsId>
   </PropertyGroup>
 
-
   <ItemGroup>
     <ProjectReference Include="..\SaveHere.Client\SaveHere.Client.csproj" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="8.*" />
     <PackageReference Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore" Version="8.*" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.*" />
     <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="8.0.11" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.11">
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.12">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
@@ -22,11 +21,6 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.*" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.*" />
     <PackageReference Include="Extensions.MudBlazor.StaticInput" Version="2.*" />
-  </ItemGroup>
-
-
-  <ItemGroup>
-    <Folder Include="db\" />
   </ItemGroup>
 
 </Project>
