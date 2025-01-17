@@ -5,10 +5,10 @@
 <MudLayout>
 
   <MudAppBar Elevation="1" Dense="true">
-    <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@LeftDrawerToggle" />
+    <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@(()=>LeftDrawerToggle())" />
     <MudText Typo="Typo.h5" Class="mx-auto hover-link" Color="Color.Inherit" onclick="@(()=>NavigateToHome())">SaveHere</MudText>
-    <MudToggleIconButton @bind-Toggled="isDarkMode" Icon="@Icons.Material.Filled.LightMode" Color="@Color.Inherit" ToggledIcon="@Icons.Material.Filled.DarkMode" ToggledColor="@Color.Inherit"/>
-    <MudIconButton Icon="@Icons.Material.Filled.AccountCircle" Color="Color.Inherit" Onclick="@RightDrawerToggle" Edge="Edge.End" />
+    <MudToggleIconButton @bind-Toggled="isDarkMode" Icon="@Icons.Material.Filled.LightMode" Color="@Color.Inherit" ToggledIcon="@Icons.Material.Filled.DarkMode" ToggledColor="@Color.Inherit" />
+    <MudIconButton Icon="@Icons.Material.Filled.AccountCircle" Color="Color.Inherit" Onclick="@(()=>RightDrawerToggle())" Edge="Edge.End" />
   </MudAppBar>
 
   <MudDrawer @bind-Open="isLeftDrawerOpen" ClipMode="DrawerClipMode.Always" Elevation="10">
@@ -20,7 +20,7 @@
   </MudMainContent>
 
   <MudDrawer @bind-Open="isRightDrawerOpen" Anchor="Anchor.Right" ClipMode="DrawerClipMode.Always" Elevation="10">
-    <NavMenu IsRightDrawer/>
+    <NavMenu IsRightDrawer />
   </MudDrawer>
 
 </MudLayout>
@@ -54,7 +54,7 @@
   {
     isLeftDrawerOpen = !isLeftDrawerOpen;
   }
-  
+
   private void RightDrawerToggle()
   {
     isRightDrawerOpen = !isRightDrawerOpen;
