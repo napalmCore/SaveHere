@@ -1,23 +1,27 @@
 ﻿@inherits LayoutComponentBase
 
-<MudThemeProvider @bind-IsDarkMode="@_isDarkMode" />
+<MudThemeProvider @bind-IsDarkMode="@isDarkMode" />
 
 <MudLayout>
 
   <MudAppBar Elevation="1" Dense="true">
-    <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@DrawerToggle" />
+    <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@LeftDrawerToggle" />
     <MudText Typo="Typo.h5" Class="mx-auto hover-link" Color="Color.Inherit" onclick="@(()=>NavigateToHome())">SaveHere</MudText>
-    <MudToggleIconButton @bind-Toggled="_isDarkMode" Icon="@Icons.Material.Filled.LightMode" Color="@Color.Inherit" ToggledIcon="@Icons.Material.Filled.DarkMode" ToggledColor="@Color.Inherit"/>
-    <MudIconButton Icon="@Icons.Material.Filled.AccountCircle" Color="Color.Inherit" Href="#" Target="_blank" Edge="Edge.End"/>
+    <MudToggleIconButton @bind-Toggled="isDarkMode" Icon="@Icons.Material.Filled.LightMode" Color="@Color.Inherit" ToggledIcon="@Icons.Material.Filled.DarkMode" ToggledColor="@Color.Inherit"/>
+    <MudIconButton Icon="@Icons.Material.Filled.AccountCircle" Color="Color.Inherit" Onclick="@RightDrawerToggle" Edge="Edge.End" />
   </MudAppBar>
 
-  <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="10">
+  <MudDrawer @bind-Open="isLeftDrawerOpen" ClipMode="DrawerClipMode.Always" Elevation="10">
     <NavMenu />
   </MudDrawer>
 
   <MudMainContent>
     @Body
   </MudMainContent>
+
+  <MudDrawer @bind-Open="isRightDrawerOpen" Anchor="Anchor.Right" ClipMode="DrawerClipMode.Always" Elevation="10">
+    <NavMenu IsRightDrawer/>
+  </MudDrawer>
 
 </MudLayout>
 
@@ -40,14 +44,20 @@
 </style>
 
 @code {
-  private bool _isDarkMode = true;
-  private bool _drawerOpen = true;
+  private bool isDarkMode = true;
+  private bool isLeftDrawerOpen = true;
+  private bool isRightDrawerOpen = false;
 
   [Inject] private NavigationManager Navigation { get; set; } = default!;
 
-  private void DrawerToggle()
+  private void LeftDrawerToggle()
   {
-    _drawerOpen = !_drawerOpen;
+    isLeftDrawerOpen = !isLeftDrawerOpen;
+  }
+  
+  private void RightDrawerToggle()
+  {
+    isRightDrawerOpen = !isRightDrawerOpen;
   }
 
   private void NavigateToHome()
