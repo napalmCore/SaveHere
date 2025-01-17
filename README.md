@@ -1,12 +1,12 @@
 <div align="center">
   <h1>SaveHere</h1>
-  <h4>Minimal Cloud File Manager</h4>
-  <img src="https://github.com/gudarzi/SaveHere/assets/30085894/22ca2996-1b04-4913-a9f5-e37cd1d75fa8" alt="Screen Shot of SaveHere App">
+  <h4>Minimal Cloud Download Manager</h4>
+  <img src="https://github.com/user-attachments/assets/8cac9045-7b28-4ec8-b309-2f1f1cd969c1" alt="Screenshot of SaveHere App">
 </div>
 
 
 
-___In v3.0, I'm trying to rewrite the app in Blazor! It's still a work in progress, because I'm new to Blazor and I don't have much free time to work on it.___
+___In v3.0, the app has been rewritten from scratch in .Net Blazor.___
 
 
 
@@ -21,22 +21,16 @@ ___In v3.0, I'm trying to rewrite the app in Blazor! It's still a work in progre
 
 ## What this app does
 
-SaveHere is a minimal cloud file manager that allows you to download files from the internet and store them on your own server, either locally or on a VPS. It uses Docker, React for frontend, ASP.NET Core for backend, Nginx for serving downloaded files and a few Docker images for other functionalities.
+SaveHere is a minimal cloud file manager that allows you to download files from the internet and store them on your own server. It uses ASP.NET Core with Blazor.
 
 The app was built to address the issue of downloading large files from slow servers or unstable connections. With SaveHere, you can enter the URL of the file you want to download, and the app will download it to your server. You can then download the file from your own server using your own domain name and URL, with the ability to pause and resume the download as needed.
-
-SaveHere keeps a list of all download requests and downloaded files, allowing you to easily manage your files. You can delete files from the server at any time. The app currently does not support uploading files from your local machine, but that feature is planned for a future release.
-
-SaveHere is designed to be lightweight and easy to use, with a focus on simplicity and functionality. Whether you're downloading files for personal or professional use, SaveHere can help you do it more efficiently and reliably.
 
 
 ## Dependencies
 
-To run SaveHere, you will need to have the following dependencies installed:
+To run SaveHere, you will need to have .Net 8+ installed. Checkout [ms/dotnet](https://dotnet.microsoft.com/en-us/download) or [ms/dotnet-sdk](https://dotnet.microsoft.com/en-us/download/dotnet/8.0).
 
-* [Docker](https://docs.docker.com/get-docker/): SaveHere is containerized using Docker, so you will need to have Docker installed on your machine.
-* [Docker Compose](https://docs.docker.com/compose/install/): SaveHere uses Docker Compose to manage its containers, so you will need to have Docker Compose installed as well.
-* (Optional) [Visual Studio 2022](https://visualstudio.microsoft.com/vs/) and [vscode](https://code.visualstudio.com/) for development.
+If you're running ubuntu, you can just do `sudo apt install dotnet8`.
 
 In addition, it is recommended that you run SaveHere behind a reverse proxy such as [Nginx](https://nginx.org/) or [Nginx Proxy Manager](https://nginxproxymanager.com/). This will allow you to access the app using your own domain name and SSL certificate, and provide additional security and performance benefits.
 
@@ -51,32 +45,25 @@ git clone https://github.com/gudarzi/SaveHere.git
 cd SaveHere
 ```
 
-- _if you're running v2.0, just do `dotnet run`. in v2.0, frontend and backend are integrated and docker has been removed. also, you need to have .net 8.0 installed._
-
-- (Optional) If you are upgrading from a previous version and the app is throwing errors at you, try removing everything inside `db`:
+2. Build the app:
 ```bash
-sudo rm -rf db/
+dotnet build SaveHere/SaveHere/SaveHere.csproj -c Release
 ```
 
-2. Run the containers using Docker Compose in detached mode, using production environment settings:
+3. Navigate to your app directory:
 ```bash
-docker compose -f docker-compose.production.yml up -d --build --force-recreate
+cd SaveHere/SaveHere/bin/Release/net8.0/
 ```
 
-- (Note) If you are running the app in development environment (`docker compose up -d --build --force-recreate`), nginx serves the prebuilt frontend files on `http://localhost:80` and `https://localhost:443`.
-- (Note) If you want to work on frontend, first run the backend in dev mode using `docker compose up -d --build --force-recreate`, then do `npm run dev` in `savehere.frontend` and check the app running at `localhost:5173`.
-
-3. The app is now available at the address `http://172.17.0.1:18480`. Put it behind a reverse proxy and a domain. Change the address in settings if you need to. The user:pass to the filebrowser app is `admin`:`admin`.
-
-6. (Optional) If you encounter permission issues with the downloads folder, change the owner of the folder and all of its content to `1000:1000` and set the permissions to `777`:
+4. Run the app:
 ```bash
-sudo chown -R 1000:1000 downloads/
-sudo chmod -R 777 downloads/
+dotnet SaveHere.dll --urls=http://127.0.0.1:7777
 ```
+
+Now the app is running at localhost `127.0.0.1` port `7777`.
 
 
 ## To Do
-- [ ] Fix the packaging of the app and create 1 single docker image
 - [ ] Add user accounts and set their access policies
 - [x] Check [issues](https://github.com/gudarzi/SaveHere/issues) for more!
 
