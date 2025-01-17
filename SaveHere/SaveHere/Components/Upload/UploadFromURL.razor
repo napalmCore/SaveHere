@@ -1,6 +1,4 @@
-﻿@page "/uploadfromurl"
-
-@implements IAsyncDisposable
+﻿@implements IAsyncDisposable
 
 @using Microsoft.EntityFrameworkCore
 @using SaveHere.Components.Dialogs
@@ -18,8 +16,6 @@
 <MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
-
-<PageTitle>Upload From URL</PageTitle>
 
   @if (!_isFullyLoaded)
 {
