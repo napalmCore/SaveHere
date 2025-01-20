@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Hosting.StaticWebAssets;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyModel;
 using MudBlazor.Services;
 using SaveHere.Components;
 using SaveHere.Components.Account;
@@ -11,6 +10,7 @@ using SaveHere.Hubs;
 using SaveHere.Models;
 using SaveHere.Models.db;
 using SaveHere.Services;
+using System.Net;
 
 namespace SaveHere
 {
@@ -75,9 +75,13 @@ namespace SaveHere
 
       builder.Services.AddSingleton<DownloadStateService>();
 
-      builder.Services.AddScoped<HttpClient>();
+      builder.Services.AddHttpClient();
 
       builder.Services.AddScoped<IDownloadQueueService, DownloadQueueService>();
+
+      builder.Services.AddSingleton<IYtdlpService, YtdlpService>();
+
+      builder.Services.AddHostedService<YtdlpUpdateService>();
 
       var app = builder.Build();
 
@@ -113,7 +117,7 @@ namespace SaveHere
       // GET endpoint for downloading files
       app.MapGet("/downloads/{filename}", (string filename, HttpContext context) =>
       {
-        var filePath = Path.Combine(DirectoryBrowser.DownloadsPath, filename);
+        var filePath = Path.Combine(DirectoryBrowser.DownloadsPath, WebUtility.UrlDecode(filename));
         if (!File.Exists(filePath)) return Results.NotFound();
 
         var fileInfo = new FileInfo(filePath);
@@ -156,7 +160,7 @@ namespace SaveHere
       // GET endpoint for streaming media
       app.MapGet("/stream/{filename}", (string filename, HttpContext context) =>
       {
-        var filePath = Path.Combine(DirectoryBrowser.DownloadsPath, filename);
+        var filePath = Path.Combine(DirectoryBrowser.DownloadsPath, WebUtility.UrlDecode(filename));
         if (!File.Exists(filePath)) return Results.NotFound();
 
         var fileInfo = new FileInfo(filePath);

@@ -5,6 +5,8 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>aspnet-SaveHere-79a10a8e-8678-4a74-9f74-ed46c4e3cf27</UserSecretsId>
+    <AssemblyVersion>3.1.1</AssemblyVersion>
+    <FileVersion>3.1.1</FileVersion>
   </PropertyGroup>
 
   <ItemGroup>
