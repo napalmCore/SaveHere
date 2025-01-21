@@ -452,9 +452,16 @@ else
 
   private async Task RefreshFileManager()
   {
-    if (fileManager is not null)
+    try
     {
-      await fileManager.RefreshFiles();
+      if (fileManager is not null)
+      {
+        await fileManager.RefreshFiles();
+      }
+    }
+    catch (Exception exception)
+    {
+      ErrorMessage = $"An Error Occurred While Refreshing Files: {exception.Message}";
     }
   }
 
