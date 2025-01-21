@@ -257,7 +257,7 @@ namespace SaveHere.Services
     {
       var executablePath = await GetExecutablePath();
 
-      var formatOption = !string.IsNullOrEmpty(quality)
+      var formatOption = !(string.IsNullOrEmpty(quality)||quality=="Best")
         ? $"-f \"{quality}\""
         : "-f \"bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best\"";
 
@@ -275,6 +275,8 @@ namespace SaveHere.Services
         CreateNoWindow = true,
         WorkingDirectory = DirectoryBrowser.DownloadsPath
       };
+
+      onOutputReceived($"Running with arguments: {startInfo.Arguments}");
 
       using var process = new Process { StartInfo = startInfo };
 

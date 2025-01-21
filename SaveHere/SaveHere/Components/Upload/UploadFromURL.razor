@@ -530,8 +530,6 @@ else
 
   private Task OpenMediaDialogAsync(FileItem fileItem, bool isVideo, bool isAudio)
   {
-    // To Do: There's an issue here. Check with a file downloaded by youtube downloader, that has a space in its name.
-
     var parameters = new DialogParameters<MediaDialog>
     {
         {x=>x.MediaUrl, $"/stream/{WebUtility.UrlEncode(fileItem.Name)}"},
