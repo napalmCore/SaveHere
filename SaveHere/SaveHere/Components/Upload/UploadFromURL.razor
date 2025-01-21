@@ -2,6 +2,7 @@
 
 @using Microsoft.EntityFrameworkCore
 @using SaveHere.Components.Dialogs
+@using SaveHere.Components.File
 @using SaveHere.Models
 @using SaveHere.Models.db
 @using SaveHere.Services
@@ -31,139 +32,101 @@
 }
 else
 {
-  <MudStack Class="sv-main-stack">
+  <MudPaper Class="px-5 pt-4 mx-5 mt-5 sv-paper" Elevation="5">
 
-    <MudPaper Class="px-5 pt-4 mx-5 mt-5 sv-paper" Elevation="5">
+    <MudStack Row>
 
-      <MudStack Row>
+      <MudTextField @bind-Value="UrlText" Label="File URL" Variant="Variant.Outlined" Margin="Margin.Dense"
+                    HelperText="Enter The File URL To Upload To The Server" HelperTextOnFocus="true" Adornment="Adornment.End"
+                    AdornmentIcon="@Icons.Material.Filled.InsertLink" AdornmentColor="Color.Info" Clearable="true"
+                    Immediate="true" @onkeydown="HandleUrlInputKeyDown" TextUpdateSuppression="false" />
 
-        <MudTextField @bind-Value="UrlText" Label="File URL" Variant="Variant.Outlined" Margin="Margin.Dense"
-                      HelperText="Enter The File URL To Upload To The Server" HelperTextOnFocus="true" Adornment="Adornment.End"
-                      AdornmentIcon="@Icons.Material.Filled.InsertLink" AdornmentColor="Color.Info" Clearable="true"
-                      Immediate="true" @onkeydown="HandleUrlInputKeyDown" TextUpdateSuppression="false" />
+      <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Add" Color="Color.Primary"
+                 Style="text-transform:none; height:40px; margin-top:0.5rem;" Class="pr-5" Size="Size.Small" OnClick="AddURL">Add</MudButton>
 
-        <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Add" Color="Color.Primary"
-                   Style="text-transform:none; height:40px; margin-top:0.5rem;" Class="pr-5" Size="Size.Small" OnClick="AddURL">Add</MudButton>
+    </MudStack>
 
-      </MudStack>
+  </MudPaper>
 
-    </MudPaper>
+  @if (!string.IsNullOrWhiteSpace(ErrorMessage))
+  {
+    <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Dense="true" Elevation="10" ContentAlignment="HorizontalAlignment.Center" Class="mt-3 mx-5" ShowCloseIcon="true" CloseIconClicked="ClearErrorMessage">
+      @ErrorMessage
+    </MudAlert>
+  }
 
-    @if (!string.IsNullOrWhiteSpace(ErrorMessage))
-    {
-      <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Dense="true" Elevation="10" ContentAlignment="HorizontalAlignment.Center" Class="mx-5" ShowCloseIcon="true" CloseIconClicked="ClearErrorMessage">
-        @ErrorMessage
-      </MudAlert>
-    }
+  @if (_fileDownloadQueueItems is not null && _fileDownloadQueueItems.Any())
+  {
+    <MudTable Items="@_fileDownloadQueueItems" Dense="true" Hover="true" Loading="@_isLoadingTheList" Class="mt-3 pa-5 mx-5 sv-table" Elevation="5">
+      <HeaderContent>
+        <MudTh Style="width:100%;">URL</MudTh>
+        <MudTh Style="text-align:center; min-width:125px;">Status</MudTh>
+        <MudTh Style="text-align:center; min-width:200px;">Progress</MudTh>
+        <MudTh Style="text-align:center;">Actions</MudTh>
+      </HeaderContent>
+      <RowTemplate>
+        <MudTd Style="word-break:break-all;" DataLabel="URL" Class="sv-table-custom-row-1">
+          @context.InputUrl
+        </MudTd>
+        <MudTd Style="text-align:center;" Class="sv-table-custom-row-1" DataLabel="Status">@context.Status</MudTd>
+        <MudTd Style="text-align:center" class="sv-table-custom-row-1" DataLabel="Progress">
+          <MudStack Spacing="0" Class="sv-custom-progress-stack">
 
-    @if (_fileDownloadQueueItems is not null && _fileDownloadQueueItems.Any())
-    {
-      <MudTable Items="@_fileDownloadQueueItems" Dense="true" Hover="true" Loading="@_isLoadingTheList" Class="pa-5 mx-5 sv-table" Elevation="5">
-        <HeaderContent>
-          <MudTh Style="width:100%;">URL</MudTh>
-          <MudTh Style="text-align:center; min-width:125px;">Status</MudTh>
-          <MudTh Style="text-align:center; min-width:200px;">Progress</MudTh>
-          <MudTh Style="text-align:center;">Actions</MudTh>
-        </HeaderContent>
-        <RowTemplate>
-          <MudTd Style="word-break:break-all;" DataLabel="URL" Class="sv-table-custom-row-1">
-            @context.InputUrl
-          </MudTd>
-          <MudTd Style="text-align:center;" Class="sv-table-custom-row-1" DataLabel="Status">@context.Status</MudTd>
-          <MudTd Style="text-align:center" class="sv-table-custom-row-1" DataLabel="Progress">
-            <MudStack Spacing="0" Class="sv-custom-progress-stack">
+            <div style="display:flex; justify-content:space-between;">
+              <span style="font-size:0.66rem;">speed</span>
+              <MudText Typo="Typo.body2" Align="Align.Left" Class="ma-0 pa-0" Style="white-space:nowrap">
+                @Helpers.FormatSpeed(context.CurrentDownloadSpeed)
+              </MudText>
+            </div>
 
-              <div style="display:flex; justify-content:space-between;">
-                <span style="font-size:0.66rem;">speed</span>
-                <MudText Typo="Typo.body2" Align="Align.Left" Class="ma-0 pa-0" Style="white-space:nowrap">
-                  @Helpers.FormatSpeed(context.CurrentDownloadSpeed)
-                </MudText>
-              </div>
+            <MudStack Row="true" Spacing="1" Justify="Justify.SpaceBetween">
+              <MudProgressLinear Value="@context.ProgressPercentage" Color="Color.Tertiary" Striped="@(context.Status==EQueueItemStatus.Downloading)" Class="ma-0 pa-0 sv-progressbar" Style="width: 100%;" Size="Size.Large" />
 
-              <MudStack Row="true" Spacing="1" Justify="Justify.SpaceBetween">
-                <MudProgressLinear Value="@context.ProgressPercentage" Color="Color.Tertiary" Striped="@(context.Status==EQueueItemStatus.Downloading)" Class="ma-0 pa-0 sv-progressbar" Style="width: 100%;" Size="Size.Large" />
-
-                <MudText Typo="Typo.inherit" Color="Color.Warning" Class="ma-0 pa-0" Align="Align.Right" Inline="true" Style="font-size:10px;">
-                  @context.ProgressPercentage%
-                </MudText>
-              </MudStack>
-
-              <div style="display:flex; justify-content:space-between;">
-                <span style="font-size:0.66rem;">average</span>
-                <MudText Typo="Typo.body2" Align="Align.Left" Class="ma-0 pa-0" Style="white-space:nowrap">
-                  @Helpers.FormatSpeed(context.AverageDownloadSpeed)
-                </MudText>
-              </div>
-
+              <MudText Typo="Typo.inherit" Color="Color.Warning" Class="ma-0 pa-0" Align="Align.Right" Inline="true" Style="font-size:10px;">
+                @context.ProgressPercentage%
+              </MudText>
             </MudStack>
-          </MudTd>
-          <MudTd Style="text-align:end;" Class="sv-table-custom-row-1" DataLabel="Actions">
-            <MudStack Row="true" Style="gap:5px;">
-              <MudButton Variant="Variant.Filled" Color="@(context.Status==EQueueItemStatus.Downloading?Color.Error:Color.Success)" Size="Size.Small" Style="min-width:75px;" OnClick="async() =>
+
+            <div style="display:flex; justify-content:space-between;">
+              <span style="font-size:0.66rem;">average</span>
+              <MudText Typo="Typo.body2" Align="Align.Left" Class="ma-0 pa-0" Style="white-space:nowrap">
+                @Helpers.FormatSpeed(context.AverageDownloadSpeed)
+              </MudText>
+            </div>
+
+          </MudStack>
+        </MudTd>
+        <MudTd Style="text-align:end;" Class="sv-table-custom-row-1" DataLabel="Actions">
+          <MudStack Row="true" Style="gap:5px;">
+            <MudButton Variant="Variant.Filled" Color="@(context.Status==EQueueItemStatus.Downloading?Color.Error:Color.Success)" Size="Size.Small" Style="min-width:75px;" OnClick="async() =>
             {
             if (context.Status==EQueueItemStatus.Downloading) await CancelDownload(context); else await StartDownload(context);
             }">
-                @(context.Status == EQueueItemStatus.Downloading ? "Stop" : "Start")
-              </MudButton>
-              <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small" OnClick="async() => await DeleteQueueItem(context)">Delete</MudButton>
-              <MudButton Variant="Variant.Filled" Color="Color.Info" Size="Size.Small" OnClick="() => ToggleMoreOptions(context)">@(context.bShowMoreOptions ? "Collapse" : "Options")</MudButton>
-            </MudStack>
-          </MudTd>
-        </RowTemplate>
-        <ChildRowContent>
-          @if (context.bShowMoreOptions)
-          {
-            <MudTr Style="justify-content: start;">
-              <MudTd ColSpan="4" Style="justify-content: start; width:100%;">
-                <MudPaper Class="pa-5" Elevation="0" Outlined="true" Style="start; width:100%;">
-                  <MudStack>
-                    <MudCheckBox @bind-Value="@context.bShouldGetFilenameFromHttpHeaders" Label="Use Headers For Filename" Color="Color.Primary" />
-                  </MudStack>
-                </MudPaper>
-              </MudTd>
-            </MudTr>
-          }
-        </ChildRowContent>
-      </MudTable>
-    }
+              @(context.Status == EQueueItemStatus.Downloading ? "Stop" : "Start")
+            </MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small" OnClick="async() => await DeleteQueueItem(context)">Delete</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Info" Size="Size.Small" OnClick="() => ToggleMoreOptions(context)">@(context.bShowMoreOptions ? "Collapse" : "Options")</MudButton>
+          </MudStack>
+        </MudTd>
+      </RowTemplate>
+      <ChildRowContent>
+        @if (context.bShowMoreOptions)
+        {
+          <MudTr Style="justify-content: start;">
+            <MudTd ColSpan="4" Style="justify-content: start; width:100%;">
+              <MudPaper Class="pa-5" Elevation="0" Outlined="true" Style="start; width:100%;">
+                <MudStack>
+                  <MudCheckBox @bind-Value="@context.bShouldGetFilenameFromHttpHeaders" Label="Use Headers For Filename" Color="Color.Primary" />
+                </MudStack>
+              </MudPaper>
+            </MudTd>
+          </MudTr>
+        }
+      </ChildRowContent>
+    </MudTable>
+  }
 
-    @if (_downloadDirectoryContents is not null && _downloadDirectoryContents.Any())
-    {
-      <MudTable Items="@_downloadDirectoryContents" Dense="true" Hover="true" Class="pa-5 mx-5 my-0 sv-table" Elevation="5">
-        <HeaderContent>
-          <MudTh Style="width:100%;">Name</MudTh>
-          <MudTh>Size</MudTh>
-          <MudTh Style="text-align:center;">Actions</MudTh>
-        </HeaderContent>
-        <RowTemplate>
-          <MudTd DataLabel="Name" Style="word-break:break-all;">
-            @context.Name
-          </MudTd>
-          <MudTd DataLabel="Size" Style="white-space:nowrap">
-            @Helpers.FormatSize(context.Length)
-          </MudTd>
-          <MudTd DataLabel="Actions" Style="text-align:end;">
-            <MudStack Row="true" Style="gap:5px; justify-content:end">
-              @{
-                var ext = Path.GetExtension(context.Name).ToLowerInvariant();
-                var isVideo = new[] { ".mp4", ".webm", ".avi", ".mov", ".mkv" }.Contains(ext);
-                var isAudio = new[] { ".mp3", ".wav", ".ogg", ".m4a", ".flac" }.Contains(ext);
-              }
-              @if (isVideo || isAudio)
-              {
-                <MudButton OnClick="@(() => OpenMediaDialogAsync(context, isVideo, isAudio))" Variant="Variant.Filled" Color="Color.Warning" Size="Size.Small">
-                  Play
-                </MudButton>
-              }
-              <MudButton Variant="Variant.Filled" Color="Color.Success" Size="Size.Small" Href="@($"/downloads/{WebUtility.UrlEncode(context.Name)}")" Target="_blank">Download</MudButton>
-              <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small" OnClick="() => DeleteFile(context)">Delete</MudButton>
-            </MudStack>
-          </MudTd>
-        </RowTemplate>
-      </MudTable>
-    }
-
-  </MudStack>
+  <FileManager @ref="fileManager" />
 }
 
 <style type="text/css" media="screen and (max-width:599px)">
@@ -223,13 +186,13 @@ else
 
   private HubConnection? hubConnection;
 
+  private FileManager? fileManager;
+
   private string UrlText { get; set; } = "";
   private string ErrorMessage { get; set; } = "";
 
   private List<FileDownloadQueueItem> _fileDownloadQueueItems = new();
   private bool _isLoadingTheList = false;
-
-  private List<FileItem> _downloadDirectoryContents = new();
 
   protected override async Task OnInitializedAsync()
   {
@@ -243,16 +206,6 @@ else
     else
     {
       await LoadDownloadItemsList();
-    }
-
-    // Loading download directory files list
-    if (_persistentState.TryTakeFromJson<List<FileItem>>(nameof(_downloadDirectoryContents), out var savedItems2) && savedItems2 != null)
-    {
-      _downloadDirectoryContents = savedItems2;
-    }
-    else
-    {
-      LoadDownloadDirectoryContentsList();
     }
 
     await InitializeHubConnection();
@@ -282,7 +235,6 @@ else
   private Task PersistItems()
   {
     _persistentState.PersistAsJson(nameof(_fileDownloadQueueItems), _fileDownloadQueueItems);
-    _persistentState.PersistAsJson(nameof(_downloadDirectoryContents), _downloadDirectoryContents);
     return Task.CompletedTask;
   }
 
@@ -340,11 +292,7 @@ else
       item.CurrentDownloadSpeed = update.CurrentSpeed;
       item.AverageDownloadSpeed = update.AverageSpeed;
 
-      // If download is complete, refresh the directory contents
-      if (update.ProgressPercentage > 99)
-      {
-        LoadDownloadDirectoryContentsList();
-      }
+      await RefreshFileManager();
 
       await InvokeAsync(StateHasChanged);
     }
@@ -366,7 +314,7 @@ else
         item.Status = Enum.Parse<EQueueItemStatus>(newStatus);
         if (newStatus != EQueueItemStatus.Downloading.ToString())
         {
-          LoadDownloadDirectoryContentsList();
+          InvokeAsync(RefreshFileManager);
         }
         StateHasChanged();
       });
@@ -412,18 +360,6 @@ else
     finally
     {
       _isLoadingTheList = false;
-    }
-  }
-
-  private void LoadDownloadDirectoryContentsList()
-  {
-    try
-    {
-      _downloadDirectoryContents = DirectoryBrowser.GetDownloadsContent().OfType<FileItem>().ToList();
-    }
-    catch /* (DirectoryAccessException ex) */
-    {
-      throw;
     }
   }
 
@@ -501,20 +437,6 @@ else
     }
   }
 
-  private void DeleteFile(FileItem item)
-  {
-    try
-    {
-      DirectoryBrowser.DeleteFileItem(item);
-      LoadDownloadDirectoryContentsList();
-      StateHasChanged();
-    }
-    catch (Exception exception)
-    {
-      ErrorMessage = $"An Error Occurred While Deleting The Item: {exception.Message}";
-    }
-  }
-
   private void ToggleMoreOptions(FileDownloadQueueItem item)
   {
     item.bShowMoreOptions = !item.bShowMoreOptions;
@@ -528,22 +450,12 @@ else
     }
   }
 
-  private Task OpenMediaDialogAsync(FileItem fileItem, bool isVideo, bool isAudio)
+  private async Task RefreshFileManager()
   {
-    var parameters = new DialogParameters<MediaDialog>
+    if (fileManager is not null)
     {
-        {x=>x.MediaUrl, $"/stream/{WebUtility.UrlEncode(fileItem.Name)}"},
-        {x=>x.IsVideo, isVideo},
-        {x=>x.IsAudio, isAudio}
-    };
-
-    var options = new DialogOptions
-      {
-        BackgroundClass = "my-custom-media-dialog",
-        CloseButton = true
-      };
-
-    return DialogService.ShowAsync<MediaDialog>("", parameters, options);
+      await fileManager.RefreshFiles();
+    }
   }
 
 }

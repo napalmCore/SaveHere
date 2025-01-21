@@ -77,6 +77,8 @@ namespace SaveHere
 
       builder.Services.AddHttpClient();
 
+      builder.Services.AddScoped<IFileManagerService, FileManagerService>();
+
       builder.Services.AddScoped<IDownloadQueueService, DownloadQueueService>();
 
       builder.Services.AddSingleton<IYtdlpService, YtdlpService>();

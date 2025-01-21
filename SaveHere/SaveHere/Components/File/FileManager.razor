@@ -1,0 +1,143 @@
+﻿@using SaveHere.Components.Dialogs
+@using SaveHere.Helpers
+@using SaveHere.Models
+@using SaveHere.Services
+@using System.Net
+@inject IFileManagerService FileManagerService
+@inject IDialogService DialogService
+
+<MudPaper Class="pa-5 mx-5 mt-3 sv-paper" Elevation="5">
+  @if (!string.IsNullOrEmpty(errorMessage))
+  {
+    <MudAlert Severity="Severity.Error" Class="mb-4">@errorMessage</MudAlert>
+  }
+
+  @if (ShowRefreshButton)
+  {
+    <div style="display:flex; justify-content:end; width:100%">
+      <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="LoadFiles" Class="mb-4 mx-3 mt-2" StartIcon="@Icons.Material.Filled.Refresh">
+        Refresh
+      </MudButton>
+    </div>
+  }
+
+  <MudTable Items="@files" Dense="@Dense" Hover="true" Loading="@isLoading" Elevation="0">
+    <HeaderContent>
+      <MudTh Style="width:100%;">Name</MudTh>
+      <MudTh>Size</MudTh>
+      <MudTh Style="text-align:center;">Actions</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+      <MudTd DataLabel="Name" Style="word-break:break-all;">
+        @context.Name
+      </MudTd>
+      <MudTd DataLabel="Size" Style="white-space:nowrap">
+        @Helpers.FormatSize(context.Length)
+      </MudTd>
+      <MudTd DataLabel="Actions" Style="text-align:end;">
+        <MudStack Row="true" Style="gap:5px; justify-content:end">
+          @if (IsMediaFile(context.Name))
+          {
+            <MudButton OnClick="@(() => OpenMediaDialog(context))"
+                       Variant="Variant.Filled" Color="Color.Warning" Size="Size.Small">
+              Play
+            </MudButton>
+          }
+          <MudButton Variant="Variant.Filled" Color="Color.Success" Size="Size.Small"
+                     Href="@($"/downloads/{WebUtility.UrlEncode(context.Name)}")" Target="_blank">
+            Download
+          </MudButton>
+          <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                     OnClick="() => DeleteFile(context)">
+            Delete
+          </MudButton>
+        </MudStack>
+      </MudTd>
+    </RowTemplate>
+  </MudTable>
+</MudPaper>
+
+@code {
+  private List<FileItem> files = new();
+  private string errorMessage = string.Empty;
+  private bool isLoading = false;
+
+  [Parameter] public bool AutoLoad { get; set; } = true;
+  [Parameter] public bool ShowRefreshButton { get; set; } = true;
+  [Parameter] public bool Dense { get; set; } = true;
+  [Parameter] public EventCallback OnFilesChanged { get; set; }
+
+  protected override async Task OnInitializedAsync()
+  {
+    if (AutoLoad)
+    {
+      await LoadFiles();
+    }
+  }
+
+  public async Task LoadFiles()
+  {
+    try
+    {
+      isLoading = true;
+      errorMessage = string.Empty;
+      files = FileManagerService.GetFiles();
+      await OnFilesChanged.InvokeAsync();
+    }
+    catch (Exception ex)
+    {
+      errorMessage = $"Error loading files: {ex.Message}";
+    }
+    finally
+    {
+      isLoading = false;
+      StateHasChanged();
+    }
+  }
+
+  private async Task DeleteFile(FileItem item)
+  {
+    try
+    {
+      FileManagerService.DeleteFile(item);
+      await LoadFiles();
+    }
+    catch (Exception ex)
+    {
+      errorMessage = $"Error deleting file: {ex.Message}";
+    }
+  }
+
+  private bool IsMediaFile(string fileName)
+  {
+    var ext = Path.GetExtension(fileName).ToLowerInvariant();
+    return new[] { ".mp4", ".webm", ".avi", ".mov", ".mkv", ".mp3", ".wav", ".ogg", ".m4a", ".flac" }
+        .Contains(ext);
+  }
+
+  private Task OpenMediaDialog(FileItem fileItem)
+  {
+    var isVideo = new[] { ".mp4", ".webm", ".avi", ".mov", ".mkv" }
+        .Contains(Path.GetExtension(fileItem.Name).ToLowerInvariant());
+
+    var parameters = new DialogParameters<MediaDialog>
+        {
+            {x=>x.MediaUrl, $"/stream/{WebUtility.UrlEncode(fileItem.Name)}"},
+            {x=>x.IsVideo, isVideo},
+            {x=>x.IsAudio, !isVideo}
+        };
+
+    var options = new DialogOptions
+      {
+        BackgroundClass = "my-custom-media-dialog",
+        CloseButton = true
+      };
+
+    return DialogService.ShowAsync<MediaDialog>("", parameters, options);
+  }
+
+  public async Task RefreshFiles()
+  {
+    await LoadFiles();
+  }
+}
