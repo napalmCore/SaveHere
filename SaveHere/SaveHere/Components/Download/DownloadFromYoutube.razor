@@ -156,14 +156,8 @@
   private string ProxyUrl { get; set; } = @"http://localhost:8086";
   private string SelectedQuality { get; set; } = "Best";
 
-  // protected override async Task OnInitializedAsync()
-  // {
-  //   try
-  //   {
-  //     await YtdlpService.EnsureYtdlpAvailable();
-  //   }
-  //   catch {/*pass for now*/}
-  // }
+  private DateTime _lastUiUpdateTime = DateTime.MinValue;
+  private TimeSpan _uiUpdateInterval = TimeSpan.FromSeconds(1);
 
   private void AddDownload()
   {
@@ -198,17 +192,16 @@
       try
       {
         await YtdlpService.DownloadVideo(
-            download.Url,
-            download.Quality,
-            download.Proxy,
-            output =>
-            {
-              download.OutputLog.Add(output);
-              InvokeAsync(StateHasChanged);
-              InvokeAsync(RefreshFileManager);
-            },
-            download.CancellationTokenSource.Token
-      );
+        download.Url,
+        download.Quality,
+        download.Proxy,
+        output =>
+        {
+          download.OutputLog.Add(output);
+          ThrottleUIUpdate();
+        },
+        download.CancellationTokenSource.Token
+  );
         download.IsCompleted = true;
       }
       catch (OperationCanceledException)
@@ -226,7 +219,7 @@
         download.IsDownloading = false;
         download.CancellationTokenSource?.Dispose();
         download.CancellationTokenSource = null;
-        await InvokeAsync(StateHasChanged);
+        ThrottleUIUpdate(true);
       }
     });
   }
@@ -255,8 +248,7 @@
           output =>
           {
             download.OutputLog.Add(output);
-            InvokeAsync(StateHasChanged);
-            InvokeAsync(RefreshFileManager);
+            ThrottleUIUpdate();
           },
           download.CancellationTokenSource.Token
       );
@@ -275,7 +267,7 @@
         download.IsDownloading = false;
         download.CancellationTokenSource?.Dispose();
         download.CancellationTokenSource = null;
-        await InvokeAsync(StateHasChanged);
+        ThrottleUIUpdate(true);
       }
     });
   }
@@ -328,4 +320,16 @@
     }
     catch {/*pass for now. To Do: implement this!*/}
   }
+
+  private void ThrottleUIUpdate(bool forceUpdate = false)
+  {
+    var now = DateTime.Now;
+    if (forceUpdate || (now - _lastUiUpdateTime >= _uiUpdateInterval))
+    {
+      _lastUiUpdateTime = now;
+      InvokeAsync(StateHasChanged);
+      InvokeAsync(RefreshFileManager);
+    }
+  }
+
 }
