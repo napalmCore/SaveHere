@@ -129,7 +129,11 @@ namespace SaveHere
         context.Response.Headers.Append("Accept-Ranges", "bytes");
 
         // Set content disposition to attachment to force download
-        context.Response.Headers.Append("Content-Disposition", $"attachment; filename=\"{fileInfo.Name}\"");
+        try
+        {
+          context.Response.Headers.Append("Content-Disposition", $"attachment; filename=\"{fileInfo.Name}\"");
+        }
+        catch { /*pass for now*/ }
 
         // If no range is specified, return the full file
         if (string.IsNullOrEmpty(rangeHeader))
