@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using SaveHere.Models.SaveHere.Models;
 
 namespace SaveHere.Models.db
 {
@@ -10,5 +11,6 @@ namespace SaveHere.Models.db
     }
 
     public DbSet<FileDownloadQueueItem> FileDownloadQueueItems { get; set; }
+    public DbSet<YoutubeDownloadQueueItem> YoutubeDownloadQueueItems { get; set; }
   }
 }

@@ -1,9 +1,8 @@
 ﻿using SaveHere.Helpers;
 using SaveHere.Models;
 using System.Diagnostics;
-using System.Net.Http.Json;
 using System.Runtime.InteropServices;
-using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.SignalR;
 
 namespace SaveHere.Services
 {
@@ -14,8 +13,7 @@ namespace SaveHere.Services
     Task<bool> IsUpdateAvailable();
     Task DownloadLatestVersion();
     Task<string> GetExecutablePath();
-    Task DownloadVideoAsync(string url, IProgress<DownloadProgress> progress, CancellationToken cancellationToken);
-    Task DownloadVideo(string url, string quality, string proxy, Action<string> onOutputReceived, CancellationToken cancellationToken);
+    Task DownloadVideo(int itemId, string url, string quality, string proxy, CancellationToken cancellationToken);
   }
 
   public class YtdlpService : IYtdlpService
@@ -25,11 +23,13 @@ namespace SaveHere.Services
     private const string GITHUB_API_URL = "https://api.github.com/repos/yt-dlp/yt-dlp/releases/latest";
     private readonly string _basePath;
     private readonly string _executableName;
+    private readonly IProgressHubService _progressHubService;
 
-    public YtdlpService(IHttpClientFactory httpClientFactory, ILogger<YtdlpService> logger)
+    public YtdlpService(IHttpClientFactory httpClientFactory, ILogger<YtdlpService> logger, IProgressHubService progressHubService)
     {
       _httpClientFactory = httpClientFactory;
       _logger = logger;
+      _progressHubService = progressHubService;
 
       // Set up base path and executable name based on OS
       _basePath = Path.Combine(Directory.GetCurrentDirectory(), "tools");
@@ -165,99 +165,11 @@ namespace SaveHere.Services
       return client;
     }
 
-    public async Task DownloadVideoAsync(string url, IProgress<DownloadProgress> progress, CancellationToken cancellationToken)
-    {
-      var executablePath = await GetExecutablePath();
-      if (!File.Exists(executablePath))
-      {
-        throw new FileNotFoundException("yt-dlp executable not found. Please ensure it's properly installed.");
-      }
-
-      var startInfo = new ProcessStartInfo
-      {
-        FileName = executablePath,
-        Arguments = $"-f \"bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best\" --progress --newline \"{url}\"",
-        RedirectStandardOutput = true,
-        RedirectStandardError = true,
-        UseShellExecute = false,
-        CreateNoWindow = true,
-        WorkingDirectory = DirectoryBrowser.DownloadsPath
-      };
-
-      using var process = new Process { StartInfo = startInfo };
-      //var progressData = new DownloadProgress();
-
-      process.OutputDataReceived += (sender, e) =>
-      {
-        if (string.IsNullOrEmpty(e.Data)) return;
-
-        if (e.Data.Contains("%"))
-        {
-          // Parse progress information
-          var progressLine = e.Data.Trim();
-          var percentIndex = progressLine.IndexOf("%");
-          if (percentIndex > 0)
-          {
-            var percentStr = progressLine.Substring(0, percentIndex).Trim();
-            if (float.TryParse(percentStr, out float percent))
-            {
-              //progressData.ProgressPercentage = percent;
-
-              // Try to parse speed
-              var speedIndex = progressLine.IndexOf("iB/s");
-              if (speedIndex > 0)
-              {
-                var speedPart = progressLine.Substring(0, speedIndex + 4);
-                var lastSpace = speedPart.LastIndexOf(' ');
-                if (lastSpace > 0)
-                {
-                  var speedStr = speedPart.Substring(lastSpace + 1);
-                  //progressData.CurrentSpeed = Helpers.ParseSpeed(speedStr);
-                }
-              }
-
-              //progress.Report(progressData);
-            }
-          }
-        }
-      };
-
-      process.ErrorDataReceived += (sender, e) =>
-      {
-        if (!string.IsNullOrEmpty(e.Data))
-        {
-          _logger.LogWarning("yt-dlp error: {Error}", e.Data);
-        }
-      };
-
-      process.Start();
-      process.BeginOutputReadLine();
-      process.BeginErrorReadLine();
-
-      try
-      {
-        await process.WaitForExitAsync(cancellationToken);
-
-        if (process.ExitCode != 0)
-        {
-          throw new Exception($"yt-dlp exited with code {process.ExitCode}");
-        }
-      }
-      catch (OperationCanceledException)
-      {
-        if (!process.HasExited)
-        {
-          process.Kill();
-        }
-        throw;
-      }
-    }
-
-    public async Task DownloadVideo(string url, string quality, string proxy, Action<string> onOutputReceived, CancellationToken cancellationToken)
+    public async Task DownloadVideo(int itemId, string url, string quality, string proxy, CancellationToken cancellationToken)
     {
       var executablePath = await GetExecutablePath();
 
-      var formatOption = !(string.IsNullOrEmpty(quality)||quality=="Best")
+      var formatOption = !(string.IsNullOrEmpty(quality) || quality == "Best")
         ? $"-f \"{quality}\""
         : "-f \"bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best\"";
 
@@ -276,23 +188,24 @@ namespace SaveHere.Services
         WorkingDirectory = DirectoryBrowser.DownloadsPath
       };
 
-      onOutputReceived($"Running with arguments: {startInfo.Arguments}");
+      await _progressHubService.BroadcastLogUpdate(itemId, $"Running yt-dlp with arguments: {startInfo.Arguments}");
 
       using var process = new Process { StartInfo = startInfo };
 
-      process.OutputDataReceived += (sender, e) =>
+      process.OutputDataReceived += async (sender, e) =>
       {
         if (!string.IsNullOrEmpty(e.Data))
         {
-          onOutputReceived(e.Data);
+          await _progressHubService.BroadcastLogUpdate(itemId, e.Data);
         }
       };
 
-      process.ErrorDataReceived += (sender, e) =>
+      process.ErrorDataReceived += async (sender, e) =>
       {
         if (!string.IsNullOrEmpty(e.Data))
         {
-          onOutputReceived($"Error: {e.Data}");
+          string errorLog = $"Error: {e.Data}";
+          await _progressHubService.BroadcastLogUpdate(itemId, errorLog);
           _logger.LogWarning("yt-dlp error: {Error}", e.Data);
         }
       };
@@ -307,40 +220,31 @@ namespace SaveHere.Services
 
         if (process.ExitCode != 0)
         {
-          onOutputReceived($"Process exited with code {process.ExitCode}");
+          string exitCodeError = $"Process exited with code {process.ExitCode}";
+          await _progressHubService.BroadcastLogUpdate(itemId, exitCodeError);
           throw new Exception($"yt-dlp exited with code {process.ExitCode}");
         }
 
-        onOutputReceived("Download completed successfully!");
+        await _progressHubService.BroadcastLogUpdate(itemId, "Download completed successfully!");
+        await _progressHubService.BroadcastStateChange(itemId, EQueueItemStatus.Finished.ToString());
       }
       catch (OperationCanceledException)
       {
-        onOutputReceived("Download was cancelled.");
+        await _progressHubService.BroadcastLogUpdate(itemId, "Download was cancelled.");
+        await _progressHubService.BroadcastStateChange(itemId, EQueueItemStatus.Cancelled.ToString());
         if (!process.HasExited)
         {
           process.Kill();
         }
         throw;
       }
+      catch (Exception ex)
+      {
+        string exceptionError = $"Download failed: {ex.Message}";
+        await _progressHubService.BroadcastLogUpdate(itemId, exceptionError);
+        await _progressHubService.BroadcastStateChange(itemId, EQueueItemStatus.Paused.ToString());
+        throw;
+      }
     }
-  }
-
-  // Classes to deserialize GitHub API response
-  public class GitHubRelease
-  {
-    [JsonPropertyName("tag_name")]
-    public string TagName { get; set; } = "";
-
-    [JsonPropertyName("assets")]
-    public List<GitHubAsset> Assets { get; set; } = new();
-  }
-
-  public class GitHubAsset
-  {
-    [JsonPropertyName("name")]
-    public string Name { get; set; } = "";
-
-    [JsonPropertyName("browser_download_url")]
-    public string BrowserDownloadUrl { get; set; } = "";
   }
 }

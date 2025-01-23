@@ -22,12 +22,4 @@ namespace SaveHere.Models
     public double CurrentDownloadSpeed { get; set; } = 0;
     public double AverageDownloadSpeed { get; set; } = 0;
   }
-
-  public enum EQueueItemStatus
-  {
-    Paused,
-    Downloading,
-    Finished,
-    Cancelled
-  }
 }

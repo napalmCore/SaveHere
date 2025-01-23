@@ -269,13 +269,13 @@ else
       await hubConnection.StartAsync();
 
       // Subscribe to updates for all current downloads
-      if (_fileDownloadQueueItems != null)
-      {
-        foreach (var item in _fileDownloadQueueItems.Where(x => x.Status == EQueueItemStatus.Downloading))
-        {
-          await hubConnection.SendAsync("SubscribeToDownload", item.Id);
-        }
-      }
+      // if (_fileDownloadQueueItems != null)
+      // {
+      //   foreach (var item in _fileDownloadQueueItems.Where(x => x.Status == EQueueItemStatus.Downloading))
+      //   {
+      //     await hubConnection.SendAsync("SubscribeToDownload", item.Id);
+      //   }
+      // }
     }
     catch (Exception ex)
     {

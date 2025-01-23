@@ -20,6 +20,11 @@ namespace SaveHere
     {
       var builder = WebApplication.CreateBuilder(args);
 
+      // Setup logging
+      //builder.Logging.ClearProviders();
+      //builder.Logging.AddConsole();
+      //builder.Logging.SetMinimumLevel(LogLevel.Information);
+
       // Initializing the database
       var dbPath = Path.Combine(Directory.GetCurrentDirectory(), "db");
       if (!Directory.Exists(dbPath))
@@ -82,6 +87,8 @@ namespace SaveHere
       builder.Services.AddScoped<IDownloadQueueService, DownloadQueueService>();
 
       builder.Services.AddSingleton<IYtdlpService, YtdlpService>();
+
+      builder.Services.AddScoped<IYoutubeDownloadQueueService, YoutubeDownloadQueueService>();
 
       builder.Services.AddHostedService<YtdlpUpdateService>();
 
