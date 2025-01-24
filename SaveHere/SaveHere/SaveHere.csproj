@@ -11,6 +11,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\SaveHere.Client\SaveHere.Client.csproj" />
+    <PackageReference Include="Markdig" Version="0.40.0" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="8.*" />
     <PackageReference Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore" Version="8.*" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.*" />
@@ -23,10 +24,6 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.*" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.*" />
     <PackageReference Include="Extensions.MudBlazor.StaticInput" Version="2.*" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Components\Upload\" />
   </ItemGroup>
 
 </Project>

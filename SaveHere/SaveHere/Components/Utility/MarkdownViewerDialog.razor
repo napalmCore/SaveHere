@@ -1,0 +1,64 @@
+﻿@using Markdig
+@inject IHttpClientFactory HttpClientFactory
+@inject NavigationManager NavigationManager
+
+<MudDialog>
+  <DialogContent>
+    @if (isLoading)
+    {
+      <div style="display:flex; justify-content:center; align-items: center;">
+        <MudProgressCircular Indeterminate="true" Class="ma-2" />
+      </div>
+    }
+    else
+    {
+      @((MarkupString)renderedContent)
+    }
+  </DialogContent>
+  <DialogActions>
+    <MudButton Color="Color.Primary" OnClick="Close">Close</MudButton>
+  </DialogActions>
+</MudDialog>
+
+@code {
+  [CascadingParameter] MudDialogInstance MudDialog { get; set; } = default!;
+  private string renderedContent = string.Empty;
+  private bool isLoading = true;
+
+  protected override async Task OnInitializedAsync()
+  {
+    try
+    {
+      using var client = HttpClientFactory.CreateClient();
+
+      // Add Basic Auth if credentials exist
+      var basicAuthUsername = Environment.GetEnvironmentVariable("BASIC_AUTH_USERNAME");
+      var basicAuthPassword = Environment.GetEnvironmentVariable("BASIC_AUTH_PASSWORD");
+
+      if (!string.IsNullOrWhiteSpace(basicAuthUsername) && !string.IsNullOrWhiteSpace(basicAuthPassword))
+      {
+        string credentials = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes($"{basicAuthUsername}:{basicAuthPassword}"));
+        client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", credentials);
+      }
+
+      var absoluteUrl = NavigationManager.ToAbsoluteUri("/ytdlp/supportedsites.md").ToString();
+      var markdown = await client.GetStringAsync(absoluteUrl);
+
+      // Convert markdown to HTML using Markdig
+      var pipeline = new MarkdownPipelineBuilder()
+          .UseAdvancedExtensions()
+          .Build();
+      renderedContent = Markdown.ToHtml(markdown, pipeline);
+    }
+    catch (Exception ex)
+    {
+      renderedContent = $"<p class='text-error'>Error loading content: {ex.Message}</p>";
+    }
+    finally
+    {
+      isLoading = false;
+    }
+  }
+
+  private void Close() => MudDialog.Close();
+}

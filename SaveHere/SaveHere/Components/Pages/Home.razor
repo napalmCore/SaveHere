@@ -1,7 +1,16 @@
 ﻿@page "/"
+@using SaveHere.Components.Utility
+
+@inject IDialogService DialogService
+
+@rendermode InteractiveServer
+@attribute [StreamRendering]
+
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
 
 <PageTitle>SaveHere</PageTitle>
-
 
 <div style="display: flex; justify-content:center; gap:0.5rem; margin-top:2rem; flex-wrap:wrap;">
   <MudCard Style="min-width:400px; max-width:100%;">
@@ -22,10 +31,9 @@
       </MudText>
       <MudText Typo="Typo.body2">
         See the full list of
-        <MudLink Href="/ytdlp/supportedsites.md"
+        <MudLink OnClick="OpenSupportedSites"
                  Target="_blank"
                  Color="Color.Primary"
-                 Class="ml-auto"
                  Typo="Typo.subtitle2">
           Supported Sites
         </MudLink>
@@ -36,3 +44,17 @@
     </MudCardActions>
   </MudCard>
 </div>
+
+@code {
+  private void OpenSupportedSites()
+  {
+    var options = new DialogOptions
+      {
+        MaxWidth = MaxWidth.Large,
+        FullWidth = true,
+        CloseButton = true
+      };
+
+    DialogService.Show<MarkdownViewerDialog>("Supported Sites", options);
+  }
+}

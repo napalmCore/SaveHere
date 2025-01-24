@@ -1,6 +1,6 @@
 ﻿@implements IAsyncDisposable
 @using Microsoft.EntityFrameworkCore
-@using SaveHere.Components.File
+@using SaveHere.Components.Utility
 @using SaveHere.Models
 @using SaveHere.Models.SaveHere.Models
 @using SaveHere.Models.db
@@ -83,10 +83,9 @@ else
 
     <MudText Typo="Typo.subtitle2" Class="mt-3 mx-3">
       This component uses ytdlp to download video/audio. See
-      <MudLink Href="/ytdlp/supportedsites.md"
+      <MudLink OnClick="OpenSupportedSites"
                Target="_blank"
                Color="Color.Primary"
-               Class="ml-auto"
                Typo="Typo.subtitle2">
         Supported Sites
       </MudLink>
@@ -441,4 +440,17 @@ else
       InvokeAsync(RefreshFileManager);
     }
   }
+
+  private void OpenSupportedSites()
+  {
+    var options = new DialogOptions
+      {
+        MaxWidth = MaxWidth.Large,
+        FullWidth = true,
+        CloseButton = true
+      };
+
+    DialogService.Show<MarkdownViewerDialog>("Supported Sites", options);
+  }
+
 }
