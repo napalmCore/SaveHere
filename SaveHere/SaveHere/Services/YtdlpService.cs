@@ -2,7 +2,6 @@
 using SaveHere.Models;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
-using Microsoft.AspNetCore.SignalR;
 
 namespace SaveHere.Services
 {
@@ -13,6 +12,8 @@ namespace SaveHere.Services
     Task<bool> IsUpdateAvailable();
     Task DownloadLatestVersion();
     Task<string> GetExecutablePath();
+    Task<string> GetSupportedSitesFilePath();
+    Task UpdateSupportedSitesFile();
     Task DownloadVideo(int itemId, string url, string quality, string proxy, CancellationToken cancellationToken);
   }
 
@@ -21,6 +22,8 @@ namespace SaveHere.Services
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<YtdlpService> _logger;
     private const string GITHUB_API_URL = "https://api.github.com/repos/yt-dlp/yt-dlp/releases/latest";
+    private const string SUPPORTED_SITES_URL = "https://raw.githubusercontent.com/yt-dlp/yt-dlp/refs/heads/master/supportedsites.md";
+    private const string SUPPORTED_SITES_FILENAME = "supportedsites.md";
     private readonly string _basePath;
     private readonly string _executableName;
     private readonly IProgressHubService _progressHubService;
@@ -56,9 +59,17 @@ namespace SaveHere.Services
       try
       {
         string executablePath = await GetExecutablePath();
+        string supPath = await GetSupportedSitesFilePath();
+
         if (!File.Exists(executablePath) || await IsUpdateAvailable())
         {
           await DownloadLatestVersion();
+          await UpdateSupportedSitesFile();
+        }
+
+        if (!File.Exists(supPath))
+        {
+          await UpdateSupportedSitesFile();
         }
       }
       catch (Exception ex)
@@ -155,6 +166,31 @@ namespace SaveHere.Services
     public Task<string> GetExecutablePath()
     {
       return Task.FromResult(Path.Combine(_basePath, _executableName));
+    }
+
+    public Task<string> GetSupportedSitesFilePath()
+    {
+      return Task.FromResult(Path.Combine(_basePath, SUPPORTED_SITES_FILENAME));
+    }
+
+    public async Task UpdateSupportedSitesFile()
+    {
+      try
+      {
+        using var client = _httpClientFactory.CreateClient();
+        var response = await client.GetAsync(SUPPORTED_SITES_URL);
+        response.EnsureSuccessStatusCode();
+
+        var filePath = await GetSupportedSitesFilePath();
+        await File.WriteAllTextAsync(filePath, await response.Content.ReadAsStringAsync());
+
+        _logger.LogInformation("Successfully downloaded supported sites documentation");
+      }
+      catch (Exception ex)
+      {
+        _logger.LogError(ex, "Failed to download supported sites documentation");
+        throw;
+      }
     }
 
     private HttpClient CreateGitHubClient()

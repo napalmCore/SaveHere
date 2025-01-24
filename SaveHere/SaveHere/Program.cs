@@ -226,6 +226,25 @@ namespace SaveHere
         return Results.Stream(limitedStream, contentType);
       });
 
+      // GET endpoint for yt-dlp documentation
+      app.MapGet("/ytdlp/supportedsites.md", async (HttpContext context) =>
+      {
+        var ytdlpService = context.RequestServices.GetRequiredService<IYtdlpService>();
+        var filePath = await ytdlpService.GetSupportedSitesFilePath();
+
+        if (!File.Exists(filePath))
+        {
+          try
+          {
+            await ytdlpService.EnsureYtdlpAvailable();
+          }
+          catch { /*pass for now*/ }
+          if (!File.Exists(filePath)) return Results.NotFound();
+        }
+
+        return Results.File(filePath, "text/markdown");
+      });
+
       // Ensuring the database is created
       using (var scope = app.Services.CreateScope())
       {

@@ -40,10 +40,10 @@ else
   <MudPaper Class="px-5 py-4 mx-5 mt-5 sv-paper" Elevation="5">
     <MudStack Row>
       <MudTextField @bind-Value="YoutubeUrl"
-                    Label="YouTube URL"
+                    Label="Video/Audio URL"
                     Variant="Variant.Outlined"
                     Margin="Margin.Dense"
-                    HelperText="Enter YouTube Video URL"
+                    HelperText="Enter Video/Audio URL"
                     HelperTextOnFocus="true"
                     Adornment="Adornment.End"
                     AdornmentIcon="@Icons.Custom.Brands.YouTube"
@@ -80,6 +80,17 @@ else
         <MudSelectItem Value="@("Worst")">Worst Quality</MudSelectItem>
       </MudSelect>
     </MudStack>
+
+    <MudText Typo="Typo.subtitle2" Class="mt-3 mx-3">
+      This component uses ytdlp to download video/audio. See
+      <MudLink Href="/ytdlp/supportedsites.md"
+               Target="_blank"
+               Color="Color.Primary"
+               Class="ml-auto"
+               Typo="Typo.subtitle2">
+        Supported Sites
+      </MudLink>
+    </MudText>
   </MudPaper>
 
   @if (!string.IsNullOrWhiteSpace(ErrorMessage))
