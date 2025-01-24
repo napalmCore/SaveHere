@@ -25,4 +25,8 @@
     <PackageReference Include="Extensions.MudBlazor.StaticInput" Version="2.*" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Components\Upload\" />
+  </ItemGroup>
+
 </Project>
