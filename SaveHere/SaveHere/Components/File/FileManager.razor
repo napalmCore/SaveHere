@@ -111,7 +111,7 @@
   private bool IsMediaFile(string fileName)
   {
     var ext = Path.GetExtension(fileName).ToLowerInvariant();
-    return new[] { ".mp4", ".webm", ".avi", ".mov", ".mkv", ".mp3", ".wav", ".ogg", ".m4a", ".flac" }
+    return new[] { ".mp4", ".webm", ".avi", ".mov", ".mkv", ".mp3", ".wav", ".ogg", ".m4a", ".flac", ".opus" }
         .Contains(ext);
   }
 

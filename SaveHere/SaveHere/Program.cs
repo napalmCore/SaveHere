@@ -194,6 +194,7 @@ namespace SaveHere
           ".ogg" => "audio/ogg",
           ".m4a" => "audio/mp4",
           ".flac" => "audio/flac",
+          ".opus" => "audio/opus",
           _ => "application/octet-stream"
         };
 
