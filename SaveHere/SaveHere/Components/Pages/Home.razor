@@ -1,3 +1,38 @@
 ﻿@page "/"
 
 <PageTitle>SaveHere</PageTitle>
+
+
+<div style="display: flex; justify-content:center; gap:0.5rem; margin-top:2rem; flex-wrap:wrap;">
+  <MudCard Style="min-width:400px; max-width:100%;">
+    <MudCardContent>
+      <MudText Typo="Typo.h6">Direct Link</MudText>
+      <MudText Typo="Typo.body2">Download files from direct links</MudText>
+    </MudCardContent>
+    <MudCardActions>
+      <MudButton Variant="Variant.Text" Color="Color.Primary" style="margin-left: auto;" Href="downloadfromdirectlink">Continue</MudButton>
+    </MudCardActions>
+  </MudCard>
+
+  <MudCard Style="min-width:400px; max-width:100%;">
+    <MudCardContent>
+      <MudText Typo="Typo.h6">Video/Audio</MudText>
+      <MudText Typo="Typo.body2">
+        Download Video/Audio from youtube/soundcloud/...
+      </MudText>
+      <MudText Typo="Typo.body2">
+        See the full list of
+        <MudLink Href="/ytdlp/supportedsites.md"
+                 Target="_blank"
+                 Color="Color.Primary"
+                 Class="ml-auto"
+                 Typo="Typo.subtitle2">
+          Supported Sites
+        </MudLink>
+      </MudText>
+    </MudCardContent>
+    <MudCardActions>
+      <MudButton Variant="Variant.Text" Color="Color.Primary" style="margin-left: auto;" Href="downloadvideoaudio">Continue</MudButton>
+    </MudCardActions>
+  </MudCard>
+</div>
