@@ -86,7 +86,7 @@ $env:BASIC_AUTH_PASSWORD = "your_password"
 
 ## To Do
 - [ ] Add user accounts and set their access policies
-- [ ] Add youtube downloader
+- [x] Add youtube downloader
 - [ ] Add spotify downloader
 - [ ] Add rjmusic downloader
 - [ ] Add terminal
