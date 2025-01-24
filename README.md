@@ -5,8 +5,9 @@
 
 <div align="center">
   <h1>SaveHere</h1>
-  <h4>Minimal Cloud Download Manager</h4>
+  <h4>Cloud Download Manager</h4>
   <h6>In v3.0, the app has been rewritten from scratch in .Net Blazor</h6>
+  <h6>Ytdlp backend has been added for downloading Video/Audio from Youtube/Soundcloud/...</h6>
   <img >
 </div>
 
