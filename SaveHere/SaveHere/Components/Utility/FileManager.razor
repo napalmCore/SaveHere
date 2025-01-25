@@ -21,10 +21,28 @@
     </div>
   }
 
-  <MudTable Items="@files" Dense="@Dense" Hover="true" Loading="@isLoading" Elevation="0">
+  <MudTable Items="@files" Dense="@Dense" Hover="true" Loading="@isLoading" Elevation="0" SortLabel="Sort By">
     <HeaderContent>
-      <MudTh Style="width:100%;">Name</MudTh>
-      <MudTh>Size</MudTh>
+      <MudTh Style="width:100%;">
+        <MudTableSortLabel SortBy="new Func<FileItem, object>(x => x.Name)">
+          Name
+        </MudTableSortLabel>
+      </MudTh>
+      <MudTh>
+        <MudTableSortLabel SortBy="new Func<FileItem, object>(x => x.Length)">
+          Size
+        </MudTableSortLabel>
+      </MudTh>
+      <MudTh>
+        <MudTableSortLabel SortBy="new Func<FileItem, object>(x => x.CreatedAt)">
+          Created
+        </MudTableSortLabel>
+      </MudTh>
+      <MudTh>
+        <MudTableSortLabel SortBy="new Func<FileItem, object>(x => x.LastModified)">
+          Modified
+        </MudTableSortLabel>
+      </MudTh>
       <MudTh Style="text-align:center;">Actions</MudTh>
     </HeaderContent>
     <RowTemplate>
@@ -33,6 +51,12 @@
       </MudTd>
       <MudTd DataLabel="Size" Style="white-space:nowrap">
         @Helpers.FormatSize(context.Length)
+      </MudTd>
+      <MudTd DataLabel="Modified">
+        @context.CreatedAt.ToString("g")
+      </MudTd>
+      <MudTd DataLabel="Modified">
+        @context.LastModified.ToString("g")
       </MudTd>
       <MudTd DataLabel="Actions" Style="text-align:end;">
         <MudStack Row="true" Style="gap:5px; justify-content:end">

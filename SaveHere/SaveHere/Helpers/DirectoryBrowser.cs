@@ -61,7 +61,9 @@
               FullName = fi.FullName,
               Type = "file",
               Length = fi.Length,
-              Extension = fi.Extension
+              Extension = fi.Extension,
+              LastModified = fi.LastWriteTimeUtc,
+              CreatedAt = fi.CreationTimeUtc
             },
             DirectoryInfo di => new DirectoryItem
             {
@@ -106,6 +108,8 @@
   {
     public long Length { get; set; }
     public string Extension { get; set; } = "bbb";
+    public DateTime LastModified { get; set; }
+    public DateTime CreatedAt { get; set; }
   }
 
   public class DirectoryItem : FileSystemItem
