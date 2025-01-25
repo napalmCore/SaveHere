@@ -10,7 +10,8 @@ namespace SaveHere.Services
     Task<List<YoutubeDownloadQueueItem>> GetQueueItemsAsync();
     Task<YoutubeDownloadQueueItem?> GetQueueItemByIdAsync(int id);
     Task<YoutubeDownloadQueueItem> AddQueueItemAsync(string url, string selectedQuality, string proxyUrl);
-    Task UpdateQueueItemAsync(YoutubeDownloadQueueItem item);
+    //Task UpdateQueueItemAsync(YoutubeDownloadQueueItem item);
+    Task UpdateItemStateAsync(int itemId, EQueueItemStatus newStatus);
     Task DeleteQueueItemAsync(int id);
     Task StartDownloadAsync(int id);
     Task CancelDownloadAsync(int id);
@@ -45,7 +46,16 @@ namespace SaveHere.Services
       var items = await context.YoutubeDownloadQueueItems.ToListAsync();
       foreach (var item in items)
       {
-        item.OutputLog = item.PersistedLog.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries).ToList();
+        if (!string.IsNullOrEmpty(item.PersistedLog))
+        {
+          item.OutputLog = item.PersistedLog
+              .Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries)
+              .ToList();
+        }
+        else
+        {
+          item.OutputLog = new List<string>();
+        }
       }
       return items;
     }
@@ -54,12 +64,15 @@ namespace SaveHere.Services
     {
       await using var context = await _contextFactory.CreateDbContextAsync();
       var item = await context.YoutubeDownloadQueueItems.FindAsync(id);
-      if (item != null)
+      if (item != null && !string.IsNullOrEmpty(item.PersistedLog))
       {
-        item.OutputLog = item.PersistedLog.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries).ToList();
+        item.OutputLog = item.PersistedLog
+            .Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries)
+            .ToList();
       }
       return item;
     }
+
 
     public async Task<YoutubeDownloadQueueItem> AddQueueItemAsync(string url, string selectedQuality, string proxyUrl)
     {
@@ -88,11 +101,23 @@ namespace SaveHere.Services
       return item;
     }
 
-    public async Task UpdateQueueItemAsync(YoutubeDownloadQueueItem item)
+    //public async Task UpdateQueueItemAsync(YoutubeDownloadQueueItem item)
+    //{
+    //  await using var context = await _contextFactory.CreateDbContextAsync();
+    //  context.YoutubeDownloadQueueItems.Update(item);
+    //  await context.SaveChangesAsync();
+    //}
+
+    public async Task UpdateItemStateAsync(int itemId, EQueueItemStatus newStatus)
     {
       await using var context = await _contextFactory.CreateDbContextAsync();
-      context.YoutubeDownloadQueueItems.Update(item);
-      await context.SaveChangesAsync();
+      var item = await context.YoutubeDownloadQueueItems.FindAsync(itemId);
+      if (item != null)
+      {
+        // Only update the status, preserving all other fields
+        item.Status = newStatus;
+        await context.SaveChangesAsync();
+      }
     }
 
     public async Task DeleteQueueItemAsync(int id)
@@ -116,7 +141,7 @@ namespace SaveHere.Services
 
       // Update status immediately
       item.Status = EQueueItemStatus.Cancelled;
-      await UpdateQueueItemAsync(item);
+      await UpdateItemStateAsync(item.Id, EQueueItemStatus.Cancelled);
       await _progressHubService.BroadcastStateChange(id, item.Status.ToString());
 
       var tokenSource = _downloadStateService.GetOrAddTokenSource(id);
@@ -135,20 +160,27 @@ namespace SaveHere.Services
 
       try
       {
+        // Clear previous logs when starting a new download
+        item.OutputLog.Clear();
+        item.PersistedLog = string.Empty;
         item.Status = EQueueItemStatus.Downloading;
-        await UpdateQueueItemAsync(item);
+        await UpdateItemStateAsync(item.Id, EQueueItemStatus.Downloading);
         await _progressHubService.BroadcastStateChange(id, item.Status.ToString());
 
         await _ytdlpService.DownloadVideo(item.Id, item.Url, item.Quality, item.Proxy, token);
 
+        // Ensure we capture all logs before setting status to finished
+        var currentLogs = item.OutputLog.ToList();
         item.Status = EQueueItemStatus.Finished;
-        await UpdateQueueItemAsync(item);
+        item.PersistedLog = string.Join(Environment.NewLine, currentLogs);
+        await UpdateItemStateAsync(item.Id, EQueueItemStatus.Finished);
         await _progressHubService.BroadcastStateChange(id, item.Status.ToString());
       }
       catch (OperationCanceledException)
       {
         item.Status = EQueueItemStatus.Cancelled;
-        await UpdateQueueItemAsync(item);
+        item.PersistedLog = string.Join(Environment.NewLine, item.OutputLog);
+        await UpdateItemStateAsync(item.Id, EQueueItemStatus.Cancelled);
         await _progressHubService.BroadcastStateChange(id, item.Status.ToString());
         throw;
       }
@@ -156,7 +188,8 @@ namespace SaveHere.Services
       {
         _logger.LogError(ex, "Error downloading video for item {id}: {message}", id, ex.Message);
         item.Status = EQueueItemStatus.Paused;
-        await UpdateQueueItemAsync(item);
+        item.PersistedLog = string.Join(Environment.NewLine, item.OutputLog);
+        await UpdateItemStateAsync(item.Id, EQueueItemStatus.Paused);
         await _progressHubService.BroadcastStateChange(id, item.Status.ToString());
         throw;
       }
@@ -170,11 +203,16 @@ namespace SaveHere.Services
     {
       try
       {
-        var item = await GetQueueItemByIdAsync(itemId);
+        await using var context = await _contextFactory.CreateDbContextAsync();
+        var item = await context.YoutubeDownloadQueueItems.FindAsync(itemId);
         if (item != null)
         {
-          item.PersistedLog += logLine + Environment.NewLine;
-          await UpdateQueueItemAsync(item);
+          item.OutputLog = string.IsNullOrEmpty(item.PersistedLog)
+              ? new List<string> { logLine }
+              : item.PersistedLog.Split(Environment.NewLine).Concat(new[] { logLine }).ToList();
+
+          item.PersistedLog = string.Join(Environment.NewLine, item.OutputLog);
+          await context.SaveChangesAsync();
         }
       }
       catch (Exception ex)

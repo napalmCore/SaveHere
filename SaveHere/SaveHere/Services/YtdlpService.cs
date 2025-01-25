@@ -266,8 +266,8 @@ namespace SaveHere.Services
       }
       catch (OperationCanceledException)
       {
-        await _progressHubService.BroadcastLogUpdate(itemId, "Download was cancelled.");
         await _progressHubService.BroadcastStateChange(itemId, EQueueItemStatus.Cancelled.ToString());
+        await _progressHubService.BroadcastLogUpdate(itemId, "Download was cancelled.");
         if (!process.HasExited)
         {
           process.Kill();
@@ -277,8 +277,8 @@ namespace SaveHere.Services
       catch (Exception ex)
       {
         string exceptionError = $"Download failed: {ex.Message}";
-        await _progressHubService.BroadcastLogUpdate(itemId, exceptionError);
         await _progressHubService.BroadcastStateChange(itemId, EQueueItemStatus.Paused.ToString());
+        await _progressHubService.BroadcastLogUpdate(itemId, exceptionError);
         throw;
       }
     }
