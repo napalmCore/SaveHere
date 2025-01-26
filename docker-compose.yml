@@ -1,0 +1,6 @@
+services:
+  savehere:
+    image: ${DOCKER_REGISTRY-}savehere
+    build:
+      context: .
+      dockerfile: SaveHere/SaveHere/Dockerfile

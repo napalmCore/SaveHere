@@ -68,7 +68,8 @@ else
       <MudTextField @bind-Value="ProxyUrl"
                     Label="Proxy Server"
                     Variant="Variant.Outlined"
-                    Margin="Margin.Dense" />
+                    Margin="Margin.Dense"
+                    Clearable/>
 
       <MudSelect @bind-Value="SelectedQuality"
                  Label="Video Quality"
@@ -287,19 +288,23 @@ else
     var basicAuthUsername = Environment.GetEnvironmentVariable("BASIC_AUTH_USERNAME");
     var basicAuthPassword = Environment.GetEnvironmentVariable("BASIC_AUTH_PASSWORD");
 
+    // Determine the correct hub URL based on the environment
+    var hubUrl = Environment.GetEnvironmentVariable("SIGNALR_HUB_URL")
+                 ?? NavigationManager.BaseUri.TrimEnd('/') + "/DownloadProgressHub";
+
     if (!string.IsNullOrWhiteSpace(basicAuthUsername) && !string.IsNullOrWhiteSpace(basicAuthPassword))
     {
       string credentials = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes($"{basicAuthUsername}:{basicAuthPassword}"));
 
       hubConnection = new HubConnectionBuilder()
-        .WithUrl(NavigationManager.ToAbsoluteUri("/DownloadProgressHub"), options => options.Headers.Add("Authorization", $"Basic {credentials}"))
+        .WithUrl(hubUrl, options => options.Headers.Add("Authorization", $"Basic {credentials}"))
         .WithAutomaticReconnect()
         .Build();
     }
     else
     {
       hubConnection = new HubConnectionBuilder()
-        .WithUrl(NavigationManager.ToAbsoluteUri("/DownloadProgressHub"))
+        .WithUrl(hubUrl)
         .WithAutomaticReconnect()
         .Build();
     }

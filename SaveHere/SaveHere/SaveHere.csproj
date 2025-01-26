@@ -7,6 +7,9 @@
     <UserSecretsId>aspnet-SaveHere-79a10a8e-8678-4a74-9f74-ed46c4e3cf27</UserSecretsId>
     <AssemblyVersion>3.1.1</AssemblyVersion>
     <FileVersion>3.1.1</FileVersion>
+    <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+    <DockerfileContext>..\..</DockerfileContext>
+    <DockerComposeProjectPath>..\..\docker-compose.dcproj</DockerComposeProjectPath>
   </PropertyGroup>
 
   <ItemGroup>
@@ -24,6 +27,7 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.*" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.*" />
     <PackageReference Include="Extensions.MudBlazor.StaticInput" Version="2.*" />
+    <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.21.0" />
   </ItemGroup>
 
 </Project>
