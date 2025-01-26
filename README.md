@@ -14,32 +14,74 @@
 
 ## Table of Contents
 
-- [What this app does](#what-this-app-does)
+- [What this app does](#what-does-it-do)
 - [Dependencies](#dependencies)
-- [How to run this app](#how-to-run-this-app)
+- [How to run this app using docker](#how-to-run-this-app-using-docker)
+- [How to run this app using dotnet](#how-to-run-this-app-using-dotnet)
 - [To Do](#to-do)
 - [How to contribute](#how-to-contribute)
 - [Disclaimer](#disclaimer)
 
-## What this app does
 
-SaveHere is a minimal cloud file manager that allows you to download files from the internet and store them on your own server. It uses ASP.NET Core with Blazor.
+## What does it do
 
-The app was built to address the issue of downloading large files from slow servers or unstable connections. With SaveHere, you can enter the URL of the file you want to download, and the app will download it to your server. You can then download the file from your own server using your own domain name and URL, with the ability to pause and resume the download as needed.
+SaveHere is a cloud download manager that allows you to download files from either direct links or video/audio from websites like youtube/soundcloud/etc using ytdlp (see [Supported Sites](https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md)).
 
 
 ## Dependencies
 
-To run SaveHere, you will need to have .Net 8+ installed. Checkout [ms/dotnet](https://dotnet.microsoft.com/en-us/download) or [ms/dotnet-sdk](https://dotnet.microsoft.com/en-us/download/dotnet/8.0).
+SaveHere uses .Net Core with Blazor. To run SaveHere, you need to have either `docker` or `dotnet` installed.
 
-If you're running ubuntu, you can just do `sudo apt install dotnet8`.
+To run the app using `dotnet`, you will need to have .Net 8+ installed. Checkout [ms/dotnet](https://dotnet.microsoft.com/en-us/download) or [ms/dotnet-sdk](https://dotnet.microsoft.com/en-us/download/dotnet/8.0). If you're running ubuntu, you can just do `sudo apt install dotnet8`.
 
 In addition, it is recommended that you run SaveHere behind a reverse proxy such as [Nginx](https://nginx.org/) or [Nginx Proxy Manager](https://nginxproxymanager.com/). This will allow you to access the app using your own domain name and SSL certificate, and provide additional security and performance benefits.
 
 
-## How to run this app
+## How to run this app using docker
 
-To run SaveHere, follow these steps:
+To run SaveHere using `docker`, follow these steps:
+
+1. Create a file named `docker-compose.yml` and fill it with this:
+```docker
+services:
+ savehere:
+   image: ghcr.io/gudarzi/savehere
+   environment:
+     - ASPNETCORE_ENVIRONMENT=Production
+     - ASPNETCORE_HTTP_PORTS=8080
+     #- ASPNETCORE_HTTPS_PORTS=8081
+     - SIGNALR_HUB_URL=http://localhost:8080/DownloadProgressHub
+     - BASIC_AUTH_USERNAME="" # Provide Basic Auth Username If Required
+     - BASIC_AUTH_PASSWORD="" # Provide Basic Auth Password If Required
+     - PUID=1000
+     - PGID=1000
+     - "urls=http://0.0.0.0:8080"
+   ports:
+     - "172.17.0.1:18480:8080"
+     #- "172.17.0.1:18481:8081"
+   volumes:
+     - ./downloads:/app/downloads
+     - ./db:/app/db
+   user: 0:0
+```
+
+2. Run the app using this command:
+```bash
+docker compose up -d
+```
+
+3. Now the app is available at `172.17.0.1:18480`. 
+
+_You can use `"0.0.0.0:18480:8080"` to publish the app on all available interfaces._
+
+_If you encounter any errors about write permissions or corrupt database, just remove folders `db` and `downloads` that the app has created._
+
+_If you're running the app behind a basic auth, provide `BASIC_AUTH_USERNAME` and `BASIC_AUTH_PASSWORD` environment variables in the docker-compose configs._
+
+
+## How to run this app using dotnet
+
+To run SaveHere using `dotnet`, follow these steps:
 
 1. Clone the repository from GitHub and navigate into the directory:
 ```bash
