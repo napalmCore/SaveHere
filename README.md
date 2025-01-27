@@ -8,6 +8,7 @@
   <h4>Cloud Download Manager</h4>
   <h6>In v3.0, the app has been rewritten from scratch in .Net Blazor</h6>
   <h6>Ytdlp backend has been added for downloading Video/Audio from Youtube/Soundcloud/...</h6>
+  <h6>Enable WarpPlus proxy to bypass youtube restrictions</h6>
   <img >
 </div>
 
@@ -45,7 +46,7 @@ To run SaveHere using `docker`, follow these steps:
 ```docker
 services:
  savehere:
-   image: ghcr.io/gudarzi/savehere
+   image: ghcr.io/gudarzi/savehere:latest
    environment:
      - ASPNETCORE_ENVIRONMENT=Production
      - ASPNETCORE_HTTP_PORTS=8080
@@ -67,7 +68,8 @@ services:
 
 2. Run the app using this command:
 ```bash
-docker compose up -d
+docker compose pull
+docker compose up -d --build --force-recreate
 ```
 
 3. Now the app is available at `172.17.0.1:18480`. 
