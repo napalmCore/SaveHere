@@ -99,12 +99,30 @@ else
 
   private async Task InitializeHubConnection()
   {
-    var hubUrl = NavigationManager.BaseUri.TrimEnd('/') + "/DownloadProgressHub";
+    // Get Basic Auth credentials from environment variables or configuration
+    var basicAuthUsername = Environment.GetEnvironmentVariable("BASIC_AUTH_USERNAME");
+    var basicAuthPassword = Environment.GetEnvironmentVariable("BASIC_AUTH_PASSWORD");
 
-    _hubConnection = new HubConnectionBuilder()
+    // Determine the correct hub URL based on the environment
+    var hubUrl = Environment.GetEnvironmentVariable("SIGNALR_HUB_URL")
+                 ?? NavigationManager.BaseUri.TrimEnd('/') + "/DownloadProgressHub";
+
+    if (!string.IsNullOrWhiteSpace(basicAuthUsername) && !string.IsNullOrWhiteSpace(basicAuthPassword))
+    {
+      string credentials = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes($"{basicAuthUsername}:{basicAuthPassword}"));
+
+      _hubConnection = new HubConnectionBuilder()
+        .WithUrl(hubUrl, options => options.Headers.Add("Authorization", $"Basic {credentials}"))
+        .WithAutomaticReconnect()
+        .Build();
+    }
+    else
+    {
+      _hubConnection = new HubConnectionBuilder()
         .WithUrl(hubUrl)
         .WithAutomaticReconnect()
         .Build();
+    }
 
     _hubConnection.On<string>("WarpPlusLogUpdate", OnLogUpdate);
 
