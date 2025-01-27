@@ -82,6 +82,8 @@ namespace SaveHere
 
       builder.Services.AddHttpClient();
 
+      builder.Services.AddSingleton<IWarpPlusService, WarpPlusService>();
+
       builder.Services.AddScoped<IFileManagerService, FileManagerService>();
 
       builder.Services.AddScoped<IDownloadQueueService, DownloadQueueService>();

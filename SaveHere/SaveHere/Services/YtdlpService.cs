@@ -35,7 +35,7 @@ namespace SaveHere.Services
       _progressHubService = progressHubService;
 
       // Set up base path and executable name based on OS
-      _basePath = Path.Combine(Directory.GetCurrentDirectory(), "tools");
+      _basePath = Path.Combine(Directory.GetCurrentDirectory(), "tools", "ytdlp");
       _executableName = GetExecutableNameForCurrentOS();
 
       // Ensure tools directory exists

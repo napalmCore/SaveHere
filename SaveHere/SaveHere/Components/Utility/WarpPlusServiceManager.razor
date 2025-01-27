@@ -1,0 +1,202 @@
+﻿@implements IAsyncDisposable
+@using Microsoft.AspNetCore.SignalR.Client
+@using SaveHere.Services
+
+@inject IWarpPlusService WarpPlusService
+@inject NavigationManager NavigationManager
+@inject IDialogService DialogService
+
+@rendermode InteractiveServer
+@attribute [StreamRendering]
+
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+@if (!_isFullyLoaded)
+{
+  <div style="display: flex; align-items: center; justify-content: center; width: 100%; height: 100%;">
+    <div style="position: relative;">
+      <MudProgressCircular Color="Color.Success" Indeterminate="true" Class="ma-5" Style="width: 100px; height: 100px;" />
+      <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -66%); text-align: center;">
+        <div style="font-size: 12px;">Loading</div>
+        <div style="font-size: 12px">Please Wait</div>
+      </div>
+    </div>
+  </div>
+}
+else
+{
+  <MudPaper Class="px-5 py-4 mx-5 mt-5 sv-paper" Elevation="5">
+    <MudStack Row="true" AlignItems="AlignItems.Center">
+      <MudText Typo="Typo.h6">WARP Plus Proxy Manager</MudText>
+      <MudSpacer />
+      <MudButton Variant="Variant.Filled"
+                 Color="Color.Primary"
+                 OnClick="DownloadProxy"
+                 StartIcon="@Icons.Material.Filled.Download"
+                 Disabled="@_isDownloading">
+        @(_isDownloading ? "Installing..." : "Install WARP Plus")
+      </MudButton>
+      <MudButton Variant="Variant.Filled"
+                 Color="Color.Error"
+                 OnClick="StopProxy"
+                 StartIcon="@Icons.Material.Filled.Stop">
+        Stop Proxy
+      </MudButton>
+      <MudButton Variant="Variant.Filled"
+                 Color="Color.Success"
+                 OnClick="StartProxy"
+                 StartIcon="@Icons.Material.Filled.PlayArrow">
+        Start Proxy
+      </MudButton>
+    </MudStack>
+
+    @if (!string.IsNullOrWhiteSpace(_errorMessage))
+    {
+      <MudAlert Severity="Severity.Error"
+                Variant="Variant.Outlined"
+                Dense="true"
+                Class="mt-3"
+                ShowCloseIcon="true"
+                CloseIconClicked="@(() => _errorMessage = string.Empty)">
+        @_errorMessage
+      </MudAlert>
+    }
+
+    <MudPaper Height="300px"
+              Class="pa-4 mt-4"
+              Style="overflow-y: auto; background-color: #01010155;">
+      <MudStack>
+        @foreach (var line in _outputLog)
+        {
+          <MudText Color="Color.Inherit"
+                   Style="font-family: monospace; font-size: 0.75rem;">
+            @line
+          </MudText>
+        }
+      </MudStack>
+    </MudPaper>
+  </MudPaper>
+}
+
+@code {
+  private bool _isFullyLoaded;
+  private bool _isRunning;
+  private bool _isInstalled;
+  private bool _isDownloading;
+  private string _errorMessage = string.Empty;
+  private List<string> _outputLog = new();
+  private HubConnection? _hubConnection;
+  private const string WARP_PROCESS_ID = "warp-plus-proxy";
+
+  protected override async Task OnInitializedAsync()
+  {
+    await InitializeHubConnection();
+    await RefreshState();
+    _outputLog = WarpPlusService.GetLogs().ToList();
+  }
+
+  private async Task InitializeHubConnection()
+  {
+    var hubUrl = NavigationManager.BaseUri.TrimEnd('/') + "/DownloadProgressHub";
+
+    _hubConnection = new HubConnectionBuilder()
+        .WithUrl(hubUrl)
+        .WithAutomaticReconnect()
+        .Build();
+
+    _hubConnection.On<string>("WarpPlusLogUpdate", OnLogUpdate);
+
+    try
+    {
+      await _hubConnection.StartAsync();
+    }
+    catch (Exception ex)
+    {
+      _errorMessage = $"Failed to connect to progress updates: {ex.Message}";
+    }
+  }
+
+  protected override async Task OnAfterRenderAsync(bool firstRender)
+  {
+    await base.OnAfterRenderAsync(firstRender);
+
+    if (!firstRender) return;
+    if (_isFullyLoaded) return;
+
+    _isFullyLoaded = true;
+    await InvokeAsync(StateHasChanged);
+  }
+
+  private async Task OnLogUpdate(string logLine)
+  {
+    await InvokeAsync(() =>
+    {
+      _outputLog.Add(logLine);
+      StateHasChanged();
+    });
+  }
+
+  private async Task DownloadProxy()
+  {
+    try
+    {
+      _isDownloading = true;
+      _errorMessage = string.Empty;
+      await WarpPlusService.DownloadAndInstall();
+      _isInstalled = true;
+    }
+    catch (Exception ex)
+    {
+      _errorMessage = $"Failed to download WARP Plus: {ex.Message}";
+    }
+    finally
+    {
+      _isDownloading = false;
+    }
+  }
+
+  private async Task StartProxy()
+  {
+    try
+    {
+      _errorMessage = string.Empty;
+      await WarpPlusService.Start();
+      _isRunning = true;
+    }
+    catch (Exception ex)
+    {
+      _errorMessage = $"Failed to start WARP Plus proxy: {ex.Message}";
+    }
+  }
+
+  private async Task StopProxy()
+  {
+    try
+    {
+      _errorMessage = string.Empty;
+      await WarpPlusService.Stop();
+      _isRunning = false;
+    }
+    catch (Exception ex)
+    {
+      _errorMessage = $"Failed to stop WARP Plus proxy: {ex.Message}";
+    }
+  }
+
+  public async ValueTask DisposeAsync()
+  {
+    if (_hubConnection is not null)
+    {
+      await _hubConnection.DisposeAsync();
+    }
+  }
+
+  private async Task RefreshState()
+  {
+    _isRunning = await WarpPlusService.IsRunning();
+    _isInstalled = await WarpPlusService.IsInstalled();
+  }
+
+}

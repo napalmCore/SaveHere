@@ -9,6 +9,7 @@ namespace SaveHere.Services
     Task BroadcastProgressUpdate(DownloadProgress progress);
     Task BroadcastStateChange(int itemId, string newStatus);
     Task BroadcastLogUpdate(int itemId, string logLine);
+    Task BroadcastWarpPlusLogUpdate(string logLine);
   }
 
   public class ProgressHubService : IProgressHubService
@@ -33,6 +34,11 @@ namespace SaveHere.Services
     public async Task BroadcastLogUpdate(int itemId, string logLine)
     {
       await _hubContext.Clients.All.SendAsync("DownloadLogUpdate", itemId, logLine);
+    }
+
+    public async Task BroadcastWarpPlusLogUpdate(string logLine)
+    {
+      await _hubContext.Clients.All.SendAsync("WarpPlusLogUpdate", logLine);
     }
   }
 }
