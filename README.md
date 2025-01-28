@@ -65,8 +65,8 @@ services:
      - "172.17.0.1:18480:8080"
      #- "172.17.0.1:18481:8081"
    volumes:
-     - ./downloads:/app/downloads
-     - ./db:/app/db
+     - ./downloads:/app/downloads # Remove this if you experience very long loading times
+     - ./db:/app/db # Remove this if you experience very long loading times
    user: 0:0
 ```
 
