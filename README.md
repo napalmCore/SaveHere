@@ -1,7 +1,11 @@
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/8cac9045-7b28-4ec8-b309-2f1f1cd969c1" alt="Screenshot of SaveHere App"/>
+  <div align="center">
+  <img src="https://github.com/user-attachments/assets/3469dbda-700f-4c4c-9682-420bb6905059" alt="Screenshot of SaveHere App" width="45%"/>
+  <img src="https://github.com/user-attachments/assets/8cac9045-7b28-4ec8-b309-2f1f1cd969c1" alt="Screenshot of SaveHere App" width="45%"/>
+  </div>
   <br>
 </p>
+
 
 <div align="center">
   <h1>SaveHere</h1>
