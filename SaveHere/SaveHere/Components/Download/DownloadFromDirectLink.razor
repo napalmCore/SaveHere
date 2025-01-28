@@ -459,7 +459,7 @@ else
     {
       if (fileManager is not null)
       {
-        await fileManager.RefreshFiles();
+        await InvokeAsync(fileManager.RefreshFiles);
       }
     }
     catch (Exception exception)
