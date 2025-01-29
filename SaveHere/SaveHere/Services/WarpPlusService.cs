@@ -179,7 +179,7 @@ namespace SaveHere.Services
       _warpProcess.BeginOutputReadLine();
       _warpProcess.BeginErrorReadLine();
 
-      await LogMessage("Starting Proxy... Please Wait Until You See This Message: `msg=\"serving proxy\" address=0.0.0.0:8086`");
+      await LogMessage("Starting Proxy... Please Wait Until You See This Message: `msg=\"serving proxy\" address=0.0.0.0:8086` \n\n");
     }
 
     public async Task Stop()

@@ -69,17 +69,35 @@ else
                     Label="Proxy Server"
                     Variant="Variant.Outlined"
                     Margin="Margin.Dense"
-                    Clearable/>
+                    Clearable />
 
       <MudSelect @bind-Value="SelectedQuality"
-                 Label="Video Quality"
+                 Label="Format & Quality"
                  Variant="Variant.Outlined"
                  Margin="Margin.Dense">
-        <MudSelectItem Value="@("Best")">Best Quality</MudSelectItem>
-        <MudSelectItem Value="@("bestvideo[height<=1080]+bestaudio/best")">1080p or lower</MudSelectItem>
-        <MudSelectItem Value="@("bestvideo[height<=720]+bestaudio/best")">720p or lower</MudSelectItem>
-        <MudSelectItem Value="@("Worst")">Worst Quality</MudSelectItem>
+
+        <MudSelectItem Value="@("bestvideo+bestaudio/best")">Best Quality (Auto Format)</MudSelectItem>
+        <MudSelectItem Value="@("bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best")">Best Quality (MP4)</MudSelectItem>
+        <MudSelectItem Value="@("bestvideo[ext=webm]+bestaudio[ext=webm]/best[ext=webm]/best")">Best Quality (WebM)</MudSelectItem>
+
+        <MudSelectItem Value="@("bestvideo[height<=2160]+bestaudio/best")">4K (2160p)</MudSelectItem>
+        <MudSelectItem Value="@("bestvideo[height<=1440]+bestaudio/best")">2K (1440p)</MudSelectItem>
+        <MudSelectItem Value="@("bestvideo[height<=1080]+bestaudio/best")">1080p</MudSelectItem>
+        <MudSelectItem Value="@("bestvideo[height<=720]+bestaudio/best")">720p</MudSelectItem>
+        <MudSelectItem Value="@("bestvideo[height<=480]+bestaudio/best")">480p</MudSelectItem>
+
+        <MudSelectItem Value="@("bestaudio[ext=mp3]/bestaudio/best --extract-audio --audio-format mp3")">Best Audio (MP3)</MudSelectItem>
+        <MudSelectItem Value="@("bestaudio[ext=m4a]/bestaudio/best --extract-audio --audio-format m4a")">Best Audio (M4A)</MudSelectItem>
+        <MudSelectItem Value="@("bestaudio[ext=wav]/bestaudio/best --extract-audio --audio-format wav")">Best Audio (WAV)</MudSelectItem>
+        <MudSelectItem Value="@("bestaudio[ext=opus]/bestaudio/best --extract-audio --audio-format opus")">Best Audio (Opus)</MudSelectItem>
+
+        <MudSelectItem Value="@("bestvideo+bestaudio --remux-video mp4")">Remux to MP4</MudSelectItem>
+        <MudSelectItem Value="@("bestvideo+bestaudio --remux-video mkv")">Remux to MKV</MudSelectItem>
+        <MudSelectItem Value="@("bestvideo+bestaudio --remux-video avi")">Remux to AVI</MudSelectItem>
+
+        <MudSelectItem Value="@("worstvideo+worstaudio/worst")">Worst Quality (For Testing)</MudSelectItem>
       </MudSelect>
+
     </MudStack>
 
     <MudText Typo="Typo.subtitle2" Class="mt-3 mx-3">
@@ -141,7 +159,7 @@ else
                       Cancel
                     </MudButton>
                   }
-                  else if (download.Status != EQueueItemStatus.Finished && download.Status != EQueueItemStatus.Downloading)
+                  else if (@* download.Status != EQueueItemStatus.Finished && *@ download.Status != EQueueItemStatus.Downloading)
                   {
                     <MudButton Variant="Variant.Filled"
                                Color="Color.Success"
