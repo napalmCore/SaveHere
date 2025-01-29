@@ -1,6 +1,6 @@
 services:
  savehere:
-   image: ghcr.io/gudarzi/savehere
+   image: ghcr.io/gudarzi/savehere:latest
    environment:
      - ASPNETCORE_ENVIRONMENT=Production
      - ASPNETCORE_HTTP_PORTS=8080
@@ -8,13 +8,13 @@ services:
      - SIGNALR_HUB_URL=http://localhost:8080/DownloadProgressHub
      - BASIC_AUTH_USERNAME="" # Provide Basic Auth Username If Required
      - BASIC_AUTH_PASSWORD="" # Provide Basic Auth Password If Required
-     - PUID=1000
-     - PGID=1000
+     # - PUID=1000
+     # - PGID=1000
      - "urls=http://0.0.0.0:8080"
    ports:
      - "172.17.0.1:18480:8080"
      #- "172.17.0.1:18481:8081"
-   volumes:
-     - ./downloads:/app/downloads
-     - ./db:/app/db
-   user: 0:0
+   # volumes:
+     # - ./downloads:/app/downloads # This might cause very long loading times
+     # - ./db:/app/db # This might cause very long loading times
+   # user: 0:0
