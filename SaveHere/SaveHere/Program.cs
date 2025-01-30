@@ -77,6 +77,9 @@ namespace SaveHere
 
       builder.Services.AddSignalR();
 
+      builder.Services.AddSingleton<VersionState>();
+      builder.Services.AddHostedService<SimpleVersionCheckerService>();
+
       builder.Services.AddSingleton<IProgressHubService, ProgressHubService>();
 
       builder.Services.AddSingleton<DownloadStateService>();

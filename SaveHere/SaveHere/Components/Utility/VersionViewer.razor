@@ -1,0 +1,17 @@
+﻿@using System.Reflection
+@using SaveHere.Models
+@using SaveHere.Services
+@inject VersionState VersionState
+
+<div style="display: flex; flex-direction: column; justify-content: center; align-items: start;">
+  <MudText Typo="Typo.subtitle2" Style="font-size: 0.75rem; margin-bottom:-5px">
+    v@(Assembly.GetEntryAssembly()?.GetName().Version)
+  </MudText>
+
+  @if (VersionState.UpdateAvailable)
+  {
+    <MudLink Href="@VersionState.RepoUrl" Target="_blank" Style="font-size:0.75rem;" Color="Color.Error">
+      Update to v@(VersionState.LatestVersion)
+    </MudLink>
+  }
+</div>

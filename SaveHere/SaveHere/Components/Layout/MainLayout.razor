@@ -7,7 +7,11 @@
   <MudAppBar Elevation="1" Dense="true">
     <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" @onclick="@(()=>LeftDrawerToggle())" />
 
-    <MudLink Href="/" Class="mr-auto" Color="Color.Inherit" Style="font-size:1.5rem; font-weight: 600;">SaveHere</MudLink>
+    <MudLink Href="/" Color="Color.Inherit" Style="font-size:1.5rem; font-weight: 600;">SaveHere</MudLink>
+
+    <div style="margin-left: 0.5rem; margin-right: auto;">
+      <SaveHere.Components.Utility.VersionViewer />
+    </div>
 
     <MudToggleIconButton @bind-Toggled="isDarkMode" Icon="@Icons.Material.Filled.LightMode" Color="@Color.Inherit" ToggledIcon="@Icons.Material.Filled.DarkMode" ToggledColor="@Color.Inherit" />
     <MudIconButton Icon="@Icons.Material.Filled.AccountCircle" Color="Color.Inherit" @onclick="@(()=>RightDrawerToggle())" Edge="Edge.End" />
