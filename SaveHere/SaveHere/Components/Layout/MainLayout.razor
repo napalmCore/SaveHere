@@ -6,7 +6,9 @@
 
   <MudAppBar Elevation="1" Dense="true">
     <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" @onclick="@(()=>LeftDrawerToggle())" />
-    <MudText Typo="Typo.h5" Class="mx-auto hover-link" Color="Color.Inherit" onclick="@(()=>NavigateToHome())">SaveHere</MudText>
+
+    <MudLink Href="/" Class="mr-auto" Color="Color.Inherit" Style="font-size:1.5rem; font-weight: 600;">SaveHere</MudLink>
+
     <MudToggleIconButton @bind-Toggled="isDarkMode" Icon="@Icons.Material.Filled.LightMode" Color="@Color.Inherit" ToggledIcon="@Icons.Material.Filled.DarkMode" ToggledColor="@Color.Inherit" />
     <MudIconButton Icon="@Icons.Material.Filled.AccountCircle" Color="Color.Inherit" @onclick="@(()=>RightDrawerToggle())" Edge="Edge.End" />
   </MudAppBar>
@@ -31,24 +33,10 @@
   <a class="dismiss">🗙</a>
 </div>
 
-<style>
-  .hover-link {
-    cursor: pointer;
-    transition: all 0.2s ease-in-out;
-  }
-
-    .hover-link:hover {
-      text-shadow: 0px 2px 5px rgba(0,0,0,0.3);
-      color: var(--mud-palette-primary);
-    }
-</style>
-
 @code {
   private bool isDarkMode = true;
   private bool isLeftDrawerOpen = true;
   private bool isRightDrawerOpen = false;
-
-  [Inject] private NavigationManager Navigation { get; set; } = default!;
 
   private void LeftDrawerToggle()
   {
@@ -58,11 +46,6 @@
   private void RightDrawerToggle()
   {
     isRightDrawerOpen = !isRightDrawerOpen;
-  }
-
-  private void NavigateToHome()
-  {
-    Navigation.NavigateTo("/");
   }
 
 }
