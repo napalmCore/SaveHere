@@ -67,7 +67,7 @@ namespace SaveHere.Services
           if (Version.TryParse(versionString, out Version? latestVersion) && latestVersion > currentVersion)
           {
             _versionState.UpdateAvailable = true;
-            _versionState.LatestVersion = latestVersion.ToString();
+            _versionState.LatestVersion = latestVersion.ToString(3);
             _logger.LogInformation("New version {Version} available", latestVersion);
           }
         }

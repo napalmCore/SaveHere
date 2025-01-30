@@ -5,7 +5,7 @@
 
 <div style="display: flex; flex-direction: column; justify-content: center; align-items: start;">
   <MudText Typo="Typo.subtitle2" Style="font-size: 0.75rem; margin-bottom:-5px">
-    v@(Assembly.GetEntryAssembly()?.GetName().Version)
+    v@(Assembly.GetEntryAssembly()?.GetName().Version?.ToString(3))
   </MudText>
 
   @if (VersionState.UpdateAvailable)
