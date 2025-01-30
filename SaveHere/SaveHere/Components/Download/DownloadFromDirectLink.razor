@@ -17,20 +17,7 @@
 <MudDialogProvider />
 <MudSnackbarProvider />
 
-  @if (!_isFullyLoaded)
-{
-  <div style="display: flex; align-items: center; justify-content: center; width: 100%; height: 100%;">
-    <div style="position: relative;">
-      <MudProgressCircular Color="Color.Success" Indeterminate="true" Class="ma-5" Style="width: 100px; height: 100px;" />
-      <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -66%); text-align: center;">
-        <div style="font-size: 12px;">Loading</div>
-        <div style="font-size: 12px">Please Wait</div>
-      </div>
-    </div>
-  </div>
-}
-else
-{
+<LoadingIndicator IsLoaded="_isFullyLoaded">
   <MudPaper Class="px-5 pt-4 mx-5 mt-5 sv-paper" Elevation="5">
 
     <MudStack Row>
@@ -126,7 +113,7 @@ else
   }
 
   <FileManager @ref="fileManager" />
-}
+</LoadingIndicator>
 
 <style type="text/css" media="screen and (max-width:599px)">
   .mud-xs-table .mud-table-cell::before {
