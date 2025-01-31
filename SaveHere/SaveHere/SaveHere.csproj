@@ -5,7 +5,7 @@
 		<Nullable>enable</Nullable>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<UserSecretsId>aspnet-SaveHere-79a10a8e-8678-4a74-9f74-ed46c4e3cf27</UserSecretsId>
-		<Version>3.2.3</Version>
+		<Version>3.3.1</Version>
 		<AssemblyVersion>$(Version)</AssemblyVersion>
 		<FileVersion>$(Version)</FileVersion>
 		<DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
@@ -29,6 +29,7 @@
 		<PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.*" />
 		<PackageReference Include="Extensions.MudBlazor.StaticInput" Version="2.*" />
 		<PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.21.0" />
+		<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
 	</ItemGroup>
 
 </Project>

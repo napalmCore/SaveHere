@@ -1,0 +1,229 @@
+﻿@using System.Text.RegularExpressions
+@using System.Dynamic
+@using Newtonsoft.Json
+@using SaveHere.Models
+@using SaveHere.Models.db
+@using SaveHere.Services
+
+<LoadingIndicator IsLoaded="_isFullyLoaded">
+  <MudPaper Elevation="5" Class="px-5 pa-4 mx-5 mt-5 sv-paper">
+    <MudStack Row>
+      <MudTextField @bind-Text="InputUrl" T="string" Clearable Immediate/>
+      <MudButton OnClick="CheckLink" Color="Color.Primary" Variant="Variant.Filled">Check RJ Link</MudButton>
+    </MudStack>
+    <MudText Class="my-3">
+      @FullUrl
+    </MudText>
+    <MudElement Class="mr-0">
+      <MudButton OnClick="TransferToDownload"
+                 Disabled="@string.IsNullOrEmpty(FullUrl)"
+                 Color="Color.Primary"
+                 Variant="Variant.Filled">
+        Send to Download Queue
+      </MudButton>
+    </MudElement>
+  </MudPaper>
+</LoadingIndicator>
+
+<style type="text/css" media="screen and (max-width:599px)">
+  .mud-xs-table .mud-table-cell::before {
+    word-break: keep-all !important;
+    min-width: 55px !important;
+  }
+
+  .sv-custom-progress-stack {
+    width: 100% !important;
+  }
+
+  .sv-table {
+    margin: 5px !important;
+    padding: 5px !important;
+  }
+
+  .sv-paper {
+    margin: 5px !important;
+    padding: 5px !important;
+  }
+
+  .sv-main-stack {
+    gap: 3px !important;
+  }
+
+  .mud-xs-table.mud-table-dense .mud-table-cell {
+    padding: 6px;
+  }
+
+  .sv-table-custom-row-1 {
+    justify-content: start !important;
+  }
+
+  .mud-table-dense * .mud-table-row .mud-table-cell:last-child {
+    padding-right: 0;
+    padding-inline-end: 0;
+  }
+</style>
+
+<style>
+  .my-custom-media-dialog {
+    backdrop-filter: blur(10px);
+  }
+</style>
+
+@code {
+  private bool _isFullyLoaded;
+
+  [Inject] public required AppDbContext _context { get; set; }
+  [Inject] public required IProgressHubService _progressHubService { get; set; } = default!;
+
+  private string InputUrl = "";
+  private string FullUrl = "";
+
+  protected override async Task OnAfterRenderAsync(bool firstRender)
+  {
+    await base.OnAfterRenderAsync(firstRender);
+
+    if (!firstRender) return;
+    if (_isFullyLoaded) return;
+
+    _isFullyLoaded = true;
+    await InvokeAsync(StateHasChanged);
+  }
+
+  public async Task<string?> ResolveFullRjLinkAsync(string rjShortUrl)
+  {
+    if (string.IsNullOrWhiteSpace(rjShortUrl))
+    {
+      throw new ArgumentException("The provided RJ short URL is null or empty.", nameof(rjShortUrl));
+    }
+
+    if (!DoesUrlMatchRJShortLinksFormat(rjShortUrl))
+    {
+      throw new ArgumentException("The provided URL does not match the expected RJ short link format.", nameof(rjShortUrl));
+    }
+
+    try
+    {
+      var handler = new HttpClientHandler { AllowAutoRedirect = true };
+
+      // Using HttpClient with a `using` statement to ensure proper disposal
+      using (var httpClient = new HttpClient(handler))
+      {
+        httpClient.DefaultRequestHeaders.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("*/*"));
+        httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("curl/8.4.0");
+
+        var response = await httpClient.GetAsync(rjShortUrl);
+        response.EnsureSuccessStatusCode();
+
+        var responseBody = await response.Content.ReadAsStringAsync();
+
+        // Extract the relevant JSON data from the response
+        string startMarker = @"<script id=""__NEXT_DATA__"" type=""application/json"">";
+        string endMarker = "</script>";
+        int startMarkerIndex = responseBody.IndexOf(startMarker, StringComparison.Ordinal) + startMarker.Length;
+        int endMarkerIndex = responseBody.IndexOf(endMarker, startMarkerIndex, StringComparison.Ordinal);
+
+        if (startMarkerIndex < 0 || endMarkerIndex < 0 || startMarkerIndex >= endMarkerIndex)
+        {
+          throw new InvalidOperationException("Unable to locate the JSON data in the response.");
+        }
+
+        string jsonData = responseBody.Substring(startMarkerIndex, endMarkerIndex - startMarkerIndex);
+
+        // Deserialize the data
+        dynamic? obj = JsonConvert.DeserializeObject<ExpandoObject>(jsonData);
+
+        if (obj != null)
+        {
+          string checkString = rjShortUrl.Substring(15, 2).ToLower();
+
+          if (checkString == "p/" || checkString == "m/" || checkString == "v/") // For Music, Video, Podcast
+          {
+            return obj.props.pageProps.media.link;
+          }
+          else if (checkString == "pm") // For Playlist
+          {
+            var firstItem = obj.props.pageProps.playlist.items?.FirstOrDefault();
+            if (firstItem != null)
+            {
+              return firstItem.link;
+            }
+          }
+          else if (checkString == "st") // For Story
+          {
+            return obj.props.pageProps.story.link;
+          }
+        }
+      }
+    }
+    catch (HttpRequestException httpEx)
+    {
+      // Log or handle the exception (e.g., network failure, invalid response, etc.)
+      Console.WriteLine($"HTTP request failed: {httpEx.Message}");
+    }
+    catch (Exception ex)
+    {
+      // Log or handle generic exceptions
+      Console.WriteLine($"An error occurred: {ex.Message}");
+    }
+
+    // Return null if the link could not be resolved
+    return null;
+  }
+
+  private static bool DoesUrlMatchRJShortLinksFormat(string input)
+  {
+    const string pattern = @"^https:\/\/rj\.app\/[a-z]{1,10}\/[a-zA-Z0-9]{4,12}$";
+    var regex = new Regex(pattern);
+    return regex.IsMatch(input);
+  }
+
+  public async Task TestRjLinkResolution()
+  {
+    string shortLink = "https://rj.app/p/abcd1234"; // Example short link
+    string? fullLink = await ResolveFullRjLinkAsync(shortLink);
+
+    if (fullLink != null)
+    {
+      Console.WriteLine($"Resolved Link: {fullLink}");
+    }
+    else
+    {
+      Console.WriteLine("Failed to resolve the RJ short link.");
+    }
+  }
+
+  public async Task CheckLink()
+  {
+    try
+    {
+      FullUrl = "";
+      string? fullLink = await ResolveFullRjLinkAsync(InputUrl);
+
+      if (fullLink != null)
+      {
+        FullUrl = fullLink;
+      }
+      else
+      {
+        FullUrl = "";
+      }
+    }
+    catch {/*pass for now*/}
+  }
+
+  private async Task TransferToDownload()
+  {
+    if (!string.IsNullOrEmpty(FullUrl))
+    {
+      var newFileDownload = new FileDownloadQueueItem() { InputUrl = FullUrl };
+      _context.FileDownloadQueueItems.Add(newFileDownload);
+      await _context.SaveChangesAsync();
+
+      await _progressHubService.BroadcastStateChange(newFileDownload.Id, newFileDownload.Status.ToString());
+
+      // FullUrl = ""; // Optional: Clear after transfer
+      StateHasChanged();
+    }
+  }
+
+}
