@@ -8,20 +8,28 @@
 <LoadingIndicator IsLoaded="_isFullyLoaded">
   <MudPaper Elevation="5" Class="px-5 pa-4 mx-5 mt-5 sv-paper">
     <MudStack Row>
-      <MudTextField @bind-Text="InputUrl" T="string" Clearable Immediate/>
-      <MudButton OnClick="CheckLink" Color="Color.Primary" Variant="Variant.Filled">Check RJ Link</MudButton>
+      <MudTextField @bind-Value="InputUrl" Label="RJ Media URL" Variant="Variant.Outlined" Margin="Margin.Dense"
+                    HelperText="Enter RJ Media URL To Check For The Full Media Link" HelperTextOnFocus="true" Adornment="Adornment.End"
+                    AdornmentIcon="@Icons.Material.Filled.LibraryMusic" AdornmentColor="Color.Info" Clearable
+                    Immediate @onkeydown="HandleUrlInputKeyDown" TextUpdateSuppression="false" />
+      <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.QueueMusic" Color="Color.Primary"
+                 Style="text-transform:none; height:40px; margin-top:0.5rem;" Class="pr-5" Size="Size.Small" OnClick="CheckLink">Check</MudButton>
     </MudStack>
-    <MudText Class="my-3">
-      @FullUrl
-    </MudText>
-    <MudElement Class="mr-0">
-      <MudButton OnClick="TransferToDownload"
-                 Disabled="@string.IsNullOrEmpty(FullUrl)"
-                 Color="Color.Primary"
-                 Variant="Variant.Filled">
-        Send to Download Queue
-      </MudButton>
-    </MudElement>
+
+    <MudCheckBox T="bool" @bind-Value="AutoSendToQueue" Color="Color.Primary" TriState="false">Automatically send to download queue</MudCheckBox>
+    <MudCheckBox T="bool" @bind-Value="AutoClearInput" Color="Color.Primary" TriState="false">Automatically clear input after extraction</MudCheckBox>
+
+    <MudButton OnClick="TransferToDownload"
+               Disabled="@string.IsNullOrEmpty(FullUrl)"
+               Color="Color.Primary"
+               Variant="Variant.Filled"
+               Class="ma-3"
+               style="display: block;">
+      Send to Download Queue
+    </MudButton>
+
+    <MudLink Href="@FullUrl" Color="Color.Tertiary" Class="mx-3" Style="word-break: break-all; overflow-wrap: break-word; box-sizing: border-box; white-space: normal;">@FullUrl</MudLink>
+
   </MudPaper>
 </LoadingIndicator>
 
@@ -77,6 +85,9 @@
 
   private string InputUrl = "";
   private string FullUrl = "";
+
+  private bool AutoSendToQueue = true;
+  private bool AutoClearInput = true;
 
   protected override async Task OnAfterRenderAsync(bool firstRender)
   {
@@ -202,6 +213,16 @@
       if (fullLink != null)
       {
         FullUrl = fullLink;
+
+        if (AutoSendToQueue)
+        {
+          await TransferToDownload();
+        }
+
+        if (AutoClearInput)
+        {
+          InputUrl = "";
+        }
       }
       else
       {
@@ -209,6 +230,10 @@
       }
     }
     catch {/*pass for now*/}
+    finally
+    {
+      await InvokeAsync(StateHasChanged);
+    }
   }
 
   private async Task TransferToDownload()
@@ -223,6 +248,14 @@
 
       // FullUrl = ""; // Optional: Clear after transfer
       StateHasChanged();
+    }
+  }
+
+  private async Task HandleUrlInputKeyDown(KeyboardEventArgs e)
+  {
+    if (e.Key == "Enter")
+    {
+      await CheckLink();
     }
   }
 
