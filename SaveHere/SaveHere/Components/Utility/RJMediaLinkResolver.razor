@@ -1,5 +1,6 @@
 ﻿@using System.Text.RegularExpressions
 @using System.Dynamic
+@using Microsoft.EntityFrameworkCore
 @using Newtonsoft.Json
 @using SaveHere.Models
 @using SaveHere.Models.db
@@ -19,7 +20,7 @@
     <MudCheckBox T="bool" @bind-Value="AutoSendToQueue" Color="Color.Primary" TriState="false">Automatically send to download queue</MudCheckBox>
     <MudCheckBox T="bool" @bind-Value="AutoClearInput" Color="Color.Primary" TriState="false">Automatically clear input after extraction</MudCheckBox>
 
-    <MudButton OnClick="TransferToDownload"
+    <MudButton OnClick="@(async () => await TransferToDownload(FullUrl))"
                Disabled="@string.IsNullOrEmpty(FullUrl)"
                Color="Color.Primary"
                Variant="Variant.Filled"
@@ -31,6 +32,75 @@
     <MudLink Href="@FullUrl" Color="Color.Tertiary" Class="mx-3" Style="word-break: break-all; overflow-wrap: break-word; box-sizing: border-box; white-space: normal;">@FullUrl</MudLink>
 
   </MudPaper>
+
+  <!-- Second Paper for bulk extraction and manual conversion -->
+  <MudPaper Elevation="5" Class="px-5 pa-4 mx-5 mt-5 sv-paper">
+    <MudStack Row>
+      <MudTextField @bind-Value="PageUrl" Label="RJ Media Page URL" Variant="Variant.Outlined" Margin="Margin.Dense"
+                    HelperText="Enter RJ Media Page URL to extract all short links" HelperTextOnFocus="true" Adornment="Adornment.End"
+                    AdornmentIcon="@Icons.Material.Filled.Link" AdornmentColor="Color.Info" Clearable Immediate @onkeydown="HandlePageUrlInputKeyDown" TextUpdateSuppression="false" />
+
+      <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Search" Color="Color.Primary"
+                 Style="text-transform:none; height:40px; margin-top:0.5rem;" Class="pr-5" Size="Size.Small" OnClick="ExtractLinksFromPage">
+        Extract Links
+      </MudButton>
+    </MudStack>
+
+    <!-- Global Buttons for converting or sending all links -->
+    <MudStack Row Spacing="2" Class="my-2">
+
+      @if (!_isConvertingLinks)
+      {
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="ConvertAllLinks">
+          Convert All Links
+        </MudButton>
+      }
+      else
+      {
+        <MudButton Variant="Variant.Filled" Color="Color.Error" OnClick="StopConvertAllLinks">
+          Stop Conversion
+        </MudButton>
+      }
+
+      <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SendAllToQueue"
+                 Disabled="@(!ExtractedLinks.Any(x => !string.IsNullOrEmpty(x.FullUrl)))">
+        Send All Converted Links to Queue
+      </MudButton>
+    </MudStack>
+
+    <MudPaper Class="pa-3" Elevation="0">
+      @if (ExtractedLinks != null && ExtractedLinks.Any())
+      {
+        <MudList T="RjLinkItem">
+          @foreach (var linkItem in ExtractedLinks)
+          {
+            <MudListItem>
+              <MudStack Row AlignItems="AlignItems.Center" Spacing="2">
+                <MudText>@linkItem.ShortUrl</MudText>
+                @if (string.IsNullOrEmpty(linkItem.FullUrl))
+                {
+                  <MudButton Size="Size.Small" OnClick="() => ConvertLink(linkItem)">Convert</MudButton>
+                }
+                else
+                {
+                  <MudLink Href="@linkItem.FullUrl" Target="_blank" Color="Color.Tertiary"
+                           Style="word-break: break-all; overflow-wrap: break-word;">@linkItem.FullUrl</MudLink>
+                  <MudButton Size="Size.Small" OnClick="() => TransferToDownload(linkItem.FullUrl!)">
+                    Send to Queue
+                  </MudButton>
+                }
+              </MudStack>
+            </MudListItem>
+          }
+        </MudList>
+      }
+      else
+      {
+        <MudText Color="Color.Info">No links extracted or processed yet.</MudText>
+      }
+    </MudPaper>
+  </MudPaper>
+
 </LoadingIndicator>
 
 <style type="text/css" media="screen and (max-width:599px)">
@@ -88,6 +158,11 @@
 
   private bool AutoSendToQueue = true;
   private bool AutoClearInput = true;
+
+  private string PageUrl = "";
+  private List<RjLinkItem> ExtractedLinks = new();
+  private CancellationTokenSource? _conversionCancellationTokenSource;
+  private bool _isConvertingLinks = false;
 
   protected override async Task OnAfterRenderAsync(bool firstRender)
   {
@@ -190,7 +265,7 @@
 
   public async Task TestRjLinkResolution()
   {
-    string shortLink = "https://rj.app/p/abcd1234"; // Example short link
+    string shortLink = "https://rj.app/m/dv23LwEK"; // Example short link
     string? fullLink = await ResolveFullRjLinkAsync(shortLink);
 
     if (fullLink != null)
@@ -216,7 +291,7 @@
 
         if (AutoSendToQueue)
         {
-          await TransferToDownload();
+          await TransferToDownload(FullUrl);
         }
 
         if (AutoClearInput)
@@ -236,18 +311,86 @@
     }
   }
 
-  private async Task TransferToDownload()
+  // The individual link conversion method:
+  private async Task ConvertLink(RjLinkItem linkItem)
   {
-    if (!string.IsNullOrEmpty(FullUrl))
+    // Only convert if it hasn’t been converted yet
+    if (string.IsNullOrEmpty(linkItem.FullUrl))
     {
-      var newFileDownload = new FileDownloadQueueItem() { InputUrl = FullUrl };
-      _context.FileDownloadQueueItems.Add(newFileDownload);
-      await _context.SaveChangesAsync();
+      linkItem.FullUrl = await ResolveFullRjLinkAsync(linkItem.ShortUrl);
+      await InvokeAsync(StateHasChanged);
+    }
+  }
 
-      await _progressHubService.BroadcastStateChange(newFileDownload.Id, newFileDownload.Status.ToString());
+  // Convert all extracted links (only those that have not been converted)
+  private async Task ConvertAllLinks()
+  {
+    _isConvertingLinks = true;
+    _conversionCancellationTokenSource = new CancellationTokenSource();
+    var token = _conversionCancellationTokenSource.Token;
 
-      // FullUrl = ""; // Optional: Clear after transfer
-      StateHasChanged();
+    try
+    {
+      foreach (var linkItem in ExtractedLinks.Where(x => string.IsNullOrEmpty(x.FullUrl)))
+      {
+        token.ThrowIfCancellationRequested();
+
+        linkItem.FullUrl = await ResolveFullRjLinkAsync(linkItem.ShortUrl);
+
+        await Task.Delay(100, token); // To avoid hitting rate limits
+
+        await InvokeAsync(StateHasChanged);
+      }
+    }
+    catch (OperationCanceledException)
+    {
+      // pass for now
+    }
+    finally
+    {
+      _isConvertingLinks = false;
+      _conversionCancellationTokenSource?.Dispose();
+      _conversionCancellationTokenSource = null;
+      await InvokeAsync(StateHasChanged);
+    }
+  }
+
+  private void StopConvertAllLinks()
+  {
+    _conversionCancellationTokenSource?.Cancel();
+  }
+
+
+  // Send all converted links to the download queue
+  private async Task SendAllToQueue()
+  {
+    foreach (var linkItem in ExtractedLinks.Where(x => !string.IsNullOrEmpty(x.FullUrl)))
+    {
+      await TransferToDownload(linkItem.FullUrl!);
+    }
+  }
+
+  private async Task TransferToDownload(string url)
+  {
+    if (!string.IsNullOrEmpty(url))
+    {
+      // Check if a record with the same InputUrl already exists in the database
+      bool exists = await _context.FileDownloadQueueItems.AnyAsync(x => x.InputUrl == url);
+
+      if (!exists)
+      {
+        var newFileDownload = new FileDownloadQueueItem() { InputUrl = url };
+        _context.FileDownloadQueueItems.Add(newFileDownload);
+        await _context.SaveChangesAsync();
+
+        await _progressHubService.BroadcastStateChange(newFileDownload.Id, newFileDownload.Status.ToString());
+
+        await InvokeAsync(StateHasChanged);
+      }
+      else
+      {
+        // pass for now
+      }
     }
   }
 
@@ -257,6 +400,69 @@
     {
       await CheckLink();
     }
+  }
+
+  private async Task HandlePageUrlInputKeyDown(KeyboardEventArgs e)
+  {
+    if (e.Key == "Enter")
+    {
+      await ExtractLinksFromPage();
+    }
+  }
+
+  private List<string> ExtractRJShortLinks(string htmlContent)
+  {
+    const string linkPattern = @"https:\/\/rj\.app\/[a-z]{1,10}\/[a-zA-Z0-9]{4,12}";
+    var regex = new Regex(linkPattern);
+    return regex.Matches(htmlContent).Select(match => match.Value).Distinct().ToList();
+  }
+
+  // Modified extraction method that simply extracts and displays short links
+  private async Task ExtractLinksFromPage()
+  {
+    try
+    {
+      // Clear previous results
+      ExtractedLinks.Clear();
+
+      if (string.IsNullOrWhiteSpace(PageUrl))
+      {
+        throw new ArgumentException("Page URL is empty.");
+      }
+
+      var handler = new HttpClientHandler { AllowAutoRedirect = true };
+      using (var httpClient = new HttpClient(handler))
+      {
+        httpClient.DefaultRequestHeaders.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("*/*"));
+        httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("curl/8.4.0");
+
+        // Fetch the page content
+        var pageContent = await httpClient.GetStringAsync(PageUrl);
+
+        // Extract all RJ short links from the page content
+        var shortUrls = ExtractRJShortLinks(pageContent);
+
+        // Populate the list with unconverted links
+        foreach (var shortUrl in shortUrls)
+        {
+          ExtractedLinks.Add(new RjLinkItem { ShortUrl = shortUrl });
+        }
+      }
+    }
+    catch (Exception ex)
+    {
+      Console.WriteLine($"An error occurred during bulk extraction: {ex.Message}");
+    }
+    finally
+    {
+      await InvokeAsync(StateHasChanged);
+    }
+  }
+
+  public class RjLinkItem
+  {
+    public string ShortUrl { get; set; } = string.Empty;
+    public string? FullUrl { get; set; }
   }
 
 }
