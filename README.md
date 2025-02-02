@@ -12,7 +12,9 @@
   <h4>Cloud Download Manager</h4>
   <h6>In v3.0, the app has been rewritten from scratch in .Net Blazor</h6>
   <h6>Ytdlp backend has been added for downloading Video/Audio from Youtube/Soundcloud/...</h6>
-  <h6>Enable WarpPlus proxy to bypass youtube restrictions</h6>
+  <h6>Enable WarpPlus proxy to bypass Youtube restrictions</h6>
+  <h6>Spotify link converter has been added</h6>
+  <h6>RJMusic link converter has been added</h6>
   <img >
 </div>
 
@@ -40,6 +42,8 @@ SaveHere uses .Net Core with Blazor. To run SaveHere, you need to have either `d
 To run the app using `dotnet`, you will need to have .Net 8+ installed. Checkout [ms/dotnet](https://dotnet.microsoft.com/en-us/download) or [ms/dotnet-sdk](https://dotnet.microsoft.com/en-us/download/dotnet/8.0). If you're running ubuntu, you can just do `sudo apt install dotnet8`.
 
 In addition, it is recommended that you run SaveHere behind a reverse proxy such as [Nginx](https://nginx.org/) or [Nginx Proxy Manager](https://nginxproxymanager.com/). This will allow you to access the app using your own domain name and SSL certificate, and provide additional security and performance benefits.
+
+_If your IP is restricted by YouTube or other websites, you'll need a proxy to bypass the restrictions. The app has a built-in proxy service that you can use. To activate it, visit the proxy page, click 'Install,' then 'Start,' and wait for the proxy service to connect properly._
 
 
 ## How to run this app using docker
@@ -135,8 +139,8 @@ $env:BASIC_AUTH_PASSWORD = "your_password"
 ## To Do
 - [ ] Add user accounts and set their access policies
 - [x] Add youtube downloader
-- [ ] Add spotify downloader
-- [ ] Add rjmusic downloader
+- [x] Add spotify downloader
+- [x] Add rjmusic downloader
 - [ ] Add terminal
 - [ ] Add full file manager
 - [ ] Add temporary short links
