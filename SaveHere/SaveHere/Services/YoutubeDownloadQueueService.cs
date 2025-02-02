@@ -13,7 +13,7 @@ namespace SaveHere.Services
     //Task UpdateQueueItemAsync(YoutubeDownloadQueueItem item);
     Task UpdateItemStateAsync(int itemId, EQueueItemStatus newStatus);
     Task DeleteQueueItemAsync(int id);
-    Task StartDownloadAsync(int id);
+    Task StartDownloadAsync(YoutubeDownloadQueueItem item);
     Task CancelDownloadAsync(int id);
     Task AppendLogAsync(int itemId, string logLine);
   }
@@ -148,14 +148,12 @@ namespace SaveHere.Services
       tokenSource.Cancel();
     }
 
-    public async Task StartDownloadAsync(int id)
+    public async Task StartDownloadAsync(YoutubeDownloadQueueItem item)
     {
-      var item = await GetQueueItemByIdAsync(id);
-
       if (item == null) throw new Exception("Item not found");
       if (item.Status == EQueueItemStatus.Downloading) throw new Exception("Item is already downloading");
 
-      var tokenSource = _downloadStateService.GetOrAddTokenSource(id);
+      var tokenSource = _downloadStateService.GetOrAddTokenSource(item.Id);
       var token = tokenSource.Token;
 
       try
@@ -165,7 +163,7 @@ namespace SaveHere.Services
         item.PersistedLog = string.Empty;
         item.Status = EQueueItemStatus.Downloading;
         await UpdateItemStateAsync(item.Id, EQueueItemStatus.Downloading);
-        await _progressHubService.BroadcastStateChange(id, item.Status.ToString());
+        await _progressHubService.BroadcastStateChange(item.Id, item.Status.ToString());
 
         await _ytdlpService.DownloadVideo(item.Id, item.Url, item.Quality, item.Proxy, token);
 
@@ -174,28 +172,28 @@ namespace SaveHere.Services
         item.Status = EQueueItemStatus.Finished;
         item.PersistedLog = string.Join(Environment.NewLine, currentLogs);
         await UpdateItemStateAsync(item.Id, EQueueItemStatus.Finished);
-        await _progressHubService.BroadcastStateChange(id, item.Status.ToString());
+        await _progressHubService.BroadcastStateChange(item.Id, item.Status.ToString());
       }
       catch (OperationCanceledException)
       {
         item.Status = EQueueItemStatus.Cancelled;
         item.PersistedLog = string.Join(Environment.NewLine, item.OutputLog);
         await UpdateItemStateAsync(item.Id, EQueueItemStatus.Cancelled);
-        await _progressHubService.BroadcastStateChange(id, item.Status.ToString());
+        await _progressHubService.BroadcastStateChange(item.Id, item.Status.ToString());
         throw;
       }
       catch (Exception ex)
       {
-        _logger.LogError(ex, "Error downloading video for item {id}: {message}", id, ex.Message);
+        _logger.LogError(ex, "Error downloading video for item {id}: {message}", item.Id, ex.Message);
         item.Status = EQueueItemStatus.Paused;
         item.PersistedLog = string.Join(Environment.NewLine, item.OutputLog);
         await UpdateItemStateAsync(item.Id, EQueueItemStatus.Paused);
-        await _progressHubService.BroadcastStateChange(id, item.Status.ToString());
+        await _progressHubService.BroadcastStateChange(item.Id, item.Status.ToString());
         throw;
       }
       finally
       {
-        _downloadStateService.RemoveTokenSource(id);
+        _downloadStateService.RemoveTokenSource(item.Id);
       }
     }
 

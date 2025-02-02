@@ -5,7 +5,7 @@
 		<Nullable>enable</Nullable>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<UserSecretsId>aspnet-SaveHere-79a10a8e-8678-4a74-9f74-ed46c4e3cf27</UserSecretsId>
-		<Version>3.3.3</Version>
+		<Version>3.4.1</Version>
 		<AssemblyVersion>$(Version)</AssemblyVersion>
 		<FileVersion>$(Version)</FileVersion>
 		<DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
@@ -15,6 +15,7 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\SaveHere.Client\SaveHere.Client.csproj" />
+		<PackageReference Include="HtmlAgilityPack" Version="1.11.72" />
 		<PackageReference Include="Markdig" Version="0.40.0" />
 		<PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="8.*" />
 		<PackageReference Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore" Version="8.*" />

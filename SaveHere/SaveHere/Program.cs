@@ -11,7 +11,6 @@ using SaveHere.Hubs;
 using SaveHere.Models;
 using SaveHere.Models.db;
 using SaveHere.Services;
-using System.Net;
 
 namespace SaveHere
 {
@@ -97,6 +96,8 @@ namespace SaveHere
       builder.Services.AddScoped<IYoutubeDownloadQueueService, YoutubeDownloadQueueService>();
 
       builder.Services.AddHostedService<YtdlpUpdateService>();
+
+      builder.Services.AddScoped<SpotifySearchService>();
 
       var app = builder.Build();
 

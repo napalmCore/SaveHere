@@ -1,0 +1,163 @@
+﻿@using System.Text.RegularExpressions
+@using System.Dynamic
+@using Microsoft.EntityFrameworkCore
+@using Newtonsoft.Json
+@using SaveHere.Models
+@using SaveHere.Models.db
+@using SaveHere.Services
+
+<LoadingIndicator IsLoaded="_isFullyLoaded">
+  <MudPaper Elevation="5" Class="px-5 pa-4 mx-5 mt-5 sv-paper">
+
+    <MudStack Row>
+      <MudTextField @bind-Value="InputUrl" Label="Media URL" Variant="Variant.Outlined" Margin="Margin.Dense"
+                    HelperText="Enter URL From Spotify/Apple Music/SoundCloud/Youtube Music/Deezer/Tidal" HelperTextOnFocus="true" Adornment="Adornment.End"
+                    AdornmentIcon="@Icons.Custom.FileFormats.FileMusic" AdornmentColor="Color.Info" Clearable
+                    Immediate @onkeydown="HandleUrlInputKeyDown" TextUpdateSuppression="false" />
+      <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.QueueMusic" Color="Color.Primary"
+                 Style="text-transform:none; height:40px; margin-top:0.5rem;" Class="pr-5" Size="Size.Small" OnClick="DoSearch">Check</MudButton>
+    </MudStack>
+
+    <MudText Typo="Typo.subtitle2" Class="ma-3">
+      This component uses a third party api to convert media links. See
+      <MudLink Href="https://idonthavespotify.donado.co/"
+               Target="_blank"
+               Color="Color.Primary"
+               Typo="Typo.subtitle2">
+        idonthavespotify
+      </MudLink>
+    </MudText>
+
+    @if (SearchResults != null)
+    {
+      <MudText Typo="Typo.h6">Results for: @SearchResults.OriginalUrl</MudText>
+      <MudList T="object">
+        @foreach (var kvp in SearchResults.Links)
+        {
+          <MudListItem Class="py-0">
+            <MudText Style="display: flex; align-items: center;">
+              @kvp.Key:
+              <MudLink Href="@kvp.Value" Target="_blank" Class="mx-3">
+                  Media Link
+              </MudLink>
+              <MudButton OnClick="@(async () => await TransferToMediaQueue(kvp.Value))"
+                         Disabled="@string.IsNullOrEmpty(kvp.Value)"
+                         Color="Color.Primary"
+                         Variant="Variant.Filled"
+                         Class="my-3 py-1 px-2"
+                         Style="margin-left: auto;">
+                Send to Media Queue
+              </MudButton>
+            </MudText>
+          </MudListItem>
+        }
+      </MudList>
+    }
+
+  </MudPaper>
+</LoadingIndicator>
+
+
+<style type="text/css" media="screen and (max-width:599px)">
+  .mud-xs-table .mud-table-cell::before {
+    word-break: keep-all !important;
+    min-width: 55px !important;
+  }
+
+  .sv-custom-progress-stack {
+    width: 100% !important;
+  }
+
+  .sv-table {
+    margin: 5px !important;
+    padding: 5px !important;
+  }
+
+  .sv-paper {
+    margin: 5px !important;
+    padding: 5px !important;
+  }
+
+  .sv-main-stack {
+    gap: 3px !important;
+  }
+
+  .mud-xs-table.mud-table-dense .mud-table-cell {
+    padding: 6px;
+  }
+
+  .sv-table-custom-row-1 {
+    justify-content: start !important;
+  }
+
+  .mud-table-dense * .mud-table-row .mud-table-cell:last-child {
+    padding-right: 0;
+    padding-inline-end: 0;
+  }
+</style>
+
+<style>
+  .my-custom-media-dialog {
+    backdrop-filter: blur(10px);
+  }
+</style>
+
+
+@code {
+  private bool _isFullyLoaded;
+
+  [Inject] public required AppDbContext _context { get; set; }
+  [Inject] public required IProgressHubService _progressHubService { get; set; } = default!;
+  [Inject] public IYoutubeDownloadQueueService YoutubeDownloadQueueService { get; set; } = default!;
+  [Inject] public required SpotifySearchService SpotifySearchService { get; set; }
+
+  private string InputUrl = "";
+  private SpotifySearchResult SearchResults = default!;
+
+  protected override async Task OnAfterRenderAsync(bool firstRender)
+  {
+    await base.OnAfterRenderAsync(firstRender);
+
+    if (!firstRender) return;
+    if (_isFullyLoaded) return;
+
+    _isFullyLoaded = true;
+    await InvokeAsync(StateHasChanged);
+  }
+
+  private async Task DoSearch()
+  {
+    SearchResults = await SpotifySearchService.ConvertUrlAsync(InputUrl);
+  }
+
+  private async Task HandleUrlInputKeyDown(KeyboardEventArgs e)
+  {
+    if (e.Key == "Enter")
+    {
+      await DoSearch();
+    }
+  }
+
+  private async Task TransferToMediaQueue(string url)
+  {
+    if (!string.IsNullOrEmpty(url))
+    {
+      // Check if a record with the same InputUrl already exists in the database
+      bool exists = await _context.YoutubeDownloadQueueItems.AnyAsync(x => x.Url == url);
+
+      if (!exists)
+      {
+        var newYoutubeDownload = await YoutubeDownloadQueueService.AddQueueItemAsync(url, "dummy", "dummy");
+
+        await _progressHubService.BroadcastLogUpdate(newYoutubeDownload.Id, "");
+
+        await InvokeAsync(StateHasChanged);
+      }
+      else
+      {
+        // pass for now
+      }
+    }
+  }
+
+}
