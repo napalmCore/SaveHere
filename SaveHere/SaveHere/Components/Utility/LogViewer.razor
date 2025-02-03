@@ -1,0 +1,79 @@
+﻿@using Microsoft.AspNetCore.Components
+@using Microsoft.JSInterop
+
+<div class="log-viewer">
+  <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+    <MudText Typo="Typo.subtitle2">Log Output</MudText>
+    <MudCheckBox @bind-Value="_autoscrollEnabled" Label="Autoscroll" Color="Color.Primary" T="bool" TriState="false"/>
+  </MudStack>
+
+  <MudPaper Height="@Height" Class="pa-2 mt-2 log-paper" Style="background-color: #01010133;" Elevation="1">
+    <textarea @ref="_logTextAreaRef"
+              class="log-textarea"
+              readonly
+              style="width: 100%; height: 100%; border: none; background-color: transparent; color: inherit; font-family: monospace; font-size: 0.75rem; padding: 0; margin: 0; resize: none; overflow-y: auto;">
+      @LogContent
+        </textarea>
+  </MudPaper>
+</div>
+
+<script>
+  function scrollToBottomOfElement(element) {
+      if (element) {
+          element.scrollTop = element.scrollHeight;
+      }
+  }
+</script>
+
+@code {
+  [Inject]
+  private IJSRuntime JSRuntime { get; set; } = default!;
+
+  [Parameter]
+  public string LogContent { get; set; } = string.Empty;
+
+  [Parameter]
+  public string? Height { get; set; } = "400px";
+
+  private bool _autoscrollEnabled = true;
+  private ElementReference _logTextAreaRef;
+
+  protected override async Task OnAfterRenderAsync(bool firstRender)
+  {
+    if (_autoscrollEnabled)
+    {
+      await ScrollToBottom();
+    }
+  }
+
+  protected override async Task OnParametersSetAsync()
+  {
+    if (_autoscrollEnabled)
+    {
+      await ScrollToBottom();
+    }
+    await base.OnParametersSetAsync();
+  }
+
+  private async Task ScrollToBottom()
+  {
+    try
+    {
+      await JSRuntime.InvokeVoidAsync("scrollToBottomOfElement", _logTextAreaRef);
+    }
+    catch (JSException ex)
+    {
+      // Handle potential JS interop errors, e.g., element not yet rendered
+      Console.WriteLine($"JSInterop error during scroll: {ex.Message}");
+    }
+  }
+
+  private async Task OnAutoscrollCheckboxChanged(bool value)
+  {
+    _autoscrollEnabled = value;
+    if (_autoscrollEnabled)
+    {
+      await ScrollToBottom();
+    }
+  }
+}

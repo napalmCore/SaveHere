@@ -107,76 +107,74 @@
 
   @if (_youtubeDownloadQueueItems is not null && _youtubeDownloadQueueItems.Any())
   {
-    <MudPaper Class="px-5 py-4 mx-5 mt-3 sv-paper" Elevation="5">
-      <MudStack>
-        @foreach (var download in _youtubeDownloadQueueItems)
-        {
-          <MudPaper Elevation="0" Class="pt-4">
-            <MudStack>
-              <MudText Style="word-break:break-all;"><strong>URL:</strong> @download.Url</MudText>
-
-              <MudStack Row="true" Style="display: flex; justify-content:space-between;">
-                <MudStack Row="true" Class="align-center">
-                  <MudText><strong>Status:</strong></MudText>
-                  @if (download.Status == EQueueItemStatus.Downloading)
-                  {
-                    <MudChip Color="Color.Info" Size="Size.Small" T="string">Downloading</MudChip>
-                  }
-                  else if (download.Status == EQueueItemStatus.Finished)
-                  {
-                    <MudChip Color="Color.Success" Size="Size.Small" T="string">Completed</MudChip>
-                  }
-                  else if (download.Status == EQueueItemStatus.Cancelled)
-                  {
-                    <MudChip Color="Color.Error" Size="Size.Small" T="string">Cancelled</MudChip>
-                  }
-                  else
-                  {
-                    <MudChip Color="Color.Warning" Size="Size.Small" T="string">Paused</MudChip>
-                  }
-                </MudStack>
-
-                <MudStack Row="true">
-                  @if (download.Status == EQueueItemStatus.Downloading)
-                  {
-                    <MudButton Variant="Variant.Filled"
-                    Color="Color.Error"
-                    Size="Size.Small"
-                    OnClick="() => CancelDownload(download)">
-                      Cancel
-                    </MudButton>
-                  }
-                  else if (@* download.Status != EQueueItemStatus.Finished && *@ download.Status != EQueueItemStatus.Downloading)
-                  {
-                    <MudButton Variant="Variant.Filled"
-                    Color="Color.Success"
-                    Size="Size.Small"
-                    OnClick="() => StartDownload(download)">
-                      Start
-                    </MudButton>
-                  }
-                  <MudButton Variant="Variant.Filled"
-                  Color="Color.Error"
-                  Size="Size.Small"
-                  OnClick="() => RemoveDownload(download)">
-                    Remove
-                  </MudButton>
-                </MudStack>
-              </MudStack>
-
-              <MudPaper Height="200px" Class="pa-1" Style="width:100%; overflow-y: auto; background-color: #01010155;">
-                <MudStack>
-                  @foreach (var line in download.OutputLog)
-                  {
-                    <MudText Color="Color.Inherit" Style="font-family: monospace; font-size: 0.75rem;">@line</MudText>
-                  }
-                </MudStack>
-              </MudPaper>
-            </MudStack>
+    @foreach (var download in _youtubeDownloadQueueItems)
+    {
+      <MudPaper Class="px-3 py-4 mx-5 mt-3 sv-paper" Elevation="5">
+        <MudStack>
+          <MudText Style="word-break: break-all;">@download.Url</MudText>
+          <MudPaper Elevation="0" Outlined>
+            <MudExpansionPanels Dense Outlined Gutters Elevation="0">
+              <MudExpansionPanel Dense Style="background: #22222222;">
+                <TitleContent>
+                  <MudStack Row Style="display: flex; justify-content:space-between;">
+                    <MudStack Row>
+                      @if (download.Status == EQueueItemStatus.Downloading)
+                      {
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Error"
+                                   Size="Size.Small"
+                                   OnClick="() => CancelDownload(download)">
+                          Cancel
+                        </MudButton>
+                      }
+                      else if (download.Status != EQueueItemStatus.Downloading)
+                      {
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Success"
+                                   Size="Size.Small"
+                                   OnClick="() => StartDownload(download)">
+                          Start
+                        </MudButton>
+                      }
+                      <MudButton Variant="Variant.Filled"
+                                 Color="Color.Error"
+                                 Size="Size.Small"
+                                 OnClick="() => RemoveDownload(download)">
+                        Remove
+                      </MudButton>
+                    </MudStack>
+                    <MudStack Row>
+                      @* <MudIcon Icon="@Icons.Material.TwoTone.ShortText" class="mr-3"></MudIcon> *@
+                      @if (download.Status == EQueueItemStatus.Downloading)
+                      {
+                        <MudChip Color="Color.Info" Size="Size.Small" T="string">Downloading</MudChip>
+                      }
+                      else if (download.Status == EQueueItemStatus.Finished)
+                      {
+                        <MudChip Color="Color.Success" Size="Size.Small" T="string">Completed</MudChip>
+                      }
+                      else if (download.Status == EQueueItemStatus.Cancelled)
+                      {
+                        <MudChip Color="Color.Error" Size="Size.Small" T="string">Cancelled</MudChip>
+                      }
+                      else
+                      {
+                        <MudChip Color="Color.Warning" Size="Size.Small" T="string">Paused</MudChip>
+                      }
+                    </MudStack>
+                  </MudStack>
+                </TitleContent>
+                <ChildContent>
+                  <div style="margin-bottom: 1rem;">
+                    <LogViewer LogContent="@string.Join(Environment.NewLine, download.OutputLog)" />
+                  </div>
+                </ChildContent>
+              </MudExpansionPanel>
+            </MudExpansionPanels>
           </MudPaper>
-        }
-      </MudStack>
-    </MudPaper>
+        </MudStack>
+      </MudPaper>
+    }
   }
 
   <FileManager @ref="fileManager" />
@@ -184,45 +182,45 @@
 
 <style type="text/css" media="screen and (max-width:599px)">
   .mud-xs-table .mud-table-cell::before {
-  word-break: keep-all !important;
-  min-width: 55px !important;
+    word-break: keep-all !important;
+    min-width: 55px !important;
   }
 
   .sv-custom-progress-stack {
-  width: 100% !important;
+    width: 100% !important;
   }
 
   .sv-table {
-  margin: 5px !important;
-  padding: 5px !important;
+    margin: 5px !important;
+    padding: 5px !important;
   }
 
   .sv-paper {
-  margin: 5px !important;
-  padding: 5px !important;
+    margin: 5px !important;
+    padding: 5px !important;
   }
 
   .sv-main-stack {
-  gap: 3px !important;
+    gap: 3px !important;
   }
 
   .mud-xs-table.mud-table-dense .mud-table-cell {
-  padding: 6px;
+    padding: 6px;
   }
 
   .sv-table-custom-row-1 {
-  justify-content: start !important;
+    justify-content: start !important;
   }
 
   .mud-table-dense * .mud-table-row .mud-table-cell:last-child {
-  padding-right: 0;
-  padding-inline-end: 0;
+    padding-right: 0;
+    padding-inline-end: 0;
   }
 </style>
 
 <style>
   .my-custom-media-dialog {
-  backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
   }
 </style>
 
