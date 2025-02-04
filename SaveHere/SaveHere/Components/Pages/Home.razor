@@ -13,70 +13,106 @@
 <PageTitle>SaveHere</PageTitle>
 
 <LoadingIndicator IsLoaded="_isFullyLoaded">
-  <div style="display: flex; justify-content:center; gap:0.5rem; margin-top:2rem; flex-wrap:wrap;">
-    <MudCard Style="min-width:400px; max-width:100%;">
-      <MudCardContent>
-        <MudText Typo="Typo.h6">Direct Link</MudText>
-        <MudText Typo="Typo.body2">Download files from direct links</MudText>
-      </MudCardContent>
-      <MudCardActions>
-        <MudButton Variant="Variant.Text" Color="Color.Primary" style="margin-left: auto;" Href="downloadfromdirectlink">Continue</MudButton>
-      </MudCardActions>
-    </MudCard>
+    <MudGrid Spacing="2" Class="equal-height-grid pa-5">
 
-    <MudCard Style="min-width:400px; max-width:100%;">
-      <MudCardContent>
-        <MudText Typo="Typo.h6">Video/Audio</MudText>
-        <MudText Typo="Typo.body2">
-          Download Video/Audio from Youtube/SoundCloud/...
-        </MudText>
-        <MudText Typo="Typo.body2">
-          See the full list of
-          <MudLink OnClick="OpenSupportedSites"
-                   Target="_blank"
-                   Color="Color.Primary"
-                   Typo="Typo.subtitle2">
-            Supported Sites
-          </MudLink>
-        </MudText>
-      </MudCardContent>
-      <MudCardActions>
-        <MudButton Variant="Variant.Text" Color="Color.Primary" style="margin-left: auto;" Href="downloadvideoaudio">Continue</MudButton>
-      </MudCardActions>
-    </MudCard>
+      <!-- Direct Link Card -->
+      <MudItem xs="12" sm="6" md="4">
+        <MudCard Elevation="6" Class="card-container">
+          <MudCardContent>
+            <MudIcon Icon="@Icons.Material.Filled.Link" Size="Size.Large" Color="Color.Primary" />
+            <MudText Typo="Typo.h6">Direct Link</MudText>
+            <MudText Typo="Typo.body2">Download files from direct links.</MudText>
+          </MudCardContent>
+          <MudCardActions>
+            <MudButton Variant="Variant.Outlined" Color="Color.Secondary" Href="downloadfromdirectlink">
+              Continue
+            </MudButton>
+          </MudCardActions>
+        </MudCard>
+      </MudItem>
 
-    <MudCard Style="min-width:400px; max-width:80%;">
-      <MudCardContent>
-        <MudText Typo="Typo.h6">Spotify</MudText>
-        <MudText Typo="Typo.body2">
-          Convert URLs From Spotify/Apple Music/SoundCloud/Youtube Music/Deezer/Tidal To Downloadable Links
-        </MudText>
-        <MudText Typo="Typo.body2">
-          This component uses a third party api to convert media links
-          <MudLink Href="https://idonthavespotify.donado.co/"
-                   Target="_blank"
-                   Color="Color.Primary"
-                   Typo="Typo.subtitle2">
-            idonthavespotify
-          </MudLink>
-        </MudText>
-      </MudCardContent>
-      <MudCardActions>
-        <MudButton Variant="Variant.Text" Color="Color.Primary" style="margin-left: auto;" Href="spotifysearch">Continue</MudButton>
-      </MudCardActions>
-    </MudCard>
+      <!-- Video/Audio Card -->
+      <MudItem xs="12" sm="6" md="4">
+        <MudCard Elevation="6" Class="card-container">
+          <MudCardContent>
+            <MudIcon Icon="@Icons.Material.Filled.VideoLibrary" Size="Size.Large" Color="Color.Primary" />
+            <MudText Typo="Typo.h6">Video/Audio</MudText>
+            <MudText Typo="Typo.body2">
+              Download Video/Audio from Youtube, SoundCloud, and more.
+              <br />
+              See the full list of
+              <MudLink OnClick="OpenSupportedSites" Target="_blank" Color="Color.Primary">
+                Supported Sites
+              </MudLink>.
+            </MudText>
+          </MudCardContent>
+          <MudCardActions>
+          <MudButton Variant="Variant.Outlined" Color="Color.Secondary" Href="downloadvideoaudio">
+              Continue
+            </MudButton>
+          </MudCardActions>
+        </MudCard>
+      </MudItem>
 
-    <MudCard Style="min-width:400px; max-width:100%;">
-      <MudCardContent>
-        <MudText Typo="Typo.h6">RJMusic</MudText>
-        <MudText Typo="Typo.body2">Get direct download links from RJMusic</MudText>
-      </MudCardContent>
-      <MudCardActions>
-        <MudButton Variant="Variant.Text" Color="Color.Primary" style="margin-left: auto;" Href="rjmedialinkresolver">Continue</MudButton>
-      </MudCardActions>
-    </MudCard>
-  </div>
+      <!-- Spotify Card -->
+      <MudItem xs="12" sm="6" md="4">
+        <MudCard Elevation="6" Class="card-container">
+          <MudCardContent>
+            <MudIcon Icon="@Icons.Material.Filled.MusicNote" Size="Size.Large" Color="Color.Primary" />
+            <MudText Typo="Typo.h6">Spotify</MudText>
+            <MudText Typo="Typo.body2">
+              Convert URLs from Spotify, Apple Music, SoundCloud, Youtube Music, Deezer, and Tidal to downloadable links.
+              <br />
+              This component uses a third-party API:
+              <MudLink Href="https://idonthavespotify.donado.co/" Target="_blank" Color="Color.Primary">
+                idonthavespotify
+              </MudLink>.
+            </MudText>
+          </MudCardContent>
+          <MudCardActions>
+          <MudButton Variant="Variant.Outlined" Color="Color.Secondary" Href="spotifysearch">
+              Continue
+            </MudButton>
+          </MudCardActions>
+        </MudCard>
+      </MudItem>
+
+      <!-- RJMusic Card -->
+      <MudItem xs="12" sm="6" md="4">
+        <MudCard Elevation="6" Class="card-container">
+          <MudCardContent>
+            <MudIcon Icon="@Icons.Material.Filled.LibraryMusic" Size="Size.Large" Color="Color.Primary" />
+            <MudText Typo="Typo.h6">RJMusic</MudText>
+            <MudText Typo="Typo.body2">Get direct download links from RJMusic.</MudText>
+          </MudCardContent>
+          <MudCardActions>
+          <MudButton Variant="Variant.Outlined" Color="Color.Secondary" Href="rjmedialinkresolver">
+              Continue
+            </MudButton>
+          </MudCardActions>
+        </MudCard>
+      </MudItem>
+    </MudGrid>
 </LoadingIndicator>
+
+<style>
+  .equal-height-grid {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    justify-content: center !important;
+    align-items: center !important;
+  }
+
+  .card-container {
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    height: 255px !important;
+    text-align: center !important;
+    padding: 1rem 2px 2px 2px !important;
+  }
+</style>
+
 @code {
   private bool _isFullyLoaded;
 
@@ -87,9 +123,9 @@
     if (!firstRender) return;
     if (_isFullyLoaded) return;
 
-    _isFullyLoaded = true;
-    await InvokeAsync(StateHasChanged);
-  }
+      _isFullyLoaded = true;
+      await InvokeAsync(StateHasChanged);
+    }
 
   private void OpenSupportedSites()
   {
