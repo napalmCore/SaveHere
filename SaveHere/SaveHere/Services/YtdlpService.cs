@@ -205,9 +205,17 @@ namespace SaveHere.Services
     {
       var executablePath = await GetExecutablePath();
 
-      var formatOption = !(string.IsNullOrEmpty(quality) || quality == "Best")
-        ? $"-f \"{quality}\""
-        : "-f \"bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best\"";
+      var formatOption = quality switch
+      {
+        "Best" => "-f \"bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best\"",
+        null or "" => "-f \"bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best\"",
+        _ => quality.Split(" --", 2) switch
+        {
+          [var format, var extras] => $"-f \"{format}\" --{extras}",
+          [var format] => $"-f \"{format}\"",
+          _ => "-f \"bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best\""
+        }
+      };
 
       var proxyOption = !string.IsNullOrEmpty(proxy)
           ? $"--proxy \"{proxy}\""
