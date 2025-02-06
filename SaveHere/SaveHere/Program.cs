@@ -99,6 +99,8 @@ namespace SaveHere
 
       builder.Services.AddScoped<SpotifySearchService>();
 
+      builder.Services.AddSingleton<MediaConversionService>();
+
       var app = builder.Build();
 
       // Configure the HTTP request pipeline.

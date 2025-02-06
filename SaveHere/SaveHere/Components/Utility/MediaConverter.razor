@@ -1,0 +1,499 @@
+﻿@using Microsoft.AspNetCore.SignalR.Client
+@using SaveHere.Components.Utility
+@using SaveHere.Models
+@using SaveHere.Helpers
+@using SaveHere.Services
+@using System.Net
+
+@inject NavigationManager NavigationManager
+@inject MediaConversionService MediaConversionService
+@inject IFileManagerService FileManagerService
+@inject IDialogService DialogService
+
+@rendermode InteractiveServer
+@attribute [StreamRendering]
+
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<LoadingIndicator IsLoaded="_isFullyLoaded">
+  <MudPaper Class="pa-5 mx-5 mt-3 sv-paper" Elevation="5">
+    <MudStack Row="true" Class="mt-4">
+      <MudSelect T="string" Label="Target Format"
+                 @bind-Value="_selectedFormat" Dense>
+        <MudSelectItem Value="@(".mp4")">MP4</MudSelectItem>
+        <MudSelectItem Value="@(".mkv")">MKV</MudSelectItem>
+        <MudSelectItem Value="@(".webm")">WebM</MudSelectItem>
+        <MudSelectItem Value="@(".mp3")">MP3</MudSelectItem>
+        <MudSelectItem Value="@(".wav")">WAV</MudSelectItem>
+        <MudSelectItem Value="@(".ogg")">OGG</MudSelectItem>
+      </MudSelect>
+
+      @* <MudTextField @bind-Value="_customOptions"
+                    Label="Custom FFmpeg Options"
+                    Variant="Variant.Outlined" /> *@
+
+      <MudButton Variant="Variant.Filled"
+                 Color="Color.Primary"
+                 Disabled="@(!SelectedItems.Any())"
+                 OnClick="AddSelectedToConversion">
+        Convert Selected Files
+      </MudButton>
+
+      <MudIconButton Icon="@Icons.Material.Filled.Refresh" Color="Color.Info" OnClick="RefreshConversionList" />
+    </MudStack>
+  </MudPaper>
+
+  @if (!string.IsNullOrEmpty(errorMessage))
+  {
+    <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Dense="true" Elevation="10" ContentAlignment="HorizontalAlignment.Center" Class="mt-3 mx-5" ShowCloseIcon="true" CloseIconClicked="ClearErrorMessage">
+      @errorMessage
+    </MudAlert>
+  }
+
+  @if (_conversionItems is not null && _conversionItems.Any())
+  {
+    @foreach (var conversion in _conversionItems)
+    {
+      <MudPaper Class="px-3 py-4 mx-5 mt-3 sv-paper" Elevation="5">
+        <MudStack>
+          <MudText Style="word-break: break-all;">
+            @conversion.InputFile → @Path.ChangeExtension(conversion.InputFile, conversion.OutputFormat)
+          </MudText>
+          <MudPaper Elevation="0" Outlined>
+            <MudExpansionPanels Dense Outlined Gutters Elevation="0">
+              <MudExpansionPanel Dense Style="background: #22222222;">
+                <TitleContent>
+                  <MudStack Row Style="display: flex; justify-content:space-between;">
+                    <MudStack Row>
+                      @if (conversion.Status == EQueueItemStatus.Downloading)
+                      {
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Error"
+                                   Size="Size.Small"
+                                   OnClick="() => CancelConversion(conversion)">
+                          Cancel
+                        </MudButton>
+                      }
+                      else if (conversion.Status != EQueueItemStatus.Downloading)
+                      {
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Success"
+                                   Size="Size.Small"
+                                   OnClick="() => StartConversion(conversion)">
+                          Start
+                        </MudButton>
+                      }
+                      <MudButton Variant="Variant.Filled"
+                                 Color="Color.Error"
+                                 Size="Size.Small"
+                                 OnClick="() => RemoveConversion(conversion)">
+                        Remove
+                      </MudButton>
+                    </MudStack>
+                    <MudStack Row>
+                      @if (conversion.Status == EQueueItemStatus.Downloading)
+                      {
+                        <MudChip T="string" Color="Color.Info" Size="Size.Small">Converting</MudChip>
+                      }
+                      else if (conversion.Status == EQueueItemStatus.Finished)
+                      {
+                        <MudChip T="string" Color="Color.Success" Size="Size.Small">Completed</MudChip>
+                      }
+                      else if (conversion.Status == EQueueItemStatus.Cancelled)
+                      {
+                        <MudChip T="string" Color="Color.Error" Size="Size.Small">Cancelled</MudChip>
+                      }
+                      else
+                      {
+                        <MudChip T="string" Color="Color.Warning" Size="Size.Small">Paused</MudChip>
+                      }
+                    </MudStack>
+                  </MudStack>
+                </TitleContent>
+                <ChildContent>
+                  <div style="margin-bottom: 1rem;">
+                    <LogViewer LogContent="@string.Join(Environment.NewLine, conversion.OutputLog)" />
+                  </div>
+                </ChildContent>
+              </MudExpansionPanel>
+            </MudExpansionPanels>
+          </MudPaper>
+        </MudStack>
+      </MudPaper>
+    }
+  }
+
+  <MudPaper Class="pa-5 mx-5 mt-3 sv-paper" Elevation="5">
+
+    <div style="display:flex; justify-content:end; width:100%">
+      <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="LoadFiles" Class="mb-4 mt-2" StartIcon="@Icons.Material.Filled.Refresh">
+        Refresh
+      </MudButton>
+      <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="DeleteSelected" Class="mb-4 mx-3 mt-2" StartIcon="@Icons.Material.Filled.DeleteForever">
+        Delete Selected
+      </MudButton>
+    </div>
+
+    <MudTable Items="@_files" Dense="true" Hover MultiSelection Loading="@_isLoading"
+              Elevation="0" SortLabel="Sort By" @bind-SelectedItems="SelectedItems" Class="mt-3">
+      <HeaderContent>
+        <MudTh Style="width:100%;">
+          <MudTableSortLabel SortBy="new Func<FileItem, object>(x => x.Name)">
+            Name
+          </MudTableSortLabel>
+        </MudTh>
+        <MudTh>
+          <MudTableSortLabel SortBy="new Func<FileItem, object>(x => x.Length)">
+            Size
+          </MudTableSortLabel>
+        </MudTh>
+        <MudTh>
+          <MudTableSortLabel SortBy="new Func<FileItem, object>(x => Path.GetExtension(x.Name))">
+            Type
+          </MudTableSortLabel>
+        </MudTh>
+        <MudTh>
+          <MudTableSortLabel SortBy="new Func<FileItem, object>(x => x.LastModified)">
+            Modified
+          </MudTableSortLabel>
+        </MudTh>
+        <MudTh Style="text-align:center;">Actions</MudTh>
+      </HeaderContent>
+      <RowTemplate>
+        <MudTd DataLabel="Name" Style="word-break:break-all;">@context.Name</MudTd>
+        <MudTd DataLabel="Size" Style="white-space:nowrap">@Helpers.FormatSize(context.Length)</MudTd>
+        <MudTd DataLabel="Type">@Path.GetExtension(context.Name)</MudTd>
+        <MudTd DataLabel="Modified">@context.LastModified.ToString("g")</MudTd>
+        <MudTd DataLabel="Actions" Style="text-align:end;">
+          <MudStack Row="true" Style="gap:5px; justify-content:end">
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       Size="Size.Small"
+                       OnClick="() => AddToConversion(context)">
+              Convert
+            </MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                       OnClick="() => DeleteFile(context)">
+              Delete
+            </MudButton>
+          </MudStack>
+        </MudTd>
+      </RowTemplate>
+    </MudTable>
+
+  </MudPaper>
+</LoadingIndicator>
+
+<style type="text/css" media="screen and (max-width:599px)">
+  .mud-xs-table .mud-table-cell::before {
+    word-break: keep-all !important;
+    min-width: 55px !important;
+  }
+
+  .sv-custom-progress-stack {
+    width: 100% !important;
+  }
+
+  .sv-table {
+    margin: 5px !important;
+    padding: 5px !important;
+  }
+
+  .sv-paper {
+    margin: 5px !important;
+    padding: 5px !important;
+  }
+
+  .sv-main-stack {
+    gap: 3px !important;
+  }
+
+  .mud-xs-table.mud-table-dense .mud-table-cell {
+    padding: 6px;
+  }
+
+  .sv-table-custom-row-1 {
+    justify-content: start !important;
+  }
+
+  .mud-table-dense * .mud-table-row .mud-table-cell:last-child {
+    padding-right: 0;
+    padding-inline-end: 0;
+  }
+
+  .mud-table-cell .mud-checkbox {
+    margin: 0 !important;
+  }
+</style>
+
+<style>
+  .my-custom-media-dialog {
+    backdrop-filter: blur(10px);
+  }
+</style>
+
+@code {
+  private bool _isFullyLoaded;
+  private bool _isLoading;
+  private string errorMessage = string.Empty;
+  private string _selectedFormat = ".mp4";
+  private string _customOptions = string.Empty;
+  private List<FileItem> _files = new();
+  private List<MediaConversionItem> _conversionItems = new();
+  private DateTime _lastUiUpdateTime = DateTime.MinValue;
+  private TimeSpan _uiUpdateInterval = TimeSpan.FromSeconds(1);
+  private HubConnection? hubConnection;
+
+  private HashSet<FileItem> SelectedItems = new HashSet<FileItem>();
+
+  protected override async Task OnInitializedAsync()
+  {
+    await LoadFiles();
+    await InitializeHubConnection();
+    _conversionItems = await MediaConversionService.GetConversionItemsAsync();
+  }
+
+  protected override async Task OnAfterRenderAsync(bool firstRender)
+  {
+    if (!firstRender) return;
+    if (_isFullyLoaded) return;
+
+    _isFullyLoaded = true;
+    await InvokeAsync(StateHasChanged);
+  }
+
+  private async Task InitializeHubConnection()
+  {
+    // Get Basic Auth credentials from environment variables or configuration
+    var basicAuthUsername = Environment.GetEnvironmentVariable("BASIC_AUTH_USERNAME");
+    var basicAuthPassword = Environment.GetEnvironmentVariable("BASIC_AUTH_PASSWORD");
+
+    // Determine the correct hub URL based on the environment
+    var hubUrl = Environment.GetEnvironmentVariable("SIGNALR_HUB_URL")
+                 ?? NavigationManager.BaseUri.TrimEnd('/') + "/DownloadProgressHub";
+
+    if (!string.IsNullOrWhiteSpace(basicAuthUsername) && !string.IsNullOrWhiteSpace(basicAuthPassword))
+    {
+      string credentials = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes($"{basicAuthUsername}:{basicAuthPassword}"));
+
+      hubConnection = new HubConnectionBuilder()
+        .WithUrl(hubUrl, options => options.Headers.Add("Authorization", $"Basic {credentials}"))
+        .WithAutomaticReconnect()
+        .Build();
+    }
+    else
+    {
+      hubConnection = new HubConnectionBuilder()
+        .WithUrl(hubUrl)
+        .WithAutomaticReconnect()
+        .Build();
+    }
+
+    hubConnection.On<int, string>("DownloadStateChanged", OnConversionStateUpdateAsync);
+    hubConnection.On<int, string>("DownloadLogUpdate", OnConversionLogUpdateAsync);
+
+    try
+    {
+      await hubConnection.StartAsync();
+    }
+    catch (Exception ex)
+    {
+      errorMessage = $"Failed to connect to progress updates: {ex.Message}";
+    }
+  }
+
+  private async Task OnConversionStateUpdateAsync(int itemId, string newStatus)
+  {
+    var item = _conversionItems.FirstOrDefault(x => x.Id == itemId);
+    if (item != null)
+    {
+      await InvokeAsync(() =>
+      {
+        item.Status = Enum.Parse<EQueueItemStatus>(newStatus);
+        ThrottleUIUpdate(true);
+      });
+    }
+    else
+    {
+      ThrottleUIUpdate(true);
+    }
+  }
+
+  private async Task OnConversionLogUpdateAsync(int itemId, string logLine)
+  {
+    var item = _conversionItems.FirstOrDefault(x => x.Id == itemId);
+    if (item != null)
+    {
+      await InvokeAsync(() =>
+      {
+        item.OutputLog.Add(logLine);
+        ThrottleUIUpdate();
+      });
+      await MediaConversionService.AppendLogAsync(itemId, logLine);
+    }
+    else
+    {
+      ThrottleUIUpdate(true);
+    }
+  }
+
+  public async Task LoadFiles()
+  {
+    try
+    {
+      _isLoading = true;
+      errorMessage = string.Empty;
+      _files = DirectoryBrowser.GetDownloadsContent()
+        .OfType<FileItem>()
+        .Where(f => IsMediaFile(f.Name))
+        .ToList();
+    }
+    catch (Exception ex)
+    {
+      errorMessage = $"Error loading files: {ex.Message}";
+    }
+    finally
+    {
+      _isLoading = false;
+      await InvokeAsync(StateHasChanged);
+    }
+  }
+
+  private bool IsMediaFile(string fileName)
+  {
+    var ext = Path.GetExtension(fileName).ToLowerInvariant();
+    return new[] { ".mp4", ".webm", ".avi", ".mov", ".mkv", ".mp3", ".wav", ".ogg", ".m4a", ".flac", ".opus" }
+        .Contains(ext);
+  }
+
+  private async Task AddToConversion(FileItem file)
+  {
+    try
+    {
+      var newItem = await MediaConversionService.AddConversionItemAsync(file.Name, _selectedFormat, _customOptions);
+      _conversionItems.Add(newItem);
+      ThrottleUIUpdate();
+    }
+    catch (Exception ex)
+    {
+      errorMessage = $"Error adding conversion: {ex.Message}";
+    }
+  }
+
+  private async Task AddSelectedToConversion()
+  {
+    try
+    {
+      foreach (var file in SelectedItems)
+      {
+        var newItem = await MediaConversionService.AddConversionItemAsync(file.Name, _selectedFormat, _customOptions);
+        _conversionItems.Add(newItem);
+      }
+      SelectedItems.Clear();
+      ThrottleUIUpdate();
+    }
+    catch (Exception ex)
+    {
+      errorMessage = $"Error adding conversions: {ex.Message}";
+    }
+  }
+
+  private async Task StartConversion(MediaConversionItem item)
+  {
+    try
+    {
+      await MediaConversionService.StartConversionAsync(item);
+    }
+    catch (Exception ex)
+    {
+      errorMessage = $"Error starting conversion: {ex.Message}";
+    }
+  }
+
+  private async Task CancelConversion(MediaConversionItem item)
+  {
+    try
+    {
+      await MediaConversionService.CancelConversionAsync(item.Id);
+    }
+    catch (Exception ex)
+    {
+      errorMessage = $"Error canceling conversion: {ex.Message}";
+    }
+  }
+
+  private async Task RemoveConversion(MediaConversionItem item)
+  {
+    try
+    {
+      await MediaConversionService.DeleteConversionItemAsync(item.Id);
+      _conversionItems.Remove(item);
+      ThrottleUIUpdate(true);
+    }
+    catch (Exception ex)
+    {
+      errorMessage = $"Error removing conversion: {ex.Message}";
+    }
+  }
+
+  private void ThrottleUIUpdate(bool forceUpdate = false)
+  {
+    var now = DateTime.Now;
+    if (forceUpdate || (now - _lastUiUpdateTime >= _uiUpdateInterval))
+    {
+      _lastUiUpdateTime = now;
+      InvokeAsync(LoadFiles);
+      InvokeAsync(RefreshConversionList);
+      InvokeAsync(StateHasChanged);
+    }
+  }
+
+  public async ValueTask DisposeAsync()
+  {
+    if (hubConnection is not null)
+    {
+      await hubConnection.DisposeAsync();
+    }
+  }
+
+  private async Task RefreshConversionList()
+  {
+    _conversionItems = await MediaConversionService.GetConversionItemsAsync();
+    ThrottleUIUpdate();
+  }
+
+  private void ClearErrorMessage()
+  {
+    errorMessage = "";
+  }
+
+  private async Task DeleteFile(FileItem item)
+  {
+    try
+    {
+      FileManagerService.DeleteFile(item);
+      await LoadFiles();
+    }
+    catch (Exception ex)
+    {
+      errorMessage = $"Error deleting file: {ex.Message}";
+    }
+  }
+
+  private async Task DeleteSelected()
+  {
+    try
+    {
+      foreach (var item in SelectedItems) FileManagerService.DeleteFile(item);
+      SelectedItems.Clear();
+      await LoadFiles();
+    }
+    catch (Exception ex)
+    {
+      errorMessage = $"Error deleting selected files: {ex.Message}";
+    }
+  }
+
+}
