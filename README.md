@@ -46,6 +46,8 @@ In addition, it is recommended that you run SaveHere behind a reverse proxy such
 
 _If your IP is restricted by YouTube or other websites, you'll need a proxy to bypass the restrictions. The app has a built-in proxy service that you can use. To activate it, visit the proxy page, click 'Install,' then 'Start,' and wait for the proxy service to connect properly._
 
+The Media Converter component uses [ffmpeg](https://www.ffmpeg.org/) for converting media to other formats. `ffmpeg` is already installed in the `docker` image. But if you're not using the docker image, you need install it yourself.
+
 
 ## How to run this app using docker
 
