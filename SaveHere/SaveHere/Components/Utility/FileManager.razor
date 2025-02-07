@@ -2,6 +2,7 @@
 @using SaveHere.Helpers
 @using SaveHere.Models
 @using SaveHere.Services
+@using MudBlazor
 @using System.Net
 @inject IFileManagerService FileManagerService
 @inject IDialogService DialogService
@@ -21,25 +22,41 @@
     </MudButton>
   </div>
 
+  <MudElement style="display:flex; justify-content: start; width: 100%; background: #55555533; border-radius: 6px; padding: 0; box-sizing: border-box;">
+    <MudBreadcrumbs Items="@breadcrumbsItems" Class="">
+      <SeparatorTemplate>
+        <MudText Typo="Typo.subtitle2" Style="margin: 0; padding: 0; width: 0px; font-size: 0.75rem;">/</MudText>
+      </SeparatorTemplate>
+      <ItemTemplate Context="item">
+        <MudButton Class="pa-2" Style="box-sizing: border-box; margin-right: -10px; margin-left: -5px; margin-top: -10px; margin-bottom: -10px; text-decoration: underline;" Variant="Variant.Text" OnClick="@(async()=>await NavigateToDirectory(item.Href))" Color="Color.Primary">@item.Text</MudButton>
+      </ItemTemplate>
+    </MudBreadcrumbs>
+  </MudElement>
+
   <MudTable Items="@files" Dense="@Dense" Hover MultiSelection Loading="@isLoading" Elevation="0" SortLabel="Sort By" @bind-SelectedItems="SelectedItems">
     <HeaderContent>
       <MudTh Style="width:100%;">
-        <MudTableSortLabel SortBy="new Func<FileItem, object>(x => x.Name)">
+        <MudTableSortLabel SortBy="new Func<FileSystemItem, object>(x => x.Name)">
           Name
         </MudTableSortLabel>
       </MudTh>
       <MudTh>
-        <MudTableSortLabel SortBy="new Func<FileItem, object>(x => x.Length)">
+        <MudTableSortLabel SortBy="new Func<FileSystemItem, object>(x => x is FileItem xfi? xfi.Extension : x.Type)">
+          Type
+        </MudTableSortLabel>
+      </MudTh>
+      <MudTh>
+        <MudTableSortLabel SortBy="new Func<FileSystemItem, object>(x => x is FileItem xfi? xfi.Length : -1)">
           Size
         </MudTableSortLabel>
       </MudTh>
       <MudTh>
-        <MudTableSortLabel SortBy="new Func<FileItem, object>(x => x.CreatedAt)">
+        <MudTableSortLabel SortBy="new Func<FileSystemItem, object>(x => x is FileItem xfi? xfi.CreatedAt : DateTime.MinValue)">
           Created
         </MudTableSortLabel>
       </MudTh>
       <MudTh>
-        <MudTableSortLabel SortBy="new Func<FileItem, object>(x => x.LastModified)">
+        <MudTableSortLabel SortBy="new Func<FileSystemItem, object>(x => x is FileItem xfi? xfi.LastModified : DateTime.MinValue)">
           Modified
         </MudTableSortLabel>
       </MudTh>
@@ -47,34 +64,68 @@
     </HeaderContent>
     <RowTemplate>
       <MudTd DataLabel="Name" Style="word-break:break-all;">
-        @context.Name
+        @if (context is DirectoryItem directory)
+        {
+          <MudButton Variant="Variant.Text" Size="Size.Small" OnClick="() => NavigateToDirectory(directory.FullName)" Style="padding: 0; margin: 0; min-width: unset; text-decoration: underline;" Color="Color.Primary">
+            <MudIcon Icon="@Icons.Material.Outlined.Folder" Style="margin-right: 5px; margin-left: auto; vertical-align: middle;" />
+            @directory.Name
+          </MudButton>
+        }
+        else if (context is FileItem file)
+        {
+          <MudIcon Icon="@Icons.Material.Outlined.InsertDriveFile" Style="margin-right: 5px; margin-left: auto; vertical-align: middle;" />
+          @file.Name
+        }
+        else
+        {
+          @context.Name
+        }
+      </MudTd>
+      <MudTd DataLabel="Type">
+        @(context is FileItem xfi ? xfi.Extension : context.Type)
       </MudTd>
       <MudTd DataLabel="Size" Style="white-space:nowrap">
-        @Helpers.FormatSize(context.Length)
+        @(context is FileItem xfi ? Helpers.FormatSize(xfi.Length) : string.Empty)
+      </MudTd>
+      <MudTd DataLabel="Created">
+        @if (context is FileItem file)
+        {
+          @file.CreatedAt.ToString("g")
+        }
       </MudTd>
       <MudTd DataLabel="Modified">
-        @context.CreatedAt.ToString("g")
-      </MudTd>
-      <MudTd DataLabel="Modified">
-        @context.LastModified.ToString("g")
+        @if (context is FileItem file)
+        {
+          @file.LastModified.ToString("g")
+        }
       </MudTd>
       <MudTd DataLabel="Actions" Style="text-align:end;">
         <MudStack Row="true" Style="gap:5px; justify-content:end">
-          @if (IsMediaFile(context.Name))
+          @if (context is FileItem file)
           {
-            <MudButton OnClick="@(() => OpenMediaDialog(context))"
-            Variant="Variant.Filled" Color="Color.Warning" Size="Size.Small">
-              Play
+            @if (IsMediaFile(context.Name))
+            {
+              <MudButton OnClick="@(() => OpenMediaDialog(file))"
+              Variant="Variant.Filled" Color="Color.Warning" Size="Size.Small">
+                Play
+              </MudButton>
+            }
+            <MudButton Variant="Variant.Filled" Color="Color.Success" Size="Size.Small"
+            Href="@($"/downloads/{WebUtility.UrlEncode(context.Name)}")" Target="_blank">
+              Download
+            </MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+            OnClick="() => DeleteFile(file)">
+              Delete
             </MudButton>
           }
-          <MudButton Variant="Variant.Filled" Color="Color.Success" Size="Size.Small"
-          Href="@($"/downloads/{WebUtility.UrlEncode(context.Name)}")" Target="_blank">
-            Download
-          </MudButton>
-          <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
-          OnClick="() => DeleteFile(context)">
-            Delete
-          </MudButton>
+          else if (context is DirectoryItem directory)
+          {
+            <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+            OnClick="() => DeleteDirectory(directory)">
+              Delete
+            </MudButton>
+          }
         </MudStack>
       </MudTd>
     </RowTemplate>
@@ -130,7 +181,7 @@
 </style>
 
 @code {
-  private List<FileItem> files = new();
+  private List<FileSystemItem> files = new();
   private string errorMessage = string.Empty;
   private bool isLoading = false;
 
@@ -138,13 +189,24 @@
   [Parameter] public bool Dense { get; set; } = true;
   [Parameter] public EventCallback OnFilesChanged { get; set; }
 
-  private HashSet<FileItem> SelectedItems = new HashSet<FileItem>();
+  [Parameter] public string? CurrentPath { get; set; }
+
+  private string _currentDirectory = DirectoryBrowser.DownloadsPath;
+
+  private HashSet<FileSystemItem> SelectedItems = new HashSet<FileSystemItem>();
+
+  private List<BreadcrumbItem> breadcrumbsItems = new();
 
   protected override async Task OnInitializedAsync()
   {
     if (AutoLoad)
     {
+      if (!string.IsNullOrEmpty(CurrentPath))
+      {
+        _currentDirectory = CurrentPath; // Use parameter if provided
+      }
       await LoadFiles();
+      UpdateBreadcrumbs();
     }
   }
 
@@ -154,7 +216,7 @@
     {
       isLoading = true;
       errorMessage = string.Empty;
-      files = FileManagerService.GetFiles();
+      files = FileManagerService.GetFiles(_currentDirectory);
       await OnFilesChanged.InvokeAsync();
     }
     catch (Exception ex)
@@ -164,8 +226,32 @@
     finally
     {
       isLoading = false;
-      StateHasChanged();
+      await InvokeAsync(StateHasChanged);
     }
+  }
+
+  private void UpdateBreadcrumbs()
+  {
+    breadcrumbsItems.Clear();
+    var pathParts = _currentDirectory.Substring(DirectoryBrowser.DownloadsPath.Length).Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries);
+    string currentPath = DirectoryBrowser.DownloadsPath;
+
+    breadcrumbsItems.Add(new BreadcrumbItem("Downloads", href: currentPath, disabled: true));
+
+    foreach (var part in pathParts)
+    {
+      currentPath = Path.Combine(currentPath, part);
+      var localPath = currentPath;
+      breadcrumbsItems.Add(new BreadcrumbItem(part, href: localPath/* , OnClick: () => NavigateToDirectory(localPath) */));
+    }
+  }
+
+  private async Task NavigateToDirectory(string? path)
+  {
+    if (path is null) path = DirectoryBrowser.DownloadsPath;
+    _currentDirectory = path;
+    await LoadFiles();
+    UpdateBreadcrumbs();
   }
 
   private async Task DeleteFile(FileItem item)
@@ -185,13 +271,36 @@
   {
     try
     {
-      foreach (var item in SelectedItems) FileManagerService.DeleteFile(item);
+      foreach (var item in SelectedItems)
+      {
+        if (item is FileItem fileItem)
+        {
+          FileManagerService.DeleteFile(fileItem);
+        }
+        else if (item is DirectoryItem directoryItem)
+        {
+          FileManagerService.DeleteDirectory(directoryItem);
+        }
+      }
       SelectedItems.Clear();
       await LoadFiles();
     }
     catch (Exception ex)
     {
-      errorMessage = $"Error deleting selected files: {ex.Message}";
+      errorMessage = $"Error deleting selected items: {ex.Message}";
+    }
+  }
+
+  private async Task DeleteDirectory(DirectoryItem item)
+  {
+    try
+    {
+      FileManagerService.DeleteDirectory(item);
+      await LoadFiles();
+    }
+    catch (Exception ex)
+    {
+      errorMessage = $"Error deleting directory: {ex.Message}";
     }
   }
 

@@ -95,6 +95,11 @@
     {
       File.Delete(item.FullName);
     }
+
+    public static void DeleteDirectoryItem(DirectoryItem item)
+    {
+      Directory.Delete(item.FullName, true);
+    }
   }
 
   public class FileSystemItem

@@ -4,22 +4,26 @@ namespace SaveHere.Services
 {
   public interface IFileManagerService
   {
-    List<FileItem> GetFiles();
+    List<FileSystemItem> GetFiles(string path);
     void DeleteFile(FileItem item);
+    void DeleteDirectory(DirectoryItem item);
   }
 
   public class FileManagerService : IFileManagerService
   {
-    public List<FileItem> GetFiles()
+    public List<FileSystemItem> GetFiles(string path)
     {
-      return DirectoryBrowser.GetDownloadsContent()
-          .OfType<FileItem>()
-          .ToList();
+      return DirectoryBrowser.GetDirectoryContent(new DirectoryInfo(path)).ToList();
     }
 
     public void DeleteFile(FileItem item)
     {
       DirectoryBrowser.DeleteFileItem(item);
+    }
+
+    public void DeleteDirectory(DirectoryItem item)
+    {
+      DirectoryBrowser.DeleteDirectoryItem(item);
     }
   }
 }
