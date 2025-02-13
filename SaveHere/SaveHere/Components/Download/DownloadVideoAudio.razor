@@ -87,6 +87,21 @@
 
     </MudStack>
 
+    <MudStack id="my-mudstack-row-1" Row Class="mt-3">
+      <MudCheckBox @bind-Value="_autoStartPausedDownloads"
+                   Label="Autostart Paused Downloads"
+                   Color="Color.Primary"
+                   T="bool"/>
+
+      <MudNumericField @bind-Value="_maxAutoStartConcurrency"
+                       Label=""
+                       HelperText="Maximum downloads to start concurrently"
+                       Min="1"
+                       Max="10"
+                       Variant="Variant.Outlined"
+                       Margin="Margin.Dense"/>
+    </MudStack>
+
     <MudText Typo="Typo.subtitle2" Class="mt-3 mx-3">
       This component uses ytdlp to download video/audio. See
       <MudLink OnClick="OpenSupportedSites"
@@ -216,6 +231,10 @@
     padding-right: 0;
     padding-inline-end: 0;
   }
+
+  #my-mudstack-row-1 {
+      flex-direction: column !important;
+  }
 </style>
 
 <style>
@@ -240,6 +259,9 @@
 
   private DateTime _lastUiUpdateTime = DateTime.MinValue;
   private TimeSpan _uiUpdateInterval = TimeSpan.FromSeconds(1);
+
+  private bool _autoStartPausedDownloads = true;
+  private int _maxAutoStartConcurrency = 3;
 
   protected override async Task OnInitializedAsync()
   {
@@ -365,13 +387,13 @@
     }
   }
 
-
   private async Task LoadDownloadItemsList()
   {
     try
     {
       _isLoadingTheList = true;
       _youtubeDownloadQueueItems = await YoutubeDownloadQueueService.GetQueueItemsAsync();
+      await StartPausedDownloads();
     }
     catch (Exception exception)
     {
@@ -487,13 +509,50 @@
   private void OpenSupportedSites()
   {
     var options = new DialogOptions
-      {
-        MaxWidth = MaxWidth.Large,
-        FullWidth = true,
-        CloseButton = true
-      };
+    {
+      MaxWidth = MaxWidth.Large,
+      FullWidth = true,
+      CloseButton = true
+    };
 
     DialogService.Show<MarkdownViewerDialog>("Supported Sites", options);
+  }
+
+  private async Task StartPausedDownloads()
+  {
+    if (!_autoStartPausedDownloads)
+    {
+      return; // Autostart is disabled
+    }
+
+    var pausedItems = _youtubeDownloadQueueItems
+        .Where(item => item.Status == EQueueItemStatus.Paused)
+        .ToList();
+
+    if (!pausedItems.Any())
+    {
+      return; // No paused items to start
+    }
+
+    int startedCount = 0;
+    foreach (var item in pausedItems)
+    {
+      if (startedCount >= _maxAutoStartConcurrency)
+      {
+        break; // Limit concurrent starts
+      }
+
+      try
+      {
+        await StartDownload(item);
+        startedCount++;
+      }
+      catch (Exception ex)
+      {
+        ErrorMessage = $"Error autostarting download '{item.Url}': {ex.Message}";
+        Console.WriteLine($"Error autostarting download '{item.Url}': {ex.Message}");
+      }
+    }
   }
 
 }
