@@ -32,6 +32,21 @@
 
     </MudStack>
 
+    <MudStack id="my-mudstack-row-1" Row>
+      <MudCheckBox @bind-Value="_autoStartPausedDownloads"
+                   Label="Autostart Paused Downloads"
+                   Color="Color.Primary"
+                   T="bool" />
+
+      <MudNumericField @bind-Value="_maxAutoStartConcurrency"
+                       Label=""
+                       HelperText="Maximum downloads to start concurrently"
+                       Min="1"
+                       Max="10"
+                       Variant="Variant.Outlined"
+                       Margin="Margin.Dense" />
+    </MudStack>
+
   </MudPaper>
 
   @if (!string.IsNullOrWhiteSpace(ErrorMessage))
@@ -45,7 +60,7 @@
   {
     <MudPaper Class="pa-5 mx-5 mt-3 sv-paper" Elevation="5">
       <div style="display:flex; justify-content:end; width:100%">
-        <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="@(async ()=>await LoadDownloadItemsList())" Class="mb-4 mt-2" StartIcon="@Icons.Material.Filled.Refresh">
+        <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="@(async () => await LoadDownloadItemsList())" Class="mb-4 mt-2" StartIcon="@Icons.Material.Filled.Refresh">
           Refresh
         </MudButton>
         <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="DeleteSelectedFileDownloadQueueItems" Class="mb-4 mx-3 mt-2" StartIcon="@Icons.Material.Filled.DeleteForever">
@@ -76,7 +91,7 @@
               </div>
 
               <MudStack Row="true" Spacing="1" Justify="Justify.SpaceBetween">
-                <MudProgressLinear Value="@context.ProgressPercentage" Color="Color.Tertiary" Striped="@(context.Status==EQueueItemStatus.Downloading)" Class="ma-0 pa-0 sv-progressbar" Style="width: 100%;" Size="Size.Large" />
+                <MudProgressLinear Value="@context.ProgressPercentage" Color="Color.Tertiary" Striped="@(context.Status == EQueueItemStatus.Downloading)" Class="ma-0 pa-0 sv-progressbar" Style="width: 100%;" Size="Size.Large" />
 
                 <MudText Typo="Typo.inherit" Color="Color.Warning" Class="ma-0 pa-0" Align="Align.Right" Inline="true" Style="font-size:10px;">
                   @context.ProgressPercentage%
@@ -94,13 +109,14 @@
           </MudTd>
           <MudTd Style="text-align:end;" Class="sv-table-custom-row-1" DataLabel="Actions">
             <MudStack Row="true" Style="gap:5px;">
-              <MudButton Variant="Variant.Filled" Color="@(context.Status==EQueueItemStatus.Downloading?Color.Error:Color.Success)" Size="Size.Small" Style="min-width:75px;" OnClick="async() =>
-            {
-            if (context.Status==EQueueItemStatus.Downloading) await CancelDownload(context); else await StartDownload(context);
-            }">
+              <MudButton Variant="Variant.Filled" Color="@(context.Status == EQueueItemStatus.Downloading ? Color.Error : Color.Success)" Size="Size.Small" Style="min-width:75px;" OnClick="async() =>
+                    {
+                            if (context.Status == EQueueItemStatus.Downloading) await CancelDownload(context); else await StartDownload(context);
+                    }
+              ">
                 @(context.Status == EQueueItemStatus.Downloading ? "Stop" : "Start")
               </MudButton>
-              <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small" OnClick="async() => await DeleteQueueItem(context)">Delete</MudButton>
+              <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small" OnClick="async () => await DeleteQueueItem(context)">Delete</MudButton>
               <MudButton Variant="Variant.Filled" Color="Color.Info" Size="Size.Small" OnClick="() => ToggleMoreOptions(context)">@(context.bShowMoreOptions ? "Collapse" : "Options")</MudButton>
             </MudStack>
           </MudTd>
@@ -128,49 +144,53 @@
 
 <style type="text/css" media="screen and (max-width:599px)">
   .mud-xs-table .mud-table-cell::before {
-    word-break: keep-all !important;
-    min-width: 55px !important;
+  word-break: keep-all !important;
+  min-width: 55px !important;
   }
 
   .sv-custom-progress-stack {
-    width: 100% !important;
+  width: 100% !important;
   }
 
   .sv-table {
-    margin: 5px !important;
-    padding: 5px !important;
+  margin: 5px !important;
+  padding: 5px !important;
   }
 
   .sv-paper {
-    margin: 5px !important;
-    padding: 5px !important;
+  margin: 5px !important;
+  padding: 5px !important;
   }
 
   .sv-main-stack {
-    gap: 3px !important;
+  gap: 3px !important;
   }
 
   .mud-xs-table.mud-table-dense .mud-table-cell {
-    padding: 6px;
+  padding: 6px;
   }
 
   .sv-table-custom-row-1 {
-    justify-content: start !important;
+  justify-content: start !important;
   }
 
   .mud-table-dense * .mud-table-row .mud-table-cell:last-child {
-    padding-right: 0;
-    padding-inline-end: 0;
+  padding-right: 0;
+  padding-inline-end: 0;
   }
 
   .mud-table-cell .mud-checkbox {
-    margin: 0 !important;
+  margin: 0 !important;
+  }
+
+  #my-mudstack-row-1 {
+    flex-direction: column !important;
   }
 </style>
 
 <style>
   .my-custom-media-dialog {
-    backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
   }
 </style>
 
@@ -196,6 +216,9 @@
   private bool _isLoadingTheList = false;
 
   private HashSet<FileDownloadQueueItem> SelectedItems = new HashSet<FileDownloadQueueItem>();
+
+  private bool _autoStartPausedDownloads = true;
+  private int _maxAutoStartConcurrency = 3;
 
   protected override async Task OnInitializedAsync()
   {
@@ -367,6 +390,7 @@
     finally
     {
       _isLoadingTheList = false;
+      await StartPausedDownloads();
     }
   }
 
@@ -491,6 +515,43 @@
     catch (Exception exception)
     {
       ErrorMessage = $"An Error Occurred While Refreshing Files: {exception.Message}";
+    }
+  }
+
+  private async Task StartPausedDownloads()
+  {
+    if (!_autoStartPausedDownloads)
+    {
+      return; // Autostart is disabled
+    }
+
+    var pausedItems = _fileDownloadQueueItems
+        .Where(item => item.Status == EQueueItemStatus.Paused)
+        .ToList();
+
+    if (!pausedItems.Any())
+    {
+      return; // No paused items to start
+    }
+
+    int startedCount = 0;
+    foreach (var item in pausedItems)
+    {
+      if (startedCount >= _maxAutoStartConcurrency)
+      {
+        break; // Limit concurrent starts
+      }
+
+      try
+      {
+        await StartDownload(item);
+        startedCount++;
+      }
+      catch (Exception ex)
+      {
+        ErrorMessage = $"Error autostarting download '{item.InputUrl}': {ex.Message}";
+        Console.WriteLine($"Error autostarting download '{item.InputUrl}': {ex.Message}");
+      }
     }
   }
 
