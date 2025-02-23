@@ -1,7 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using SaveHere.Models;
 using SaveHere.Models.db;
-using System;
 using System.Diagnostics;
 using System.Net;
 
@@ -13,7 +12,7 @@ namespace SaveHere.Services
     Task<FileDownloadQueueItem?> GetQueueItemByIdAsync(int id);
     Task<FileDownloadQueueItem> AddQueueItemAsync(string url);
     Task DeleteQueueItemAsync(int id);
-    Task StartDownloadAsync(int id);
+    Task StartDownloadAsync(int id, string? downloadFolderName);
     Task PauseDownloadAsync(int id);
     Task CancelDownloadAsync(int id);
   }
@@ -115,7 +114,7 @@ namespace SaveHere.Services
       tokenSource.Cancel();
     }
 
-    public async Task StartDownloadAsync(int id)
+    public async Task StartDownloadAsync(int id, string? downloadFolderName)
     {
       var item = await GetQueueItemByIdAsync(id);
 
@@ -127,6 +126,8 @@ namespace SaveHere.Services
 
       try
       {
+        item.DownloadFolder = downloadFolderName;
+
         item.Status = EQueueItemStatus.Downloading;
         await UpdateQueueItemAsync(item);
         await _progressHubService.BroadcastStateChange(id, item.Status.ToString());
@@ -227,6 +228,23 @@ namespace SaveHere.Services
         }
 
         var downloadPath = Path.Combine(Directory.GetCurrentDirectory(), "downloads");
+
+        // Adding custom folders if required
+        if (!string.IsNullOrWhiteSpace(queueItem.DownloadFolder))
+        {
+          string combinedPath = Path.Combine(downloadPath, queueItem.DownloadFolder);
+          string normalizedFullPath = Path.GetFullPath(combinedPath);
+          string normalizedBasePath = Path.GetFullPath(downloadPath);
+
+          if (normalizedFullPath.StartsWith(normalizedBasePath, StringComparison.OrdinalIgnoreCase))
+          {
+            downloadPath = normalizedFullPath;
+          }
+          else throw new UnauthorizedAccessException("Invalid folder path.");
+
+          // Create directory if it doesn't exist
+          Directory.CreateDirectory(downloadPath);
+        }
 
         // Construct the file path using the base directory and the sanitized filename
         var localFilePath = Path.GetFullPath(Path.Combine(downloadPath, fileName));
