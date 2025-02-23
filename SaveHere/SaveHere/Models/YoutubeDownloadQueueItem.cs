@@ -19,6 +19,8 @@ namespace SaveHere.Models
       public List<string> OutputLog { get; set; } = new List<string>(); // For keeping the logs in memory
 
       public string PersistedLog { get; set; } = string.Empty; // For saving logs in the database
+
+      public string? DownloadFolder { get; set; }
     }
   }
 }

@@ -9,7 +9,7 @@ namespace SaveHere.Services
   {
     Task<List<YoutubeDownloadQueueItem>> GetQueueItemsAsync();
     Task<YoutubeDownloadQueueItem?> GetQueueItemByIdAsync(int id);
-    Task<YoutubeDownloadQueueItem> AddQueueItemAsync(string url, string selectedQuality, string proxyUrl);
+    Task<YoutubeDownloadQueueItem> AddQueueItemAsync(string url, string selectedQuality, string proxyUrl, string? downloadFolderName);
     //Task UpdateQueueItemAsync(YoutubeDownloadQueueItem item);
     Task UpdateItemStateAsync(int itemId, EQueueItemStatus newStatus);
     Task DeleteQueueItemAsync(int id);
@@ -74,7 +74,7 @@ namespace SaveHere.Services
     }
 
 
-    public async Task<YoutubeDownloadQueueItem> AddQueueItemAsync(string url, string selectedQuality, string proxyUrl)
+    public async Task<YoutubeDownloadQueueItem> AddQueueItemAsync(string url, string selectedQuality, string proxyUrl, string? downloadFolderName)
     {
       if (string.IsNullOrWhiteSpace(url))
       {
@@ -91,6 +91,7 @@ namespace SaveHere.Services
         Url = url,
         Quality = selectedQuality,
         Proxy = proxyUrl,
+        DownloadFolder = downloadFolderName,
         Status = EQueueItemStatus.Paused
       };
 
@@ -165,7 +166,7 @@ namespace SaveHere.Services
         await UpdateItemStateAsync(item.Id, EQueueItemStatus.Downloading);
         await _progressHubService.BroadcastStateChange(item.Id, item.Status.ToString());
 
-        await _ytdlpService.DownloadVideo(item.Id, item.Url, item.Quality, item.Proxy, token);
+        await _ytdlpService.DownloadVideo(item.Id, item.Url, item.Quality, item.Proxy, item.DownloadFolder, token);
 
         // Ensure we capture all logs before setting status to finished
         var currentLogs = item.OutputLog.ToList();

@@ -147,7 +147,7 @@
 
       if (!exists)
       {
-        var newYoutubeDownload = await YoutubeDownloadQueueService.AddQueueItemAsync(url, "dummy", "dummy");
+        var newYoutubeDownload = await YoutubeDownloadQueueService.AddQueueItemAsync(url, "dummy", "dummy", "spotify");
 
         await _progressHubService.BroadcastLogUpdate(newYoutubeDownload.Id, "");
 

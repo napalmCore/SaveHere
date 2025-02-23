@@ -14,7 +14,7 @@ namespace SaveHere.Services
     Task<string> GetExecutablePath();
     Task<string> GetSupportedSitesFilePath();
     Task UpdateSupportedSitesFile();
-    Task DownloadVideo(int itemId, string url, string quality, string proxy, CancellationToken cancellationToken);
+    Task DownloadVideo(int itemId, string url, string quality, string proxy, string? downloadFolder, CancellationToken cancellationToken);
   }
 
   public class YtdlpService : IYtdlpService
@@ -201,7 +201,7 @@ namespace SaveHere.Services
       return client;
     }
 
-    public async Task DownloadVideo(int itemId, string url, string quality, string proxy, CancellationToken cancellationToken)
+    public async Task DownloadVideo(int itemId, string url, string quality, string proxy, string? downloadFolder, CancellationToken cancellationToken)
     {
       var executablePath = await GetExecutablePath();
 
@@ -221,6 +221,23 @@ namespace SaveHere.Services
           ? $"--proxy \"{proxy}\""
           : "";
 
+      // Determine download path
+      string fullDownloadPath = DirectoryBrowser.DownloadsPath;
+      if (!string.IsNullOrWhiteSpace(downloadFolder))
+      {
+        string combinedPath = Path.Combine(DirectoryBrowser.DownloadsPath, downloadFolder);
+        string normalizedFullPath = Path.GetFullPath(combinedPath);
+        string normalizedBasePath = Path.GetFullPath(DirectoryBrowser.DownloadsPath);
+
+        if (normalizedFullPath.StartsWith(normalizedBasePath, StringComparison.OrdinalIgnoreCase))
+        {
+          fullDownloadPath = normalizedFullPath;
+        }
+      }
+
+      // Create directory if it doesn't exist
+      Directory.CreateDirectory(fullDownloadPath);
+
       var startInfo = new ProcessStartInfo
       {
         FileName = executablePath,
@@ -229,7 +246,7 @@ namespace SaveHere.Services
         RedirectStandardError = true,
         UseShellExecute = false,
         CreateNoWindow = true,
-        WorkingDirectory = DirectoryBrowser.DownloadsPath
+        WorkingDirectory = fullDownloadPath
       };
 
       await _progressHubService.BroadcastLogUpdate(itemId, $"Running yt-dlp with arguments: {startInfo.Arguments}");
