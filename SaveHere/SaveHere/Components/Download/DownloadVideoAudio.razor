@@ -537,6 +537,17 @@
       return; // Autostart is disabled
     }
 
+    // Calculate how many items are already downloading
+    int currentActiveDownloads = _youtubeDownloadQueueItems
+        .Count(item => item.Status == EQueueItemStatus.Downloading);
+
+    // If we're already at or above the concurrency limit, exit the function
+    if (currentActiveDownloads >= _maxAutoStartConcurrency)
+    {
+      return;
+    }
+
+    // Find paused items
     var pausedItems = _youtubeDownloadQueueItems
         .Where(item => item.Status == EQueueItemStatus.Paused)
         .ToList();
@@ -549,9 +560,10 @@
     int startedCount = 0;
     foreach (var item in pausedItems)
     {
-      if (startedCount >= _maxAutoStartConcurrency)
+      // Break if we exceed the concurrency limit
+      if (currentActiveDownloads + startedCount >= _maxAutoStartConcurrency)
       {
-        break; // Limit concurrent starts
+        break;
       }
 
       try

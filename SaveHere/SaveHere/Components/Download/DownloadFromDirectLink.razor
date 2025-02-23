@@ -119,10 +119,10 @@
           <MudTd Style="text-align:end;" Class="sv-table-custom-row-1" DataLabel="Actions">
             <MudStack Row="true" Style="gap:5px;">
               <MudButton Variant="Variant.Filled" Color="@(context.Status == EQueueItemStatus.Downloading ? Color.Error : Color.Success)" Size="Size.Small" Style="min-width:75px;" OnClick="async() =>
-                      {
-                                if (context.Status == EQueueItemStatus.Downloading) await CancelDownload(context); else await StartDownload(context);
-                      }
-                ">
+                        {
+                                    if (context.Status == EQueueItemStatus.Downloading) await CancelDownload(context); else await StartDownload(context);
+                        }
+                  ">
                 @(context.Status == EQueueItemStatus.Downloading ? "Stop" : "Start")
               </MudButton>
               <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small" OnClick="async () => await DeleteQueueItem(context)">Delete</MudButton>
@@ -536,6 +536,17 @@
       return; // Autostart is disabled
     }
 
+    // Calculate how many items are already downloading
+    int currentActiveDownloads = _fileDownloadQueueItems
+        .Count(item => item.Status == EQueueItemStatus.Downloading);
+
+    // If we're already at or above the concurrency limit, exit the function
+    if (currentActiveDownloads >= _maxAutoStartConcurrency)
+    {
+      return;
+    }
+
+    // Find all paused items waiting to be started
     var pausedItems = _fileDownloadQueueItems
         .Where(item => item.Status == EQueueItemStatus.Paused)
         .ToList();
@@ -548,9 +559,10 @@
     int startedCount = 0;
     foreach (var item in pausedItems)
     {
-      if (startedCount >= _maxAutoStartConcurrency)
+      // Break if the total would exceed the concurrency limit
+      if (currentActiveDownloads + startedCount >= _maxAutoStartConcurrency)
       {
-        break; // Limit concurrent starts
+        break;
       }
 
       try
