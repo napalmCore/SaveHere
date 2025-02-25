@@ -146,7 +146,7 @@ $env:BASIC_AUTH_PASSWORD = "your_password"
 - [x] Add rjmusic downloader
 - [ ] Add terminal
 - [ ] Add full file manager
-- [ ] Add temporary short links
+- [x] Add ~~temporary~~ short links
 - [x] Check [issues](https://github.com/gudarzi/SaveHere/issues) for more!
 
 
