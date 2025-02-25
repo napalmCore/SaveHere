@@ -1,4 +1,5 @@
 ﻿using SaveHere.Helpers;
+using SaveHere.Services;
 using System.Net;
 
 namespace SaveHere.Endpoints
@@ -7,16 +8,16 @@ namespace SaveHere.Endpoints
   {
     public static void MapStreamingEndpoints(this WebApplication app)
     {
-      // GET endpoint for streaming media
-      app.MapGet("/stream/{filename}", (string filename, HttpContext context) =>
+      // GET endpoint for streaming media using short links
+      app.MapGet("/s/{shortLink}", (string shortLink, HttpContext context, ShortLinkService shortLinkService) =>
       {
         try
         {
-          // Decode the filename from the URL
-          var decodedFilename = WebUtility.UrlDecode(filename);
-
-          // Combine the decoded filename with the downloads directory path
-          var filePath = Path.Combine(DirectoryBrowser.DownloadsPath, decodedFilename);
+          // Resolve the short link to a file path
+          if (!shortLinkService.TryGetFilePath(shortLink, out var filePath))
+          {
+            return Results.NotFound("The requested file was not found.");
+          }
 
           // Ensure the file path resolves to the intended downloads directory
           var fullFilePath = Path.GetFullPath(filePath); // Canonical path resolution
@@ -33,7 +34,7 @@ namespace SaveHere.Endpoints
           if (!File.Exists(fullFilePath)) return Results.NotFound();
 
           var fileInfo = new FileInfo(fullFilePath);
-          var extension = Path.GetExtension(decodedFilename).ToLowerInvariant();
+          var extension = Path.GetExtension(fileInfo.Name).ToLowerInvariant();
 
           // Map common media extensions to MIME types
           var contentType = extension switch
@@ -98,6 +99,7 @@ namespace SaveHere.Endpoints
           return Results.Json(new { error = $"An error occurred: {ex.Message}" }, statusCode: 500);
         }
       });
+
     }
   }
 }

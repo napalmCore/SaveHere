@@ -101,6 +101,8 @@ namespace SaveHere
 
       builder.Services.AddSingleton<MediaConversionService>();
 
+      builder.Services.AddSingleton<ShortLinkService>();
+
       var app = builder.Build();
 
       // Configure the HTTP request pipeline.

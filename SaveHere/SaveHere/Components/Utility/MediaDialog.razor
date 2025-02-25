@@ -1,19 +1,25 @@
-﻿<MudDialog>
+﻿@using Microsoft.JSInterop
+@inject IJSRuntime JSRuntime
+
+<MudDialog>
   <DialogContent>
-    <div style="width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; margin-top:1rem;">
+    <div style="width: 100%; min-width: 333px; max-width: 800px; margin: 0 auto;">
       @if (IsVideo)
       {
-        <video controls style="max-width: 100%; max-height: 90vh;">
+        <video controls style="width: 100%; max-height: 80vh;" autoplay>
           <source src="@MediaUrl" type="video/mp4">
           Your browser does not support the video tag.
         </video>
       }
-      else if(IsAudio)
+      else if (IsAudio)
       {
-        <audio controls style="max-width: 100%; max-height: 90vh;">
-          <source src="@MediaUrl" type="audio/mpeg">
-          Your browser does not support the audio tag.
-        </audio>
+        <div style="text-align: center; padding: 20px;">
+          <MudIcon Icon="@Icons.Material.Filled.AudioFile" Size="Size.Large" />
+          <audio controls style="width: 100%; margin-top: 10px;" autoplay>
+            <source src="@MediaUrl">
+            Your browser does not support the audio tag.
+          </audio>
+        </div>
       }
       else
       {
@@ -21,20 +27,25 @@
       }
     </div>
   </DialogContent>
+  <DialogActions>
+    <MudButton OnClick="Close">Close</MudButton>
+    <MudButton Color="Color.Primary" OnClick="Download">Download</MudButton>
+  </DialogActions>
 </MudDialog>
 
 @code {
-  [CascadingParameter]
-  private MudDialogInstance MudDialog { get; set; } = default!;
+  [CascadingParameter] MudDialogInstance MudDialog { get; set; } = null!;
 
-  [Parameter]
-  public string MediaUrl { get; set; } = "";
-
-  [Parameter]
-  public bool IsVideo { get; set; } = false;
-  
-  [Parameter]
-  public bool IsAudio { get; set; } = false;
+  [Parameter] public string MediaUrl { get; set; } = string.Empty;
+  [Parameter] public bool IsVideo { get; set; }
+  [Parameter] public bool IsAudio { get; set; }
 
   private void Close() => MudDialog.Close();
+
+  private async Task Download()
+  {
+    // Convert streaming URL to download URL
+    var downloadUrl = MediaUrl.Replace("/s/", "/d/");
+    await JSRuntime.InvokeVoidAsync("open", downloadUrl, "_blank");
+  }
 }

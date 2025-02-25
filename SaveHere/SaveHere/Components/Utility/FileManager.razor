@@ -6,13 +6,15 @@
 @using System.Net
 @inject IFileManagerService FileManagerService
 @inject IDialogService DialogService
+@inject ShortLinkService ShortLinkService
+@inject NavigationManager NavigationManager
 
 <MudPaper Class="pa-5 mx-5 mt-3 sv-paper" Elevation="5">
   @if (!string.IsNullOrEmpty(errorMessage))
   {
-    <MudAlert Severity="Severity.Error" Class="mb-4">@errorMessage</MudAlert>
+      <MudAlert Severity="Severity.Error" Class="mb-4">@errorMessage</MudAlert>
   }
-
+  
   <div style="display:flex; justify-content:end; width:100%">
     <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="LoadFiles" Class="mb-4 mt-2" StartIcon="@Icons.Material.Filled.Refresh">
       Refresh
@@ -28,7 +30,7 @@
         <MudText Typo="Typo.subtitle2" Style="margin: 0; padding: 0; width: 0px; font-size: 0.75rem;">/</MudText>
       </SeparatorTemplate>
       <ItemTemplate Context="item">
-        <MudButton Class="pa-2" Style="box-sizing: border-box; margin-right: -10px; margin-left: -5px; margin-top: -10px; margin-bottom: -10px; text-decoration: underline;" Variant="Variant.Text" OnClick="@(async()=>await NavigateToDirectory(item.Href))" Color="Color.Primary">@item.Text</MudButton>
+        <MudButton Class="pa-2" Style="box-sizing: border-box; margin-right: -10px; margin-left: -5px; margin-top: -10px; margin-bottom: -10px; text-decoration: underline;" Variant="Variant.Text" OnClick="@(async () => await NavigateToDirectory(item.Href))" Color="Color.Primary">@item.Text</MudButton>
       </ItemTemplate>
     </MudBreadcrumbs>
   </MudElement>
@@ -41,22 +43,22 @@
         </MudTableSortLabel>
       </MudTh>
       <MudTh>
-        <MudTableSortLabel SortBy="new Func<FileSystemItem, object>(x => x is FileItem xfi? xfi.Extension : x.Type)">
+        <MudTableSortLabel SortBy="new Func<FileSystemItem, object>(x => x is FileItem xfi ? xfi.Extension : x.Type)">
           Type
         </MudTableSortLabel>
       </MudTh>
       <MudTh>
-        <MudTableSortLabel SortBy="new Func<FileSystemItem, object>(x => x is FileItem xfi? xfi.Length : -1)">
+        <MudTableSortLabel SortBy="new Func<FileSystemItem, object>(x => x is FileItem xfi ? xfi.Length : -1)">
           Size
         </MudTableSortLabel>
       </MudTh>
       <MudTh>
-        <MudTableSortLabel SortBy="new Func<FileSystemItem, object>(x => x is FileItem xfi? xfi.CreatedAt : DateTime.MinValue)">
+        <MudTableSortLabel SortBy="new Func<FileSystemItem, object>(x => x is FileItem xfi ? xfi.CreatedAt : DateTime.MinValue)">
           Created
         </MudTableSortLabel>
       </MudTh>
       <MudTh>
-        <MudTableSortLabel SortBy="new Func<FileSystemItem, object>(x => x is FileItem xfi? xfi.LastModified : DateTime.MinValue)">
+        <MudTableSortLabel SortBy="new Func<FileSystemItem, object>(x => x is FileItem xfi ? xfi.LastModified : DateTime.MinValue)">
           Modified
         </MudTableSortLabel>
       </MudTh>
@@ -66,19 +68,19 @@
       <MudTd DataLabel="Name" Style="word-break:break-all;">
         @if (context is DirectoryItem directory)
         {
-          <MudButton Variant="Variant.Text" Size="Size.Small" OnClick="() => NavigateToDirectory(directory.FullName)" Style="padding: 0; margin: 0; min-width: unset; text-decoration: underline;" Color="Color.Primary">
-            <MudIcon Icon="@Icons.Material.Outlined.Folder" Style="margin-right: 5px; margin-left: auto; vertical-align: middle;" />
-            @directory.Name
-          </MudButton>
+            <MudButton Variant="Variant.Text" Size="Size.Small" OnClick="() => NavigateToDirectory(directory.FullName)" Style="padding: 0; margin: 0; min-width: unset; text-decoration: underline;" Color="Color.Primary">
+              <MudIcon Icon="@Icons.Material.Outlined.Folder" Style="margin-right: 5px; margin-left: auto; vertical-align: middle;" />
+              @directory.Name
+            </MudButton>
         }
         else if (context is FileItem file)
         {
-          <MudIcon Icon="@Icons.Material.Outlined.InsertDriveFile" Style="margin-right: 5px; margin-left: auto; vertical-align: middle;" />
-          @file.Name
+            <MudIcon Icon="@Icons.Material.Outlined.InsertDriveFile" Style="margin-right: 5px; margin-left: auto; vertical-align: middle;" />
+            @file.Name
         }
         else
         {
-          @context.Name
+            @context.Name
         }
       </MudTd>
       <MudTd DataLabel="Type">
@@ -90,49 +92,49 @@
       <MudTd DataLabel="Created">
         @if (context is FileItem file)
         {
-          @file.CreatedAt.ToString("g")
+            @file.CreatedAt.ToString("g")
         }
       </MudTd>
       <MudTd DataLabel="Modified">
         @if (context is FileItem file)
         {
-          @file.LastModified.ToString("g")
+            @file.LastModified.ToString("g")
         }
       </MudTd>
       <MudTd DataLabel="Actions" Style="text-align:end;">
         <MudStack Row="true" Style="gap:5px; justify-content:end">
           @if (context is FileItem file)
           {
-            @if (IsMediaFile(context.Name))
-            {
-              <MudButton OnClick="@(() => OpenMediaDialog(file))"
-                         Variant="Variant.Filled" Color="Color.Warning" Size="Size.Small">
-                Play
-              </MudButton>
-            }
-            <MudButton Variant="Variant.Filled" Color="Color.Info" Size="Size.Small"
+              @if (IsMediaFile(context.Name))
+              {
+                  <MudButton OnClick="@(() => OpenMediaDialog(file))"
+                           Variant="Variant.Filled" Color="Color.Warning" Size="Size.Small">
+                    Play
+                  </MudButton>
+              }
+              <MudButton Variant="Variant.Filled" Color="Color.Info" Size="Size.Small"
                        OnClick="() => RenameItem(file)">
-              Rename
-            </MudButton>
-            <MudButton Variant="Variant.Filled" Color="Color.Success" Size="Size.Small"
-                       Href="@($"/downloads/{WebUtility.UrlEncode(Path.GetRelativePath(DirectoryBrowser.DownloadsPath, context.FullName))}")" Target="_blank">
-              Download
-            </MudButton>
-            <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                Rename
+              </MudButton>
+              <MudButton Variant="Variant.Filled" Color="Color.Success" Size="Size.Small"
+                       Href="@($"/d/{GetShortLink(file)}")" Target="_blank">
+                Download
+              </MudButton>
+              <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
                        OnClick="() => DeleteFile(file)">
-              Delete
-            </MudButton>
+                Delete
+              </MudButton>
           }
           else if (context is DirectoryItem directory)
           {
-            <MudButton Variant="Variant.Filled" Color="Color.Info" Size="Size.Small"
+              <MudButton Variant="Variant.Filled" Color="Color.Info" Size="Size.Small"
                        OnClick="() => RenameItem(directory)">
-              Rename
-            </MudButton>
-            <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                Rename
+              </MudButton>
+              <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
                        OnClick="() => DeleteDirectory(directory)">
-              Delete
-            </MudButton>
+                Delete
+              </MudButton>
           }
         </MudStack>
       </MudTd>
@@ -225,6 +227,10 @@
       isLoading = true;
       errorMessage = string.Empty;
       files = FileManagerService.GetFiles(_currentDirectory);
+      
+      // Refresh short links for all files
+      ShortLinkService.RefreshShortLinks(files);
+      
       await OnFilesChanged.InvokeAsync();
     }
     catch (Exception ex)
@@ -236,6 +242,11 @@
       isLoading = false;
       await InvokeAsync(StateHasChanged);
     }
+  }
+
+  private string GetShortLink(FileItem file)
+  {
+    return ShortLinkService.GetShortLink(file.FullName);
   }
 
   private void UpdateBreadcrumbs()
@@ -250,7 +261,7 @@
     {
       currentPath = Path.Combine(currentPath, part);
       var localPath = currentPath;
-      breadcrumbsItems.Add(new BreadcrumbItem(part, href: localPath/* , OnClick: () => NavigateToDirectory(localPath) */));
+      breadcrumbsItems.Add(new BreadcrumbItem(part, href: localPath));
     }
   }
 
@@ -324,20 +335,20 @@
     var isVideo = new[] { ".mp4", ".webm", ".avi", ".mov", ".mkv" }
         .Contains(Path.GetExtension(fileItem.Name).ToLowerInvariant());
 
-    var relativePath = Path.GetRelativePath(DirectoryBrowser.DownloadsPath, fileItem.FullName);
+    var shortLink = ShortLinkService.GetShortLink(fileItem.FullName);
 
     var parameters = new DialogParameters<MediaDialog>
         {
-            {x=>x.MediaUrl, $"/stream/{WebUtility.UrlEncode(relativePath)}"},
+            {x=>x.MediaUrl, $"/s/{shortLink}"},
             {x=>x.IsVideo, isVideo},
             {x=>x.IsAudio, !isVideo}
         };
 
     var options = new DialogOptions
-      {
-        BackgroundClass = "my-custom-media-dialog",
-        CloseButton = true
-      };
+    {
+      BackgroundClass = "my-custom-media-dialog",
+      CloseButton = true
+    };
 
     return DialogService.ShowAsync<MediaDialog>("", parameters, options);
   }
@@ -348,7 +359,7 @@
   }
 
   private async Task RenameItem(FileSystemItem item)
-{
+  {
     var parameters = new DialogParameters<RenameDialog>
     {
         { x => x.OriginalName, item.Name }
@@ -359,22 +370,21 @@
     
     if (!result.Canceled && result.Data is string newName && !string.IsNullOrWhiteSpace(newName))
     {
-        try
+      try
+      {
+        if (FileManagerService.RenameItem(item, newName))
         {
-            if (FileManagerService.RenameItem(item, newName))
-            {
-                await LoadFiles();
-            }
-            else
-            {
-                errorMessage = "Failed to rename item. The name may be invalid or already exists.";
-            }
+          await LoadFiles();
         }
-        catch (Exception ex)
+        else
         {
-            errorMessage = $"Error renaming item: {ex.Message}";
+          errorMessage = "Failed to rename item. The name may be invalid or already exists.";
         }
+      }
+      catch (Exception ex)
+      {
+        errorMessage = $"Error renaming item: {ex.Message}";
+      }
     }
-}
-
+  }
 }

@@ -1,4 +1,5 @@
 ﻿using SaveHere.Helpers;
+using SaveHere.Services;
 using System.Net;
 
 namespace SaveHere.Endpoints
@@ -7,16 +8,16 @@ namespace SaveHere.Endpoints
   {
     public static void MapDownloadEndpoints(this WebApplication app)
     {
-      // GET endpoint for downloading files
-      app.MapGet("/downloads/{filename}", (string filename, HttpContext context) =>
+      // GET endpoint for downloading files using short links
+      app.MapGet("/d/{shortLink}", (string shortLink, HttpContext context, ShortLinkService shortLinkService) =>
       {
         try
         {
-          // Decode the filename from the URL
-          var decodedFilename = WebUtility.UrlDecode(filename);
-
-          // Combine the decoded filename with the downloads directory path
-          var filePath = Path.Combine(DirectoryBrowser.DownloadsPath, decodedFilename);
+          // Resolve the short link to a file path
+          if (!shortLinkService.TryGetFilePath(shortLink, out var filePath))
+          {
+            return Results.NotFound("The requested file was not found.");
+          }
 
           // Ensure the file path resolves to the intended downloads directory
           var fullFilePath = Path.GetFullPath(filePath); // Canonical path resolution
@@ -40,7 +41,7 @@ namespace SaveHere.Endpoints
           // Set content disposition to attachment to force download
           try
           {
-            context.Response.Headers.Append("Content-Disposition", $"attachment; filename=\"{fileInfo.Name}\"");
+            context.Response.Headers.Append("Content-Disposition", $"attachment; filename=\"{WebUtility.UrlEncode(fileInfo.Name)}\"");
           }
           catch { /*pass for now*/ }
 
@@ -48,14 +49,23 @@ namespace SaveHere.Endpoints
           if (string.IsNullOrEmpty(rangeHeader))
           {
             context.Response.ContentLength = fileInfo.Length;
-            var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+            var fs = new FileStream(fullFilePath, FileMode.Open, FileAccess.Read, FileShare.Read);
             return Results.Stream(fs, contentType, fileInfo.Name);
           }
 
           // Parse the range header
           var range = rangeHeader.Replace("bytes=", "").Split('-');
-          var start = long.Parse(range[0]);
-          var end = range[1] == "" ? fileInfo.Length - 1 : long.Parse(range[1]);
+
+          // Validate range
+          if (!long.TryParse(range[0], out var start) || start < 0 || start >= fileInfo.Length)
+          {
+            return Results.Json(new { error = "Invalid range specified." }, statusCode: 416);
+          }
+
+          var end = range.Length > 1 && long.TryParse(range[1], out var tempEnd) && tempEnd >= start && tempEnd < fileInfo.Length
+                    ? tempEnd
+                    : fileInfo.Length - 1;
+
           var length = end - start + 1;
 
           // Set response headers for partial content
@@ -77,6 +87,7 @@ namespace SaveHere.Endpoints
           return Results.Json(new { error = $"An error occurred: {ex.Message}" }, statusCode: 500);
         }
       });
+
     }
   }
 }
