@@ -110,6 +110,10 @@
                 Play
               </MudButton>
             }
+            <MudButton Variant="Variant.Filled" Color="Color.Info" Size="Size.Small"
+                       OnClick="() => RenameItem(file)">
+              Rename
+            </MudButton>
             <MudButton Variant="Variant.Filled" Color="Color.Success" Size="Size.Small"
                        Href="@($"/downloads/{WebUtility.UrlEncode(Path.GetRelativePath(DirectoryBrowser.DownloadsPath, context.FullName))}")" Target="_blank">
               Download
@@ -121,6 +125,10 @@
           }
           else if (context is DirectoryItem directory)
           {
+            <MudButton Variant="Variant.Filled" Color="Color.Info" Size="Size.Small"
+                       OnClick="() => RenameItem(directory)">
+              Rename
+            </MudButton>
             <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
                        OnClick="() => DeleteDirectory(directory)">
               Delete
@@ -338,4 +346,35 @@
   {
     await LoadFiles();
   }
+
+  private async Task RenameItem(FileSystemItem item)
+{
+    var parameters = new DialogParameters<RenameDialog>
+    {
+        { x => x.OriginalName, item.Name }
+    };
+    
+    var dialog = await DialogService.ShowAsync<RenameDialog>("Rename", parameters);
+    var result = await dialog.Result;
+    
+    if (!result.Canceled && result.Data is string newName && !string.IsNullOrWhiteSpace(newName))
+    {
+        try
+        {
+            if (FileManagerService.RenameItem(item, newName))
+            {
+                await LoadFiles();
+            }
+            else
+            {
+                errorMessage = "Failed to rename item. The name may be invalid or already exists.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error renaming item: {ex.Message}";
+        }
+    }
+}
+
 }

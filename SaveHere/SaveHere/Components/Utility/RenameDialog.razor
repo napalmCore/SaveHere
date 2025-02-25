@@ -1,0 +1,31 @@
+﻿@using MudBlazor
+@using SaveHere.Models
+
+<MudDialog>
+  <DialogContent>
+    <MudTextField @bind-Value="NewName" Label="New Name" Variant="Variant.Outlined" />
+  </DialogContent>
+  <DialogActions>
+    <MudButton OnClick="Cancel">Cancel</MudButton>
+    <MudButton Color="Color.Primary" OnClick="Submit">Rename</MudButton>
+  </DialogActions>
+</MudDialog>
+
+@code {
+  [CascadingParameter] MudDialogInstance MudDialog { get; set; } = default!;
+  [Parameter] public string OriginalName { get; set; } = string.Empty;
+
+  private string NewName { get; set; } = string.Empty;
+
+  protected override void OnInitialized()
+  {
+    NewName = OriginalName;
+  }
+
+  void Submit()
+  {
+    MudDialog.Close(DialogResult.Ok(NewName));
+  }
+
+  void Cancel() => MudDialog.Cancel();
+}

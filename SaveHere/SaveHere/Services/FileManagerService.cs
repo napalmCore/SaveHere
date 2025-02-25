@@ -7,6 +7,7 @@ namespace SaveHere.Services
     List<FileSystemItem> GetFiles(string path);
     void DeleteFile(FileItem item);
     void DeleteDirectory(DirectoryItem item);
+    bool RenameItem(FileSystemItem item, string newName);
   }
 
   public class FileManagerService : IFileManagerService
@@ -24,6 +25,11 @@ namespace SaveHere.Services
     public void DeleteDirectory(DirectoryItem item)
     {
       DirectoryBrowser.DeleteDirectoryItem(item);
+    }
+
+    public bool RenameItem(FileSystemItem item, string newName)
+    {
+      return DirectoryBrowser.RenameFileSystemItem(item, newName);
     }
   }
 }

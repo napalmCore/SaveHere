@@ -100,6 +100,72 @@
     {
       Directory.Delete(item.FullName, true);
     }
+
+    public static bool RenameFileSystemItem(FileSystemItem item, string newName)
+    {
+      try
+      {
+        // Validate the new name
+        if (string.IsNullOrWhiteSpace(newName) ||
+            newName.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
+        {
+          return false;
+        }
+
+        // Get directory of the item
+        string? parentDirectory = Path.GetDirectoryName(item.FullName);
+        if (string.IsNullOrEmpty(parentDirectory))
+        {
+          return false;
+        }
+
+        // Construct new path
+        string newPath = Path.Combine(parentDirectory, newName);
+
+        // Normalize paths for security check
+        string normalizedNewPath = Path.GetFullPath(newPath);
+        string normalizedBasePath = Path.GetFullPath(DownloadsPath);
+
+        // Security check to prevent path traversal
+        if (!normalizedNewPath.StartsWith(normalizedBasePath, StringComparison.OrdinalIgnoreCase))
+        {
+          return false; // Attempted path traversal
+        }
+
+        // Check if target already exists
+        if (File.Exists(newPath) || Directory.Exists(newPath))
+        {
+          return false; // Target already exists
+        }
+
+        if (item is FileItem)
+        {
+          // Rename file
+          File.Move(item.FullName, newPath);
+          item.FullName = newPath;
+          item.Name = newName;
+
+          // If it's a file item, update the extension property
+          if (item is FileItem fileItem)
+          {
+            fileItem.Extension = Path.GetExtension(newName);
+          }
+        }
+        else if (item is DirectoryItem)
+        {
+          // Rename directory
+          Directory.Move(item.FullName, newPath);
+          item.FullName = newPath;
+          item.Name = newName;
+        }
+        return true;
+      }
+      catch
+      {
+        return false;
+      }
+    }
+
   }
 
   public class FileSystemItem
