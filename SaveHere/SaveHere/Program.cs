@@ -171,7 +171,12 @@ namespace SaveHere
       {
         var dbc = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         dbc.Database.EnsureCreated();
-        dbc.Database.Migrate();
+
+        try
+        {
+          dbc.Database.Migrate();
+        }
+        catch { /* pass for now */ }
       }
 
       app.Run();
