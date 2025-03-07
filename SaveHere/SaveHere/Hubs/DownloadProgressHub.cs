@@ -1,9 +1,8 @@
-﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.SignalR;
+﻿using Microsoft.AspNetCore.SignalR;
 
 namespace SaveHere.Hubs
 {
-  [Authorize(Policy = "EnabledUser")]
+  //[Authorize(Policy = "EnabledUser")]
   public class ProgressHub : Hub
   {
   }
