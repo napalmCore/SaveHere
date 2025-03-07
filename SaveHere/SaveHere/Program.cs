@@ -149,11 +149,11 @@ namespace SaveHere
 
       //app.UseHttpsRedirection();
 
-      app.UseStaticFiles();
-      app.UseAntiforgery();
-
       app.UseAuthentication();
       app.UseAuthorization();
+
+      app.UseStaticFiles();
+      app.UseAntiforgery();
 
       app.MapRazorComponents<App>()
           .AddInteractiveServerRenderMode()
