@@ -368,4 +368,4 @@ downloads/*
 /SaveHere/SaveHere/db
 /SaveHere/SaveHere/downloads
 /SaveHere/SaveHere/tools
-/SaveHere/SaveHere/admin-credentials.txt
+SaveHere/SaveHere/admin-credentials.json
