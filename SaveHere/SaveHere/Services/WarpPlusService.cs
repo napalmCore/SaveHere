@@ -26,7 +26,7 @@ namespace SaveHere.Services
     private readonly string _downloadUrl;
     private readonly List<string> _logs = new();
     private readonly object _logLock = new();
-    private const string DEFAULT_ARGS = "--gool -b 0.0.0.0:8086";
+    private const string DEFAULT_ARGS = "-4 --gool -b 0.0.0.0:8086";
 
     public WarpPlusService(
         ILogger<WarpPlusService> logger,
