@@ -11,7 +11,7 @@ namespace SaveHere.Endpoints
       var group = app.MapGroup("/ytdlp");
 
       // GET endpoint for yt-dlp documentation
-      group.MapGet("/supportedsites.md", async (HttpContext context) =>
+      group.MapGet("/supportedsites.md", [Authorize(Policy = "EnabledUser")] async (HttpContext context) =>
       {
         var ytdlpService = context.RequestServices.GetRequiredService<IYtdlpService>();
         var filePath = await ytdlpService.GetSupportedSitesFilePath();

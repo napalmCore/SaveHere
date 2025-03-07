@@ -11,7 +11,7 @@ namespace SaveHere.Endpoints
     public static void MapDownloadEndpoints(this WebApplication app)
     {
       // GET endpoint for downloading files using short links
-      app.MapGet("/d/{shortLink}", (string shortLink, HttpContext context, ShortLinkService shortLinkService) =>
+      app.MapGet("/d/{shortLink}", [Authorize(Policy = "EnabledUser")] (string shortLink, HttpContext context, ShortLinkService shortLinkService) =>
       {
         try
         {

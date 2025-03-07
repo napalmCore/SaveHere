@@ -10,7 +10,7 @@ namespace SaveHere.Endpoints
     public static void MapStreamingEndpoints(this WebApplication app)
     {
       // GET endpoint for streaming media using short links
-      app.MapGet("/s/{shortLink}", (string shortLink, HttpContext context, ShortLinkService shortLinkService) =>
+      app.MapGet("/s/{shortLink}", [Authorize(Policy = "EnabledUser")] (string shortLink, HttpContext context, ShortLinkService shortLinkService) =>
       {
         try
         {

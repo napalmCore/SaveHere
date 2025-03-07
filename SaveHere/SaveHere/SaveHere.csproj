@@ -5,7 +5,7 @@
 		<Nullable>enable</Nullable>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<UserSecretsId>aspnet-SaveHere-79a10a8e-8678-4a74-9f74-ed46c4e3cf27</UserSecretsId>
-		<Version>3.6.7</Version>
+		<Version>3.6.8</Version>
 		<AssemblyVersion>$(Version)</AssemblyVersion>
 		<FileVersion>$(Version)</FileVersion>
 		<DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
