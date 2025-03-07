@@ -4,13 +4,26 @@
 @using Microsoft.AspNetCore.Authentication
 @using Microsoft.AspNetCore.Identity
 @using SaveHere.Models
+@using SaveHere.Services
 
 @inject SignInManager<ApplicationUser> SignInManager
 @inject ILogger<Login> Logger
 @inject NavigationManager NavigationManager
 @inject IdentityRedirectManager RedirectManager
+@inject DefaultCredentialsService DefaultCredentialsService
 
 <PageTitle>Log in</PageTitle>
+
+@if (_defaultCredentials != null)
+{
+  <MudAlert Severity="Severity.Warning" Class="ma-4">
+    <MudText Typo="Typo.h6">Default Admin Credentials</MudText>
+    <MudText>The application is using default admin credentials. Please log in and change your password immediately.</MudText>
+    <MudDivider Class="my-2" />
+    <MudText>Username: <strong>@_defaultCredentials.Value.username</strong></MudText>
+    <MudText>Password: <strong>@_defaultCredentials.Value.password</strong></MudText>
+  </MudAlert>
+}
 
 <div style="padding: 1rem;">
   <MudText Typo="Typo.h3" GutterBottom="true">Log in</MudText>
@@ -61,6 +74,7 @@
 
 @code {
   private string? errorMessage;
+  private (string username, string password)? _defaultCredentials;
 
   [CascadingParameter]
   private HttpContext HttpContext { get; set; } = default!;
@@ -78,6 +92,8 @@
       // Clear the existing external cookie to ensure a clean login process
       await HttpContext.SignOutAsync(IdentityConstants.ExternalScheme);
     }
+
+    await CheckDefaultCredentials();
   }
 
   public async Task LoginUser()
@@ -88,7 +104,17 @@
     if (result.Succeeded)
     {
       Logger.LogInformation("User logged in.");
-      RedirectManager.RedirectTo(ReturnUrl);
+
+      // If using default credentials, redirect to password change
+      if (_defaultCredentials?.username == Input.Username &&
+          _defaultCredentials?.password == Input.Password)
+      {
+        RedirectManager.RedirectTo("Account/Manage/ChangePassword");
+      }
+      else
+      {
+        RedirectManager.RedirectTo(ReturnUrl);
+      }
     }
     else if (result.RequiresTwoFactor)
     {
@@ -105,6 +131,11 @@
     {
       errorMessage = "Error: Invalid login attempt.";
     }
+  }
+
+  private async Task CheckDefaultCredentials()
+  {
+    _defaultCredentials = await DefaultCredentialsService.GetDefaultCredentials();
   }
 
   private sealed class InputModel

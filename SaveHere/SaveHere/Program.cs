@@ -82,6 +82,7 @@ namespace SaveHere
           .AddDefaultTokenProviders();
 
       builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
+      builder.Services.AddSingleton<DefaultCredentialsService>();
       builder.Services.AddHostedService<InitialSetupService>();
       builder.Services.AddScoped<IUserManagementService, UserManagementService>();
 

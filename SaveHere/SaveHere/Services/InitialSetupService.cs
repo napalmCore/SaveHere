@@ -8,16 +8,16 @@ namespace SaveHere.Services
   {
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<InitialSetupService> _logger;
-    private readonly string _credentialsPath;
+    private readonly DefaultCredentialsService _defaultCredentialsService;
 
     public InitialSetupService(
-        IServiceProvider serviceProvider,
-        ILogger<InitialSetupService> logger,
-        IWebHostEnvironment environment)
+          IServiceProvider serviceProvider,
+          ILogger<InitialSetupService> logger,
+          DefaultCredentialsService defaultCredentialsService)
     {
       _serviceProvider = serviceProvider;
       _logger = logger;
-      _credentialsPath = Path.Combine(environment.ContentRootPath, "admin-credentials.txt");
+      _defaultCredentialsService = defaultCredentialsService;
     }
 
     public async Task StartAsync(CancellationToken cancellationToken)
@@ -77,15 +77,16 @@ namespace SaveHere.Services
 
     private async Task SaveCredentialsToFile(string username, string password)
     {
-      var content = $"""
-                Admin Credentials
-                =======================
-                Username: {username}
-                Password: {password}
-                """;
+      await _defaultCredentialsService.SaveCredentials(username, password);
 
-      await File.WriteAllTextAsync(_credentialsPath, content);
-      _logger.LogInformation("Admin credentials saved to: {Path}", _credentialsPath);
+      // Print credentials to console with clear markings
+      Console.WriteLine("\n==================================");
+      Console.WriteLine("|| DEFAULT ADMIN CREDENTIALS     ||");
+      Console.WriteLine("==================================");
+      Console.WriteLine($"|| Username: {username}");
+      Console.WriteLine($"|| Password: {password}");
+      Console.WriteLine("==================================");
+      Console.WriteLine("!! IMPORTANT: Change this password after first login !!\n");
     }
 
     private static string GenerateRandomNumber()

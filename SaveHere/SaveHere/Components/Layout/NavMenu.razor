@@ -10,27 +10,21 @@
     <MudNavLink Href="downloadvideoaudio" Match="NavLinkMatch.Prefix" Icon="@Icons.Custom.Brands.YouTube">Download Video/Audio</MudNavLink>
 
     <MudNavLink Href="spotifysearch" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.MusicNote">Download From Spotify</MudNavLink>
-    
+
     <MudNavLink Href="rjmedialinkresolver" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.LibraryMusic">Download From RJMusic</MudNavLink>
 
     <MudNavLink Href="mediaconverter" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.SwitchVideo">Media Converter</MudNavLink>
-    
+
     <MudNavLink Disabled Href="#" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.WbCloudy">Torrent Downloader</MudNavLink>
     <MudNavLink Disabled Href="#" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.WbCloudy">File Manager</MudNavLink>
     <MudNavLink Disabled Href="#" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Terminal">Terminal</MudNavLink>
-    
-    <MudNavLink Href="warpplusservicemanager" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.VpnKey">Warp Plus Proxy</MudNavLink>
 
-    <MudNavLink Disabled hidden Href="counter" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Add">Counter</MudNavLink>
-    <MudNavLink Disabled hidden Href="weather" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.List">Weather</MudNavLink>
+    <MudNavLink Href="warpplusservicemanager" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.VpnKey">Warp Plus Proxy</MudNavLink>
   }
   else
   {
-    <MudNavLink Disabled hidden Href="auth" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Lock">Auth Required</MudNavLink>
-
     <AuthorizeView Roles="Admin">
       <Authorized>
-        <MudDivider Class="my-2" />
         <MudNavLink Href="Account/Manage/UserManagement" Icon="@Icons.Material.Filled.ManageAccounts">User Management</MudNavLink>
       </Authorized>
     </AuthorizeView>
