@@ -1,5 +1,7 @@
 ﻿@page "/rjmedialinkresolver"
+@using Microsoft.AspNetCore.Authorization
 @using SaveHere.Components.Utility
+@attribute [Authorize(Policy = "EnabledUser")]
 
 <PageTitle>RJ Media Link Resolver</PageTitle>
 

@@ -1,5 +1,7 @@
 ﻿@page "/spotifysearch"
+@using Microsoft.AspNetCore.Authorization
 @using SaveHere.Components.Utility
+@attribute [Authorize(Policy = "EnabledUser")]
 
 <PageTitle>Spotify Search</PageTitle>
 

@@ -6,6 +6,7 @@
 @using Microsoft.AspNetCore.Identity
 @using Microsoft.AspNetCore.WebUtilities
 @using SaveHere.Models
+@using SaveHere.Services
 
 @inject UserManager<ApplicationUser> UserManager
 @inject IUserStore<ApplicationUser> UserStore
@@ -14,46 +15,57 @@
 @inject ILogger<Register> Logger
 @inject NavigationManager NavigationManager
 @inject IdentityRedirectManager RedirectManager
+@inject IUserManagementService UserManagementService
+@inject RoleManager<IdentityRole> RoleManager
+
+@implements IDisposable
 
 <PageTitle>Register</PageTitle>
 
-<MudText Typo="Typo.h3" GutterBottom="true">Register</MudText>
+@if (!_isRegistrationEnabled)
+{
+  <MudAlert Severity="Severity.Warning">Registration is currently disabled. Please contact an administrator.</MudAlert>
+}
+else
+{
+  <MudText Typo="Typo.h3" GutterBottom="true">Register</MudText>
 
-<MudGrid>
-  <MudItem md="6">
-    <StatusMessage Message="@Message" />
-    <EditForm Model="Input" asp-route-returnUrl="@ReturnUrl" method="post" OnValidSubmit="RegisterUser" FormName="register">
-      <DataAnnotationsValidator />
+  <MudGrid>
+    <MudItem md="6">
+      <StatusMessage Message="@Message" />
+      <EditForm Model="Input" asp-route-returnUrl="@ReturnUrl" method="post" OnValidSubmit="RegisterUser" FormName="register">
+        <DataAnnotationsValidator />
 
-      <MudText Typo="Typo.body1" GutterBottom="true">Create a new account.</MudText>
+        <MudText Typo="Typo.body1" GutterBottom="true">Create a new account.</MudText>
 
-      <MudGrid>
-        <MudItem md="12">
-          <MudStaticTextField For="@(() => Input.Email)" @bind-Value="Input.Email"
-                              Label="Email" Placeholder="name@example.com"
-                              UserAttributes="@(new() { { "autocomplete", "true" }, { "aria-required", "true" } } )" />
-        </MudItem>
-        <MudItem md="12">
-          <MudStaticTextField For="@(() => Input.Password)" @bind-Value="Input.Password"
-                              Label="Password" InputType="InputType.Password" Placeholder="password"
-                              UserAttributes="@(new() { { "autocomplete", "new-password" }, { "aria-required", "true" } } )" />
-        </MudItem>
-        <MudItem md="12">
-          <MudStaticTextField For="@(() => Input.ConfirmPassword)" @bind-Value="Input.ConfirmPassword"
-                              Label="Confirm Password" InputType="InputType.Password" Placeholder="confirm password"
-                              UserAttributes="@(new() { { "autocomplete", "new-password" }, { "aria-required", "true" } } )" />
-        </MudItem>
-        <MudItem md="12">
-          <MudStaticButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" FormAction="FormAction.Submit">Register</MudStaticButton>
-        </MudItem>
-      </MudGrid>
-    </EditForm>
-  </MudItem>
-  <MudItem md="6">
-    <MudText Typo="Typo.body1" GutterBottom="true">Use another service to register.</MudText>
-    <ExternalLoginPicker />
-  </MudItem>
-</MudGrid>
+        <MudGrid>
+          <MudItem md="12">
+            <MudStaticTextField For="@(() => Input.Email)" @bind-Value="Input.Email"
+                                Label="Email" Placeholder="name@example.com"
+                                UserAttributes="@(new() { { "autocomplete", "true" }, { "aria-required", "true" } })" />
+          </MudItem>
+          <MudItem md="12">
+            <MudStaticTextField For="@(() => Input.Password)" @bind-Value="Input.Password"
+                                Label="Password" InputType="InputType.Password" Placeholder="password"
+                                UserAttributes="@(new() { { "autocomplete", "new-password" }, { "aria-required", "true" } })" />
+          </MudItem>
+          <MudItem md="12">
+            <MudStaticTextField For="@(() => Input.ConfirmPassword)" @bind-Value="Input.ConfirmPassword"
+                                Label="Confirm Password" InputType="InputType.Password" Placeholder="confirm password"
+                                UserAttributes="@(new() { { "autocomplete", "new-password" }, { "aria-required", "true" } })" />
+          </MudItem>
+          <MudItem md="12">
+            <MudStaticButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" FormAction="FormAction.Submit">Register</MudStaticButton>
+          </MudItem>
+        </MudGrid>
+      </EditForm>
+    </MudItem>
+    <MudItem md="6">
+      <MudText Typo="Typo.body1" GutterBottom="true">Use another service to register.</MudText>
+      <ExternalLoginPicker />
+    </MudItem>
+  </MudGrid>
+}
 
 @code {
   private IEnumerable<IdentityError>? identityErrors;
@@ -66,11 +78,30 @@
 
   private string? Message => identityErrors is null ? null : $"Error: {string.Join(", ", identityErrors.Select(error => error.Description))}";
 
+  private bool _isRegistrationEnabled;
+  private Timer? _checkRegistrationTimer;
+
+  protected override async Task OnInitializedAsync()
+  {
+    await CheckRegistrationStatus();
+  }
+
+  private async Task CheckRegistrationStatus()
+  {
+    _isRegistrationEnabled = await UserManagementService.IsRegistrationEnabledAsync();
+    await InvokeAsync(StateHasChanged);
+  }
+
   public async Task RegisterUser(EditContext editContext)
   {
-    throw new Exception("Not Implemented Yet!"); // To Do: this is temporary. remove it later.
+    if (!_isRegistrationEnabled)
+    {
+      identityErrors = new[] { new IdentityError { Description = "Registration is currently disabled." } };
+      return;
+    }
 
     var user = CreateUser();
+    user.IsEnabled = false; // New users start as disabled
 
     await UserStore.SetUserNameAsync(user, Input.Email, CancellationToken.None);
     var emailStore = GetEmailStore();
@@ -83,26 +114,20 @@
       return;
     }
 
-    Logger.LogInformation("User created a new account with password.");
+    // Add user to the User role
+    await UserManager.AddToRoleAsync(user, "User");
 
-    var userId = await UserManager.GetUserIdAsync(user);
-    var code = await UserManager.GenerateEmailConfirmationTokenAsync(user);
-    code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
-    var callbackUrl = NavigationManager.GetUriWithQueryParameters(
-        NavigationManager.ToAbsoluteUri("Account/ConfirmEmail").AbsoluteUri,
-        new Dictionary<string, object?> { ["userId"] = userId, ["code"] = code, ["returnUrl"] = ReturnUrl });
+    Logger.LogInformation("User account created and added to User role. Awaiting admin approval.");
 
-    await EmailSender.SendConfirmationLinkAsync(user, Input.Email, HtmlEncoder.Default.Encode(callbackUrl));
+    // Don't sign in the user - they need admin approval first
+    RedirectManager.RedirectTo(
+        "Account/RegisterConfirmation",
+        new() { ["email"] = Input.Email, ["returnUrl"] = ReturnUrl });
+  }
 
-    if (UserManager.Options.SignIn.RequireConfirmedAccount)
-    {
-      RedirectManager.RedirectTo(
-          "Account/RegisterConfirmation",
-          new() { ["email"] = Input.Email, ["returnUrl"] = ReturnUrl });
-    }
-
-    await SignInManager.SignInAsync(user, isPersistent: false);
-    RedirectManager.RedirectTo(ReturnUrl);
+  public void Dispose()
+  {
+    _checkRegistrationTimer?.Dispose();
   }
 
   private ApplicationUser CreateUser()

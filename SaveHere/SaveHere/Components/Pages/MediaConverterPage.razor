@@ -1,5 +1,7 @@
 ﻿@page "/mediaconverter"
+@using Microsoft.AspNetCore.Authorization
 @using SaveHere.Components.Utility
+@attribute [Authorize(Policy = "EnabledUser")]
 
 <PageTitle>Media Converter</PageTitle>
 

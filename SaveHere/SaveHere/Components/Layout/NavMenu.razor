@@ -27,6 +27,14 @@
   else
   {
     <MudNavLink Disabled hidden Href="auth" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Lock">Auth Required</MudNavLink>
+
+    <AuthorizeView Roles="Admin">
+      <Authorized>
+        <MudDivider Class="my-2" />
+        <MudNavLink Href="Account/Manage/UserManagement" Icon="@Icons.Material.Filled.ManageAccounts">User Management</MudNavLink>
+      </Authorized>
+    </AuthorizeView>
+
     <AuthorizeView>
       <Authorized>
         <MudNavLink Disabled Href="Account/Manage" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Person">@context.User.Identity?.Name</MudNavLink>

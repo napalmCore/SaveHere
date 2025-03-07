@@ -47,6 +47,14 @@ namespace SaveHere.Components.Account
       // Get the user manager from a new scope to ensure it fetches fresh data
       await using var scope = scopeFactory.CreateAsyncScope();
       var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+      var user = await userManager.GetUserAsync(authenticationState.User);
+
+      // Check if user exists and is enabled
+      if (user == null || !user.IsEnabled)
+      {
+        return false;
+      }
+
       return await ValidateSecurityStampAsync(userManager, authenticationState.User);
     }
 

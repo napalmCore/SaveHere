@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Hosting.StaticWebAssets;
 using Microsoft.AspNetCore.Identity;
@@ -67,12 +68,40 @@ namespace SaveHere
 
       builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
-      builder.Services.AddIdentityCore<ApplicationUser>(options => options.SignIn.RequireConfirmedAccount = true)
+      builder.Services.AddIdentityCore<ApplicationUser>(options =>
+      {
+        options.SignIn.RequireConfirmedAccount = false;
+        options.SignIn.RequireConfirmedEmail = false;
+        options.Password.RequiredLength = 8;
+        options.Password.RequireNonAlphanumeric = false;
+      })
+          .AddRoles<IdentityRole>()
           .AddEntityFrameworkStores<AppDbContext>()
           .AddSignInManager()
+          .AddRoleManager<RoleManager<IdentityRole>>()
           .AddDefaultTokenProviders();
 
       builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
+      builder.Services.AddHostedService<InitialSetupService>();
+      builder.Services.AddScoped<IUserManagementService, UserManagementService>();
+
+      builder.Services.AddScoped<IAuthorizationHandler, EnabledUserHandler>();
+      builder.Services.AddAuthorizationCore(options =>
+      {
+        options.AddPolicy("EnabledUser", policy =>
+      policy.Requirements.Add(new EnabledUserRequirement()));
+      });
+
+      builder.Services.ConfigureApplicationCookie(options =>
+      {
+        options.Cookie.HttpOnly = true;
+        options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+        options.ExpireTimeSpan = TimeSpan.FromDays(30);
+        options.LoginPath = "/Account/Login";
+        options.LogoutPath = "/Account/Logout";
+        options.AccessDeniedPath = "/Account/AccessDenied";
+        options.SlidingExpiration = true;
+      });
 
       builder.Services.AddSignalR();
 
@@ -92,9 +121,7 @@ namespace SaveHere
       builder.Services.AddScoped<IDownloadQueueService, DownloadQueueService>();
 
       builder.Services.AddSingleton<IYtdlpService, YtdlpService>();
-
       builder.Services.AddScoped<IYoutubeDownloadQueueService, YoutubeDownloadQueueService>();
-
       builder.Services.AddHostedService<YtdlpUpdateService>();
 
       builder.Services.AddScoped<SpotifySearchService>();

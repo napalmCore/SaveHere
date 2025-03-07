@@ -1,12 +1,10 @@
-﻿using Microsoft.AspNetCore.SignalR;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.SignalR;
 
 namespace SaveHere.Hubs
 {
+  [Authorize(Policy = "EnabledUser")]
   public class ProgressHub : Hub
   {
-    //public async Task SubscribeToDownload(int itemId)
-    //{
-    //  await Groups.AddToGroupAsync(Context.ConnectionId, $"download_{itemId}");
-    //}
   }
 }

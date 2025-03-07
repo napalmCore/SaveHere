@@ -1,5 +1,7 @@
 ﻿@page "/downloadvideoaudio"
+@using Microsoft.AspNetCore.Authorization
 @using SaveHere.Components.Download
+@attribute [Authorize(Policy = "EnabledUser")]
 
 <PageTitle>Download Video/Audio</PageTitle>
 

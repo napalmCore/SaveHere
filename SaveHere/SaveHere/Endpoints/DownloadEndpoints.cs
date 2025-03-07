@@ -1,9 +1,11 @@
-﻿using SaveHere.Helpers;
+﻿using Microsoft.AspNetCore.Authorization;
+using SaveHere.Helpers;
 using SaveHere.Services;
 using System.Net;
 
 namespace SaveHere.Endpoints
 {
+  [Authorize(Policy = "EnabledUser")]
   public static class DownloadEndpoints
   {
     public static void MapDownloadEndpoints(this WebApplication app)
@@ -41,9 +43,9 @@ namespace SaveHere.Endpoints
           // Set content disposition to attachment to force download
           try
           {
-            context.Response.Headers.Append("Content-Disposition", $"attachment; filename=\"{WebUtility.UrlEncode(fileInfo.Name)}\"");
+            context.Response.Headers.Append("Content-Disposition", $"attachment; filename= \"{WebUtility.UrlEncode(fileInfo.Name)}\"");
           }
-          catch { /*pass for now*/ }
+          catch { /* pass for now */ }
 
           // If no range is specified, return the full file
           if (string.IsNullOrEmpty(rangeHeader))
@@ -63,8 +65,8 @@ namespace SaveHere.Endpoints
           }
 
           var end = range.Length > 1 && long.TryParse(range[1], out var tempEnd) && tempEnd >= start && tempEnd < fileInfo.Length
-                    ? tempEnd
-                    : fileInfo.Length - 1;
+                                    ? tempEnd
+                                    : fileInfo.Length - 1;
 
           var length = end - start + 1;
 

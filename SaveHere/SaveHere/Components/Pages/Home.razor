@@ -1,8 +1,8 @@
 ﻿@page "/"
+@using Microsoft.AspNetCore.Authorization
 @using SaveHere.Components.Utility
-
+@attribute [Authorize(Policy = "EnabledUser")]
 @inject IDialogService DialogService
-
 @rendermode InteractiveServer
 @attribute [StreamRendering]
 
@@ -13,123 +13,123 @@
 <PageTitle>SaveHere</PageTitle>
 
 <LoadingIndicator IsLoaded="_isFullyLoaded">
-    <MudGrid Spacing="2" Class="equal-height-grid pa-5">
+  <MudGrid Spacing="2" Class="equal-height-grid pa-5">
 
-      <!-- Direct Link Card -->
-      <MudItem xs="12" sm="6" md="4">
-        <MudCard Elevation="6" Class="card-container">
-          <MudCardContent>
-            <MudIcon Icon="@Icons.Material.Filled.Link" Size="Size.Large" Color="Color.Primary" />
-            <MudText Typo="Typo.h6">Direct Link</MudText>
-            <MudText Typo="Typo.body2">Download files from direct links.</MudText>
-          </MudCardContent>
-          <MudCardActions>
-            <MudButton Variant="Variant.Outlined" Color="Color.Secondary" Href="downloadfromdirectlink">
-              Continue
-            </MudButton>
-          </MudCardActions>
-        </MudCard>
-      </MudItem>
+    <!-- Direct Link Card -->
+    <MudItem xs="12" sm="6" md="4">
+      <MudCard Elevation="6" Class="card-container">
+        <MudCardContent>
+          <MudIcon Icon="@Icons.Material.Filled.Link" Size="Size.Large" Color="Color.Primary" />
+          <MudText Typo="Typo.h6">Direct Link</MudText>
+          <MudText Typo="Typo.body2">Download files from direct links.</MudText>
+        </MudCardContent>
+        <MudCardActions>
+          <MudButton Variant="Variant.Outlined" Color="Color.Secondary" Href="downloadfromdirectlink">
+            Continue
+          </MudButton>
+        </MudCardActions>
+      </MudCard>
+    </MudItem>
 
-      <!-- Video/Audio Card -->
-      <MudItem xs="12" sm="6" md="4">
-        <MudCard Elevation="6" Class="card-container">
-          <MudCardContent>
-            <MudIcon Icon="@Icons.Material.Filled.VideoLibrary" Size="Size.Large" Color="Color.Primary" />
-            <MudText Typo="Typo.h6">Video/Audio</MudText>
-            <MudText Typo="Typo.body2">
-              Download Video/Audio from Youtube, SoundCloud, and more.
-              <br />
-              See the full list of
-              <MudLink OnClick="OpenSupportedSites" Target="_blank" Color="Color.Primary">
-                Supported Sites
-              </MudLink>.
-            </MudText>
-          </MudCardContent>
-          <MudCardActions>
+    <!-- Video/Audio Card -->
+    <MudItem xs="12" sm="6" md="4">
+      <MudCard Elevation="6" Class="card-container">
+        <MudCardContent>
+          <MudIcon Icon="@Icons.Material.Filled.VideoLibrary" Size="Size.Large" Color="Color.Primary" />
+          <MudText Typo="Typo.h6">Video/Audio</MudText>
+          <MudText Typo="Typo.body2">
+            Download Video/Audio from Youtube, SoundCloud, and more.
+            <br />
+            See the full list of
+            <MudLink OnClick="OpenSupportedSites" Target="_blank" Color="Color.Primary">
+              Supported Sites
+            </MudLink>.
+          </MudText>
+        </MudCardContent>
+        <MudCardActions>
           <MudButton Variant="Variant.Outlined" Color="Color.Secondary" Href="downloadvideoaudio">
-              Continue
-            </MudButton>
-          </MudCardActions>
-        </MudCard>
-      </MudItem>
+            Continue
+          </MudButton>
+        </MudCardActions>
+      </MudCard>
+    </MudItem>
 
-      <!-- Spotify Card -->
-      <MudItem xs="12" sm="6" md="4">
-        <MudCard Elevation="6" Class="card-container">
-          <MudCardContent>
-            <MudIcon Icon="@Icons.Material.Filled.MusicNote" Size="Size.Large" Color="Color.Primary" />
-            <MudText Typo="Typo.h6">Spotify</MudText>
-            <MudText Typo="Typo.body2">
-              Convert URLs from Spotify, Apple Music, SoundCloud, Youtube Music, Deezer, and Tidal to downloadable links.
-              <br />
-              This component uses a third-party API:
-              <MudLink Href="https://idonthavespotify.donado.co/" Target="_blank" Color="Color.Primary">
-                idonthavespotify
-              </MudLink>.
-            </MudText>
-          </MudCardContent>
-          <MudCardActions>
+    <!-- Spotify Card -->
+    <MudItem xs="12" sm="6" md="4">
+      <MudCard Elevation="6" Class="card-container">
+        <MudCardContent>
+          <MudIcon Icon="@Icons.Material.Filled.MusicNote" Size="Size.Large" Color="Color.Primary" />
+          <MudText Typo="Typo.h6">Spotify</MudText>
+          <MudText Typo="Typo.body2">
+            Convert URLs from Spotify, Apple Music, SoundCloud, Youtube Music, Deezer, and Tidal to downloadable links.
+            <br />
+            This component uses a third-party API:
+            <MudLink Href="https://idonthavespotify.donado.co/" Target="_blank" Color="Color.Primary">
+              idonthavespotify
+            </MudLink>.
+          </MudText>
+        </MudCardContent>
+        <MudCardActions>
           <MudButton Variant="Variant.Outlined" Color="Color.Secondary" Href="spotifysearch">
-              Continue
-            </MudButton>
-          </MudCardActions>
-        </MudCard>
-      </MudItem>
+            Continue
+          </MudButton>
+        </MudCardActions>
+      </MudCard>
+    </MudItem>
 
-      <!-- RJMusic Card -->
-      <MudItem xs="12" sm="6" md="4">
-        <MudCard Elevation="6" Class="card-container">
-          <MudCardContent>
-            <MudIcon Icon="@Icons.Material.Filled.LibraryMusic" Size="Size.Large" Color="Color.Primary" />
-            <MudText Typo="Typo.h6">RJMusic</MudText>
-            <MudText Typo="Typo.body2">Get direct download links from RJMusic.</MudText>
-          </MudCardContent>
-          <MudCardActions>
+    <!-- RJMusic Card -->
+    <MudItem xs="12" sm="6" md="4">
+      <MudCard Elevation="6" Class="card-container">
+        <MudCardContent>
+          <MudIcon Icon="@Icons.Material.Filled.LibraryMusic" Size="Size.Large" Color="Color.Primary" />
+          <MudText Typo="Typo.h6">RJMusic</MudText>
+          <MudText Typo="Typo.body2">Get direct download links from RJMusic.</MudText>
+        </MudCardContent>
+        <MudCardActions>
           <MudButton Variant="Variant.Outlined" Color="Color.Secondary" Href="rjmedialinkresolver">
-              Continue
-            </MudButton>
-          </MudCardActions>
-        </MudCard>
-      </MudItem>
-      
-      <!-- Media Converter Card -->
-      <MudItem xs="12" sm="6" md="4">
-        <MudCard Elevation="6" Class="card-container">
-          <MudCardContent>
-            <MudIcon Icon="@Icons.Material.Filled.SwitchVideo" Size="Size.Large" Color="Color.Primary" />
-            <MudText Typo="Typo.h6">Media Converter</MudText>
-            <MudText Typo="Typo.body2">
-                Convert your media files to other formats using
+            Continue
+          </MudButton>
+        </MudCardActions>
+      </MudCard>
+    </MudItem>
+
+    <!-- Media Converter Card -->
+    <MudItem xs="12" sm="6" md="4">
+      <MudCard Elevation="6" Class="card-container">
+        <MudCardContent>
+          <MudIcon Icon="@Icons.Material.Filled.SwitchVideo" Size="Size.Large" Color="Color.Primary" />
+          <MudText Typo="Typo.h6">Media Converter</MudText>
+          <MudText Typo="Typo.body2">
+            Convert your media files to other formats using
             <MudLink Href="https://www.ffmpeg.org/" Target="_blank" Color="Color.Primary">
               ffmpeg
             </MudLink>.
-            </MudText>
-          </MudCardContent>
-          <MudCardActions>
+          </MudText>
+        </MudCardContent>
+        <MudCardActions>
           <MudButton Variant="Variant.Outlined" Color="Color.Secondary" Href="mediaconverter">
-              Continue
-            </MudButton>
-          </MudCardActions>
-        </MudCard>
-      </MudItem>
+            Continue
+          </MudButton>
+        </MudCardActions>
+      </MudCard>
+    </MudItem>
 
-      <!-- WarpPlus Proxy Card -->
-      <MudItem xs="12" sm="6" md="4">
-        <MudCard Elevation="6" Class="card-container">
-          <MudCardContent>
-            <MudIcon Icon="@Icons.Material.Filled.VpnKey" Size="Size.Large" Color="Color.Primary" />
-            <MudText Typo="Typo.h6">WarpPlus Proxy</MudText>
-            <MudText Typo="Typo.body2">Manage WarpPlus proxy service and use it to bypass youtube restrictions.</MudText>
-          </MudCardContent>
-          <MudCardActions>
+    <!-- WarpPlus Proxy Card -->
+    <MudItem xs="12" sm="6" md="4">
+      <MudCard Elevation="6" Class="card-container">
+        <MudCardContent>
+          <MudIcon Icon="@Icons.Material.Filled.VpnKey" Size="Size.Large" Color="Color.Primary" />
+          <MudText Typo="Typo.h6">WarpPlus Proxy</MudText>
+          <MudText Typo="Typo.body2">Manage WarpPlus proxy service and use it to bypass youtube restrictions.</MudText>
+        </MudCardContent>
+        <MudCardActions>
           <MudButton Variant="Variant.Outlined" Color="Color.Secondary" Href="warpplusservicemanager">
-              Continue
-            </MudButton>
-          </MudCardActions>
-        </MudCard>
-      </MudItem>
-    </MudGrid>
+            Continue
+          </MudButton>
+        </MudCardActions>
+      </MudCard>
+    </MudItem>
+  </MudGrid>
 </LoadingIndicator>
 
 <style>
@@ -160,19 +160,18 @@
     if (!firstRender) return;
     if (_isFullyLoaded) return;
 
-      _isFullyLoaded = true;
-      await InvokeAsync(StateHasChanged);
-    }
+    _isFullyLoaded = true;
+    await InvokeAsync(StateHasChanged);
+  }
 
   private void OpenSupportedSites()
   {
     var options = new DialogOptions
-      {
-        MaxWidth = MaxWidth.Large,
-        FullWidth = true,
-        CloseButton = true
-      };
-
+    {
+      MaxWidth = MaxWidth.Large,
+      FullWidth = true,
+      CloseButton = true
+    };
     DialogService.Show<MarkdownViewerDialog>("Supported Sites", options);
   }
 }

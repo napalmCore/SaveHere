@@ -1,4 +1,5 @@
-﻿@using Microsoft.AspNetCore.Identity
+﻿﻿@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Identity
 @using SaveHere.Models
 
 @inject SignInManager<ApplicationUser> SignInManager
@@ -13,6 +14,13 @@
     }
     <MudNavLink Href="Account/Manage/TwoFactorAuthentication" Icon="@Icons.Material.Filled.LockClock">Two-factor authentication</MudNavLink>
     <MudNavLink Href="Account/Manage/PersonalData" Icon="@Icons.Material.Filled.PersonRemove">Personal data</MudNavLink>
+
+    <AuthorizeView Roles="Admin">
+        <Authorized>
+            <MudDivider Class="my-2" />
+            <MudNavLink Href="Account/Manage/UserManagement" Icon="@Icons.Material.Filled.ManageAccounts">User Management</MudNavLink>
+        </Authorized>
+    </AuthorizeView>
 </MudNavMenu>
 
 @code {

@@ -1,5 +1,7 @@
 ﻿@page "/downloadfromdirectlink"
+@using Microsoft.AspNetCore.Authorization
 @using SaveHere.Components.Download
+@attribute [Authorize(Policy = "EnabledUser")]
 
 <PageTitle>Download From Direct Link</PageTitle>
 

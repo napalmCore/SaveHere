@@ -1,13 +1,17 @@
-﻿using SaveHere.Services;
+﻿using Microsoft.AspNetCore.Authorization;
+using SaveHere.Services;
 
 namespace SaveHere.Endpoints
 {
+  [Authorize(Policy = "EnabledUser")]
   public static class UtilityEndpoints
   {
     public static void MapYtdlpEndpoints(this WebApplication app)
     {
+      var group = app.MapGroup("/ytdlp");
+
       // GET endpoint for yt-dlp documentation
-      app.MapGet("/ytdlp/supportedsites.md", async (HttpContext context) =>
+      group.MapGet("/supportedsites.md", async (HttpContext context) =>
       {
         var ytdlpService = context.RequestServices.GetRequiredService<IYtdlpService>();
         var filePath = await ytdlpService.GetSupportedSitesFilePath();
@@ -25,6 +29,5 @@ namespace SaveHere.Endpoints
         return Results.File(filePath, "text/markdown");
       });
     }
-
   }
 }

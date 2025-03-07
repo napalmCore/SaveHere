@@ -1,9 +1,10 @@
-﻿using SaveHere.Helpers;
+﻿using Microsoft.AspNetCore.Authorization;
+using SaveHere.Helpers;
 using SaveHere.Services;
-using System.Net;
 
 namespace SaveHere.Endpoints
 {
+  [Authorize(Policy = "EnabledUser")]
   public static class StreamingEndpoints
   {
     public static void MapStreamingEndpoints(this WebApplication app)
@@ -75,8 +76,8 @@ namespace SaveHere.Endpoints
             return Results.Json(new { error = "Invalid range specified." }, statusCode: 416); // 416: Range Not Satisfiable
           }
           var end = range.Length > 1 && long.TryParse(range[1], out var tempEnd) && tempEnd >= start && tempEnd < fileInfo.Length
-                    ? tempEnd
-                    : fileInfo.Length - 1;
+                                    ? tempEnd
+                                    : fileInfo.Length - 1;
 
           var length = end - start + 1;
 

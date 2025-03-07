@@ -1,6 +1,8 @@
 ﻿@page "/warpplusservicemanager"
+@using Microsoft.AspNetCore.Authorization
 @using SaveHere.Components.Utility
+@attribute [Authorize(Policy = "EnabledUser")]
 
-<PageTitle>Warp Plus Service Manager</PageTitle>
+<PageTitle>WarpPlus Service Manager</PageTitle>
 
 <WarpPlusServiceManager />

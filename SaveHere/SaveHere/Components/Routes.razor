@@ -1,10 +1,35 @@
-﻿<Router AppAssembly="typeof(Program).Assembly" AdditionalAssemblies="new[] { typeof(Client._Imports).Assembly }">
+﻿@using Microsoft.AspNetCore.Components.Authorization
+@inherits LayoutComponentBase
+
+<CascadingAuthenticationState>
+  <Router AppAssembly="typeof(Program).Assembly" AdditionalAssemblies="new[] { typeof(Client._Imports).Assembly }">
     <Found Context="routeData">
-        <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)">
-            <NotAuthorized>
-                <RedirectToLogin />
-            </NotAuthorized>
-        </AuthorizeRouteView>
-        <FocusOnNavigate RouteData="routeData" Selector="h1" />
+      <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)">
+        <NotAuthorized>
+          @if (context.User?.Identity?.IsAuthenticated != true)
+          {
+            <RedirectToLogin />
+          }
+          else
+          {
+            <MudContainer MaxWidth="MaxWidth.Small" Class="d-flex align-center justify-center" Style="height: 100vh;">
+              <MudAlert Severity="Severity.Error" Variant="Variant.Filled">
+                You are not authorized to access this resource.
+              </MudAlert>
+            </MudContainer>
+          }
+        </NotAuthorized>
+      </AuthorizeRouteView>
     </Found>
-</Router>
+    <NotFound>
+      <PageTitle>Not found</PageTitle>
+      <LayoutView Layout="@typeof(Layout.MainLayout)">
+        <MudContainer MaxWidth="MaxWidth.Small" Class="d-flex align-center justify-center" Style="height: 100vh;">
+          <MudAlert Severity="Severity.Error" Variant="Variant.Filled">
+            Sorry, there's nothing at this address.
+          </MudAlert>
+        </MudContainer>
+      </LayoutView>
+    </NotFound>
+  </Router>
+</CascadingAuthenticationState>
