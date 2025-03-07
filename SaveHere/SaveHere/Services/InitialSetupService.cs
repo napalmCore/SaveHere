@@ -98,9 +98,11 @@ namespace SaveHere.Services
     {
       const string chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*";
       var rand = new Random(RandomNumberGenerator.GetInt32(int.MaxValue));
-      return new string(Enumerable.Repeat(chars, 16)
+      string password = new string(Enumerable.Repeat(chars, 16)
           .Select(s => s[rand.Next(s.Length)])
           .ToArray());
+      password += "-Ab30$";
+      return password;
     }
   }
 }
