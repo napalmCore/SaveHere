@@ -5,6 +5,7 @@
 @using Microsoft.AspNetCore.Identity
 @using SaveHere.Models
 @using SaveHere.Services
+@using MudBlazor
 
 @inject SignInManager<ApplicationUser> SignInManager
 @inject ILogger<Login> Logger
@@ -22,10 +23,28 @@
     <MudDivider Class="my-2" />
     <br />
     <MudText>Username:</MudText>
-    <MudText><strong>@_defaultCredentials.Value.username</strong></MudText>
+    <div style="display: inline-flex; align-items: center;">
+      <MudText><strong>@_defaultCredentials.Value.username</strong></MudText>
+      <button onclick="copyToClipboard('@_defaultCredentials.Value.username')" class="mud-button-root mud-icon-button mud-icon-button-size-small mud-ripple mud-icon-button-color-default ml-1">
+        <span class="mud-icon-button-label">
+          <svg class="mud-icon-root mud-svg-icon mud-icon-size-small" focusable="false" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"></path>
+          </svg>
+        </span>
+      </button>
+    </div>
     <br />
     <MudText>Password:</MudText>
-    <MudText><strong>@_defaultCredentials.Value.password</strong></MudText>
+    <div style="display: inline-flex; align-items: center;">
+      <MudText><strong>@_defaultCredentials.Value.password</strong></MudText>
+      <button onclick="copyToClipboard('@_defaultCredentials.Value.password')" class="mud-button-root mud-icon-button mud-icon-button-size-small mud-ripple mud-icon-button-color-default ml-1">
+        <span class="mud-icon-button-label">
+          <svg class="mud-icon-root mud-svg-icon mud-icon-size-small" focusable="false" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"></path>
+          </svg>
+        </span>
+      </button>
+    </div>
   </MudAlert>
 }
 
@@ -73,6 +92,46 @@
     </MudItem> *@
   </MudGrid>
 </div>
+
+<script>
+  function copyToClipboard(text) {
+    // Try the modern Clipboard API first
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(text)
+        .then(showCopiedMessage)
+        .catch(fallbackCopy);
+    } else {
+      fallbackCopy();
+    }
+    
+    function fallbackCopy() {
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.focus();
+      textarea.select();
+      
+      try {
+        document.execCommand('copy');
+        showCopiedMessage();
+      } catch (err) {
+        console.error('Failed to copy:', err);
+      } finally {
+        document.body.removeChild(textarea);
+      }
+    }
+    
+    function showCopiedMessage() {
+      const snackbar = document.createElement('div');
+      snackbar.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#323232;color:white;padding:12px 24px;border-radius:4px;z-index:1000;';
+      snackbar.textContent = 'Copied to clipboard';
+      document.body.appendChild(snackbar);
+      setTimeout(() => snackbar.remove(), 3000);
+    }
+  }
+</script>
 
 @code {
   private string? errorMessage;
