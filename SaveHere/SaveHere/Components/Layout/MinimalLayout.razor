@@ -1,0 +1,22 @@
+@inherits LayoutComponentBase
+
+<MudThemeProvider IsDarkMode />
+
+<MudLayout>
+  <MudMainContent>
+    <MudContainer Class="d-flex align-center justify-center">
+      <MudStack>
+        <MudIconButton Href="/" Color="Color.Tertiary" Class="mr-5 ml-auto" Variant="Variant.Outlined">Homepage</MudIconButton>
+        <MudPaper Elevation="3" Class="pa-5" Style="width: 100%;">
+          @Body
+        </MudPaper>
+      </MudStack>
+    </MudContainer>
+  </MudMainContent>
+</MudLayout>
+
+<div id="blazor-error-ui">
+  An unhandled error has occurred.
+  <a href="" class="reload">Reload</a>
+  <a class="dismiss">🗙</a>
+</div>
