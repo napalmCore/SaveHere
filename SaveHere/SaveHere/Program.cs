@@ -95,8 +95,8 @@ namespace SaveHere
 
       builder.Services.ConfigureApplicationCookie(options =>
       {
-        options.Cookie.HttpOnly = true;
-        options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+        options.Cookie.HttpOnly = false;
+        options.Cookie.SecurePolicy = CookieSecurePolicy.None;
         options.ExpireTimeSpan = TimeSpan.FromDays(30);
         options.LoginPath = "/Account/Login";
         options.LogoutPath = "/Account/Logout";

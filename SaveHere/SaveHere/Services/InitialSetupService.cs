@@ -41,7 +41,7 @@ namespace SaveHere.Services
       if (!await AnyAdminExistsAsync(userManager))
       {
         // Generate random credentials
-        var adminUsername = $"admin-{GenerateRandomNumber()}";
+        var adminUsername = $"admin_savehere_v3";
         var password = GenerateSecurePassword();
 
         // Create admin user
