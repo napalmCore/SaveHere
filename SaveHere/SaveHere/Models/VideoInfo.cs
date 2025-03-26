@@ -1,16 +1,18 @@
-﻿namespace SaveHere.Models
+﻿using System.Text;
+using System.Text.Json.Serialization;
+
+namespace SaveHere.Models
 {
     public class VideoInfo
     {
         public string Title { get; set; }
-
         public string Filename { get; set; }
         public string Ext { get; set; }
-        public long? Filesize { get; set; } // Actual file size
         public bool RequiresLogin { get; set; }
-
         public string Errors { get; set; } = string.Empty;
 
+        [JsonPropertyName("filesize_approx")]
+        public long? FileSize { get; set; }
 
         public string ConvertBytesToFileSize(long bytes)
         {
@@ -28,24 +30,23 @@
             if (bytes >= KB)
                 return $"{bytes / (double)KB:F2} KB";
 
-            return $"{bytes} bytes";  // If the file size is less than 1 KB
+            return $"{bytes} bytes";
         }
 
         public override string ToString()
         {
             if (Errors == string.Empty)
             {
-                return $"Title: {Title}<br />" +  // Title on a new line
-                    $"Filename: {Filename}<br />" +  // Title on a new line
-                       $"Extension: {Ext}<br />" +  // Extension on a new line
-                       $"Filesize: {(Filesize.HasValue ? ConvertBytesToFileSize(Filesize.Value) : "Unknown")}<br />" +  // Filesize on a new line
-                       $"Requires Login: {(RequiresLogin ? "Yes" : "No")}";  // Requires Login on a new line
-            }
-            else
-            {
-                return $"Errors when getting file info: {Errors}";
+                StringBuilder sb = new StringBuilder();
+                sb.AppendLine($"Title: {Title}<br>");
+                sb.AppendLine($"Filename: {Filename}<br>");
+                sb.AppendLine($"Extension: {Ext}<br>");
+                sb.AppendLine($"Filesize: {(FileSize.HasValue ? ConvertBytesToFileSize(FileSize.Value) : "Unknown")}<br>");
+                sb.AppendLine($"Requires Login: {(RequiresLogin ? "Yes" : "No")}<br>");
+                return sb.ToString();
             }
 
+            return $"Errors when getting file info: {Errors}<br>";
         }
     }
 }
