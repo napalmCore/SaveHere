@@ -166,6 +166,12 @@
                       OnClick="() => RemoveDownload(download)">
                         Remove
                       </MudButton>
+                      <MudButton Variant="Variant.Filled"
+                            Color="Color.Info"
+                            Size="Size.Small"
+                            OnClick="() => OpenFileInfo(download)">
+                            Info
+                       </MudButton>
                     </MudStack>
                     <MudStack Row>
                       @* <MudIcon Icon="@Icons.Material.TwoTone.ShortText" class="mr-3"></MudIcon> *@
@@ -481,6 +487,22 @@
 
     DialogService.Show<MarkdownViewerDialog>("Supported Sites", options);
   }
+
+    private void OpenFileInfo(YoutubeDownloadQueueItem item)
+    {
+        var parameters = new DialogParameters
+        {
+            { "Url", item.Url } // Pass URL as a parameter
+        };
+        var options = new DialogOptions
+            {
+                MaxWidth = MaxWidth.Large,
+                FullWidth = true,
+                CloseButton = true
+            };
+
+        DialogService.Show<FileInfoDialog>("File Info", parameters, options);
+    }
 
   private async Task StartPausedDownloads()
   {

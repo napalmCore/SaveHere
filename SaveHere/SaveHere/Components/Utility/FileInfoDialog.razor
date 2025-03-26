@@ -1,0 +1,55 @@
+﻿@using Markdig
+@using SaveHere.Services
+@inject IYtdlpService _ytdlpService;
+
+<MudDialog>
+    <DialogContent>
+        @if (isLoading)
+        {
+            <div style="display:flex; justify-content:center; align-items: center;">
+                <MudProgressCircular Indeterminate="true" Class="ma-2" />
+            </div>
+        }
+        else
+        {
+            @((MarkupString)renderedContent)
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton Color="Color.Primary" OnClick="Close">Close</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public string Url { get; set; }
+    private string renderedContent = string.Empty;
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+
+
+
+            var markdown = await _ytdlpService.GetVideoInfo(Url);
+
+            // Convert markdown to HTML using Markdig
+            var pipeline = new MarkdownPipelineBuilder()
+                .UseAdvancedExtensions()
+                .Build();
+            renderedContent = Markdown.ToHtml(markdown.ToString(), pipeline);
+        }
+        catch (Exception ex)
+        {
+            renderedContent = $"<p class='text-error'>Error loading content: {ex.Message}</p>";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void Close() => MudDialog.Close();
+}

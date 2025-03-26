@@ -2,6 +2,8 @@
 using SaveHere.Models;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Text.Json;
+using static MudBlazor.CategoryTypes;
 
 namespace SaveHere.Services
 {
@@ -15,7 +17,8 @@ namespace SaveHere.Services
     Task<string> GetSupportedSitesFilePath();
     Task UpdateSupportedSitesFile();
     Task DownloadVideo(int itemId, string url, string quality, string proxy, string? downloadFolder, CancellationToken cancellationToken);
-  }
+    Task<VideoInfo?> GetVideoInfo(string url);
+    }
 
   public class YtdlpService : IYtdlpService
   {
@@ -307,5 +310,75 @@ namespace SaveHere.Services
         throw;
       }
     }
-  }
+
+        public async Task<VideoInfo?> GetVideoInfo(string url)
+        {
+            try
+            {
+                string executablePath = await GetExecutablePath();
+
+                // Configure ProcessStartInfo without redirecting error output, as it may not be needed.
+                var startInfo = new ProcessStartInfo
+                {
+                    FileName = executablePath,
+                    Arguments = $"--dump-json --no-warnings --quiet --no-playlist \"{url}\"",
+                    RedirectStandardOutput = true,   // Only redirect standard output for video info
+                    RedirectStandardError = false,  // No need for error output unless critical
+                    UseShellExecute = false,        // Use shell execute false if you need to redirect stdout
+                    CreateNoWindow = true
+                };
+
+                using (Process process = new Process { StartInfo = startInfo })
+                {
+                    process.Start();
+
+                    // Use OutputDataReceived event handler for processing output incrementally.
+                    string output = string.Empty;
+                    var outputTask = Task.Run(() =>
+                    {
+                        process.OutputDataReceived += (sender, e) =>
+                        {
+                            if (e.Data != null)
+                            {
+                                output += e.Data;
+                            }
+                        };
+
+                        process.BeginOutputReadLine();
+                        process.WaitForExit();
+                    });
+
+                    await outputTask;  // Wait for the task to complete
+
+                    if (process.ExitCode != 0)
+                    {
+                        // Error handling
+                        return new VideoInfo { Errors = "Error: Non-zero exit code." };
+                    }
+
+                    // Deserialize the JSON data efficiently
+                    var videoData = JsonSerializer.Deserialize<VideoInfo>(output, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+                    if (videoData == null)
+                    {
+                        return new VideoInfo { Errors = "Error: No output received." };
+                    }
+
+                    // Check if login is required based on yt-dlp output
+                    if (output.Contains("\"http_headers\":") && output.Contains("\"Authorization\""))
+                    {
+                        videoData.RequiresLogin = true;
+                    }
+
+                    return videoData;
+                }
+            }
+            catch (Exception ex)
+            {
+                // Log and handle errors gracefully
+                return new VideoInfo { Errors = $"Exception: {ex.Message}" };
+            }
+        }
+
+    }
 }
