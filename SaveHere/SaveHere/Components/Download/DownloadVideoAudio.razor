@@ -91,7 +91,7 @@
       <MudCheckBox @bind-Value="_autoStartPausedDownloads"
                    Label="Autostart Paused Downloads"
                    Color="Color.Primary"
-                   T="bool"/>
+                   T="bool" />
 
       <MudNumericField @bind-Value="_maxAutoStartConcurrency"
                        Label=""
@@ -99,7 +99,7 @@
                        Min="1"
                        Max="10"
                        Variant="Variant.Outlined"
-                       Margin="Margin.Dense"/>
+                       Margin="Margin.Dense" />
     </MudStack>
 
     <MudStack id="my-mudstack-row-1" Row Class="mt-3">
@@ -145,36 +145,35 @@
                       @if (download.Status == EQueueItemStatus.Downloading)
                       {
                         <MudButton Variant="Variant.Filled"
-                        Color="Color.Error"
-                        Size="Size.Small"
-                        OnClick="() => CancelDownload(download)">
+                                   Color="Color.Error"
+                                   Size="Size.Small"
+                                   OnClick="() => CancelDownload(download)">
                           Cancel
                         </MudButton>
                       }
                       else if (download.Status != EQueueItemStatus.Downloading)
                       {
                         <MudButton Variant="Variant.Filled"
-                        Color="Color.Success"
-                        Size="Size.Small"
-                        OnClick="() => StartDownload(download)">
+                                   Color="Color.Success"
+                                   Size="Size.Small"
+                                   OnClick="() => StartDownload(download)">
                           Start
                         </MudButton>
                       }
                       <MudButton Variant="Variant.Filled"
-                      Color="Color.Error"
-                      Size="Size.Small"
-                      OnClick="() => RemoveDownload(download)">
+                                 Color="Color.Error"
+                                 Size="Size.Small"
+                                 OnClick="() => RemoveDownload(download)">
                         Remove
                       </MudButton>
                       <MudButton Variant="Variant.Filled"
-                            Color="Color.Info"
-                            Size="Size.Small"
-                            OnClick="() => OpenFileInfo(download)">
-                            Info
-                       </MudButton>
+                                 Color="Color.Info"
+                                 Size="Size.Small"
+                                 OnClick="() => OpenFileInfo(download)">
+                        Info
+                      </MudButton>
                     </MudStack>
                     <MudStack Row>
-                      @* <MudIcon Icon="@Icons.Material.TwoTone.ShortText" class="mr-3"></MudIcon> *@
                       @if (download.Status == EQueueItemStatus.Downloading)
                       {
                         <MudChip Color="Color.Info" Size="Size.Small" T="string">Downloading</MudChip>
@@ -488,21 +487,22 @@
     DialogService.Show<MarkdownViewerDialog>("Supported Sites", options);
   }
 
-    private void OpenFileInfo(YoutubeDownloadQueueItem item)
-    {
-        var parameters = new DialogParameters
+  private void OpenFileInfo(YoutubeDownloadQueueItem item)
+  {
+    var parameters = new DialogParameters
         {
-            { "Url", item.Url } // Pass URL as a parameter
+            { "Url", item.Url },
+            { "Proxy", item.Proxy }
         };
-        var options = new DialogOptions
-            {
-                MaxWidth = MaxWidth.Large,
-                FullWidth = true,
-                CloseButton = true
-            };
+    var options = new DialogOptions
+    {
+      MaxWidth = MaxWidth.Large,
+      FullWidth = true,
+      CloseButton = true
+    };
 
-        DialogService.Show<FileInfoDialog>("File Info", parameters, options);
-    }
+    DialogService.Show<FileInfoDialog>("File Info", parameters, options);
+  }
 
   private async Task StartPausedDownloads()
   {
