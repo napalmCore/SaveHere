@@ -2,6 +2,7 @@
 using SaveHere.Models;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Text.Json;
 
 namespace SaveHere.Services
 {
@@ -15,6 +16,7 @@ namespace SaveHere.Services
     Task<string> GetSupportedSitesFilePath();
     Task UpdateSupportedSitesFile();
     Task DownloadVideo(int itemId, string url, string quality, string proxy, string? downloadFolder, CancellationToken cancellationToken);
+    Task<VideoInfo?> GetVideoInfo(string url, string proxy);
   }
 
   public class YtdlpService : IYtdlpService
@@ -307,5 +309,61 @@ namespace SaveHere.Services
         throw;
       }
     }
+
+    public async Task<VideoInfo?> GetVideoInfo(string url, string proxy)
+    {
+      try
+      {
+        string executablePath = await GetExecutablePath();
+
+        var proxyOption = !string.IsNullOrEmpty(proxy)
+          ? $"--proxy \"{proxy}\""
+          : "";
+
+        var startInfo = new ProcessStartInfo
+        {
+          FileName = executablePath,
+          Arguments = $"--dump-json --no-warnings --quiet --no-playlist {proxyOption} \"{url}\"",
+          RedirectStandardOutput = true,
+          RedirectStandardError = true,
+          UseShellExecute = false,
+          CreateNoWindow = true
+        };
+
+        using Process process = new Process { StartInfo = startInfo };
+        process.Start();
+
+        var output = await process.StandardOutput.ReadToEndAsync();
+        await process.WaitForExitAsync();
+
+        if (process.ExitCode != 0)
+        {
+          _logger.LogError("yt-dlp process exited with code {ExitCode}", process.ExitCode);
+          return new VideoInfo { Errors = $"Error: Non-zero exit code. Exit code: {process.ExitCode}" };
+        }
+
+        // Deserialize the JSON
+        var videoData = JsonSerializer.Deserialize<VideoInfo>(output, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+
+        if (videoData == null)
+        {
+          return new VideoInfo { Errors = "Error: No output received." };
+        }
+
+        if (output.Contains("\"http_headers\":") && output.Contains("\"Authorization\""))
+        {
+          videoData.RequiresLogin = true;
+        }
+
+        return videoData;
+      }
+      catch (Exception ex)
+      {
+        _logger.LogError(ex, "Exception occurred while getting video info for URL: {Url}", url);
+        return new VideoInfo { Errors = $"Exception: {ex.Message}" };
+      }
+    }
+
   }
 }

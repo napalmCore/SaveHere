@@ -1,0 +1,49 @@
+﻿@using Markdig
+@using SaveHere.Services
+@inject IYtdlpService _ytdlpService;
+
+<MudDialog>
+  <DialogContent>
+    @if (isLoading)
+    {
+      <div style="display:flex; justify-content:center; align-items: center;">
+        <MudProgressCircular Indeterminate="true" Class="ma-2" />
+      </div>
+    }
+    else
+    {
+      @((MarkupString)renderedContent)
+    }
+  </DialogContent>
+  <DialogActions>
+    <MudButton Color="Color.Primary" OnClick="Close">Close</MudButton>
+  </DialogActions>
+</MudDialog>
+
+@code {
+  [CascadingParameter] MudDialogInstance MudDialog { get; set; } = default!;
+  [Parameter] public string Url { get; set; }
+  [Parameter] public string Proxy { get; set; }
+  private string renderedContent = string.Empty;
+  private bool isLoading = true;
+
+  protected override async Task OnInitializedAsync()
+  {
+    try
+    {
+      var videoInfo = await _ytdlpService.GetVideoInfo(Url, Proxy);
+
+      renderedContent = videoInfo.ToString();
+    }
+    catch (Exception ex)
+    {
+      renderedContent = $"<p class='text-error'>Error loading content: {ex.Message}</p>";
+    }
+    finally
+    {
+      isLoading = false;
+    }
+  }
+
+  private void Close() => MudDialog.Close();
+}
