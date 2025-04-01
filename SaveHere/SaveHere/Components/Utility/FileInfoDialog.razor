@@ -1,6 +1,7 @@
 ﻿@using Markdig
 @using SaveHere.Services
 @inject IYtdlpService _ytdlpService;
+@inject IDownloadQueueService downloadQueueService;
 
 <MudDialog>
     <DialogContent>
@@ -23,6 +24,7 @@
 @code {
     [CascadingParameter] MudDialogInstance MudDialog { get; set; } = default!;
     [Parameter] public string Url { get; set; }
+    [Parameter] public bool isYoutubeUrl{ get; set; }
     private string renderedContent = string.Empty;
     private bool isLoading = true;
 
@@ -30,16 +32,21 @@
     {
         try
         {
-
-
-
-            var markdown = await _ytdlpService.GetVideoInfo(Url);
-
-            // Convert markdown to HTML using Markdig
+            var markdown = string.Empty;
+            if (isYoutubeUrl)
+            {
+                var videoInfo = await _ytdlpService.GetVideoInfo(Url);
+                markdown = videoInfo?.ToString() ?? "No description available";
+            }
+            else
+            {
+                var videoInfo = await downloadQueueService.GetFileInfo(Url);
+                markdown = videoInfo?.ToString() ?? "No description available";
+            }
             var pipeline = new MarkdownPipelineBuilder()
-                .UseAdvancedExtensions()
-                .Build();
-            renderedContent = Markdown.ToHtml(markdown.ToString(), pipeline);
+                                        .UseAdvancedExtensions()
+                                        .Build();
+            renderedContent = Markdown.ToHtml(markdown, pipeline);
         }
         catch (Exception ex)
         {
