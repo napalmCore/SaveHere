@@ -4,21 +4,21 @@
 @inject IDownloadQueueService downloadQueueService;
 
 <MudDialog>
-    <DialogContent>
-        @if (isLoading)
-        {
-            <div style="display:flex; justify-content:center; align-items: center;">
-                <MudProgressCircular Indeterminate="true" Class="ma-2" />
-            </div>
-        }
-        else
-        {
-            @((MarkupString)renderedContent)
-        }
-    </DialogContent>
-    <DialogActions>
-        <MudButton Color="Color.Primary" OnClick="Close">Close</MudButton>
-    </DialogActions>
+  <DialogContent>
+    @if (isLoading)
+    {
+      <div style="display:flex; justify-content:center; align-items: center;">
+        <MudProgressCircular Indeterminate="true" Class="ma-2" />
+      </div>
+    }
+    else
+    {
+      @((MarkupString)renderedContent)
+    }
+  </DialogContent>
+  <DialogActions>
+    <MudButton Color="Color.Primary" OnClick="Close">Close</MudButton>
+  </DialogActions>
 </MudDialog>
 
 @code {
@@ -28,35 +28,36 @@
     private string renderedContent = string.Empty;
     private bool isLoading = true;
 
-    protected override async Task OnInitializedAsync()
-    {
-        try
-        {
-            var markdown = string.Empty;
-            if (isYoutubeUrl)
-            {
-                var videoInfo = await _ytdlpService.GetVideoInfo(Url);
-                markdown = videoInfo?.ToString() ?? "No description available";
-            }
-            else
-            {
-                var videoInfo = await downloadQueueService.GetFileInfo(Url);
-                markdown = videoInfo?.ToString() ?? "No description available";
-            }
-            var pipeline = new MarkdownPipelineBuilder()
-                                        .UseAdvancedExtensions()
-                                        .Build();
-            renderedContent = Markdown.ToHtml(markdown, pipeline);
-        }
-        catch (Exception ex)
-        {
-            renderedContent = $"<p class='text-error'>Error loading content: {ex.Message}</p>";
-        }
-        finally
-        {
-            isLoading = false;
-        }
-    }
+      protected override async Task OnInitializedAsync()
+      {
+          try
+          {
+              var markdown = string.Empty;
+              if (isYoutubeUrl)
+              {
+                  var videoInfo = await _ytdlpService.GetVideoInfo(Url);
+                  markdown = videoInfo?.ToString() ?? "No description available";
+              }
+              else
+              {
+                  var videoInfo = await downloadQueueService.GetFileInfo(Url);
+                  markdown = videoInfo?.ToString() ?? "No description available";
+              }
+              var pipeline = new MarkdownPipelineBuilder()
+                                          .UseAdvancedExtensions()
+                                          .Build();
+              renderedContent = Markdown.ToHtml(markdown, pipeline);
+          }
+          catch (Exception ex)
+          {
+              renderedContent = $"<p class='text-error'>Error loading content: {ex.Message}</p>";
+          }
+          finally
+          {
+              isLoading = false;
+          }
+      }
+  }
 
-    private void Close() => MudDialog.Close();
+  private void Close() => MudDialog.Close();
 }
