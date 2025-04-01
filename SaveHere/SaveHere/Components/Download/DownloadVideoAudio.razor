@@ -40,15 +40,13 @@
                     TextUpdateSuppression="false"
                     @onkeydown="HandleUrlInputKeyDown" />
 
-      <MudButton Variant="Variant.Filled"
-                 StartIcon="@Icons.Material.Filled.Add"
-                 Color="Color.Error"
-                 Style="text-transform:none; height:40px; margin-top:0.5rem;"
-                 Class="pr-5"
-                 Size="Size.Small"
-                 OnClick="AddDownload">
-        Add
-      </MudButton>
+            <MudButtonGroup Color="Color.Primary" Variant="Variant.Filled"
+                            Style="text-transform:none; box-shadow: none !important; height:40px; margin-top:0.5rem; margin-left:0.5rem;">
+                <MudButton StartIcon="@Icons.Material.Filled.Add" OnClick="AddDownload"
+                           Size="Size.Small" Style="height:40px;">Add</MudButton>
+                <MudButton StartIcon="@Icons.Material.Filled.Info" OnClick="GetFileInfo"
+                           Size="Size.Small" Style="height:40px;">Info</MudButton>
+            </MudButtonGroup>
     </MudStack>
 
     <MudStack Row>
@@ -123,386 +121,389 @@
   </MudPaper>
 
   @if (!string.IsNullOrWhiteSpace(ErrorMessage))
-  {
-    <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Dense="true" Elevation="10" ContentAlignment="HorizontalAlignment.Center" Class="mt-3 mx-5" ShowCloseIcon="true" CloseIconClicked="ClearErrorMessage">
-      @ErrorMessage
-    </MudAlert>
-  }
-
-  @if (_youtubeDownloadQueueItems is not null && _youtubeDownloadQueueItems.Any())
-  {
-    @foreach (var download in _youtubeDownloadQueueItems)
     {
-      <MudPaper Class="px-3 py-4 mx-5 mt-3 sv-paper" Elevation="5">
-        <MudStack>
-          <MudText Style="word-break: break-all;">@download.Url</MudText>
-          <MudPaper Elevation="0" Outlined>
-            <MudExpansionPanels Dense Outlined Gutters Elevation="0">
-              <MudExpansionPanel Dense Style="background: #22222222;">
-                <TitleContent>
-                  <MudStack Row Style="display: flex; justify-content:space-between;">
-                    <MudStack Row>
-                      @if (download.Status == EQueueItemStatus.Downloading)
-                      {
-                        <MudButton Variant="Variant.Filled"
-                                   Color="Color.Error"
-                                   Size="Size.Small"
-                                   OnClick="() => CancelDownload(download)">
-                          Cancel
-                        </MudButton>
-                      }
-                      else if (download.Status != EQueueItemStatus.Downloading)
-                      {
-                        <MudButton Variant="Variant.Filled"
-                                   Color="Color.Success"
-                                   Size="Size.Small"
-                                   OnClick="() => StartDownload(download)">
-                          Start
-                        </MudButton>
-                      }
-                      <MudButton Variant="Variant.Filled"
-                                 Color="Color.Error"
-                                 Size="Size.Small"
-                                 OnClick="() => RemoveDownload(download)">
-                        Remove
-                      </MudButton>
-                      <MudButton Variant="Variant.Filled"
-                                 Color="Color.Info"
-                                 Size="Size.Small"
-                                 OnClick="() => OpenFileInfo(download)">
-                        Info
-                      </MudButton>
-                    </MudStack>
-                    <MudStack Row>
-                      @if (download.Status == EQueueItemStatus.Downloading)
-                      {
-                        <MudChip Color="Color.Info" Size="Size.Small" T="string">Downloading</MudChip>
-                      }
-                      else if (download.Status == EQueueItemStatus.Finished)
-                      {
-                        <MudChip Color="Color.Success" Size="Size.Small" T="string">Completed</MudChip>
-                      }
-                      else if (download.Status == EQueueItemStatus.Cancelled)
-                      {
-                        <MudChip Color="Color.Error" Size="Size.Small" T="string">Cancelled</MudChip>
-                      }
-                      else
-                      {
-                        <MudChip Color="Color.Warning" Size="Size.Small" T="string">Paused</MudChip>
-                      }
-                    </MudStack>
-                  </MudStack>
-                </TitleContent>
-                <ChildContent>
-                  <div style="margin-bottom: 1rem;">
-                    <LogViewer LogContent="@string.Join(Environment.NewLine, download.OutputLog)" />
-                  </div>
-                </ChildContent>
-              </MudExpansionPanel>
-            </MudExpansionPanels>
-          </MudPaper>
-        </MudStack>
-      </MudPaper>
+        <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Dense="true" Elevation="10" ContentAlignment="HorizontalAlignment.Center" Class="mt-3 mx-5" ShowCloseIcon="true" CloseIconClicked="ClearErrorMessage">
+            @ErrorMessage
+        </MudAlert>
     }
-  }
 
-  <FileManager @ref="fileManager" />
+    @if (_youtubeDownloadQueueItems is not null && _youtubeDownloadQueueItems.Any())
+    {
+        @foreach (var download in _youtubeDownloadQueueItems)
+        {
+            <MudPaper Class="px-3 py-4 mx-5 mt-3 sv-paper" Elevation="5">
+                <MudStack>
+                    <MudText Style="word-break: break-all;">@download.Url</MudText>
+                    <MudPaper Elevation="0" Outlined>
+                        <MudExpansionPanels Dense Outlined Gutters Elevation="0">
+                            <MudExpansionPanel Dense Style="background: #22222222;">
+                                <TitleContent>
+                                    <MudStack Row Style="display: flex; justify-content:space-between;">
+                                        <MudStack Row>
+                                            @if (download.Status == EQueueItemStatus.Downloading)
+                                            {
+                                                <MudButton Variant="Variant.Filled"
+                                                Color="Color.Error"
+                                                Size="Size.Small"
+                                                OnClick="() => CancelDownload(download)">
+                                                    Cancel
+                                                </MudButton>
+                                            }
+                                            else if (download.Status != EQueueItemStatus.Downloading)
+                                            {
+                                                <MudButton Variant="Variant.Filled"
+                                                Color="Color.Success"
+                                                Size="Size.Small"
+                                                OnClick="() => StartDownload(download)">
+                                                    Start
+                                                </MudButton>
+                                            }
+                                            <MudButton Variant="Variant.Filled"
+                                            Color="Color.Error"
+                                            Size="Size.Small"
+                                            OnClick="() => RemoveDownload(download)">
+                                                Remove
+                                            </MudButton>
+                                        </MudStack>
+                                        <MudStack Row>
+                                            @* <MudIcon Icon="@Icons.Material.TwoTone.ShortText" class="mr-3"></MudIcon> *@
+                                            @if (download.Status == EQueueItemStatus.Downloading)
+                                            {
+                                                <MudChip Color="Color.Info" Size="Size.Small" T="string">Downloading</MudChip>
+                                            }
+                                            else if (download.Status == EQueueItemStatus.Finished)
+                                            {
+                                                <MudChip Color="Color.Success" Size="Size.Small" T="string">Completed</MudChip>
+                                            }
+                                            else if (download.Status == EQueueItemStatus.Cancelled)
+                                            {
+                                                <MudChip Color="Color.Error" Size="Size.Small" T="string">Cancelled</MudChip>
+                                            }
+                                            else
+                                            {
+                                                <MudChip Color="Color.Warning" Size="Size.Small" T="string">Paused</MudChip>
+                                            }
+                                        </MudStack>
+                                    </MudStack>
+                                </TitleContent>
+                                <ChildContent>
+                                    <div style="margin-bottom: 1rem;">
+                                        <LogViewer LogContent="@string.Join(Environment.NewLine, download.OutputLog)" />
+                                    </div>
+                                </ChildContent>
+                            </MudExpansionPanel>
+                        </MudExpansionPanels>
+                    </MudPaper>
+                </MudStack>
+            </MudPaper>
+        }
+    }
+
+    <FileManager @ref="fileManager" />
 </LoadingIndicator>
 
 @code {
-  private FileManager? fileManager;
-  private bool _isFullyLoaded;
-  private PersistingComponentStateSubscription persistingSubscription;
-  private HubConnection? hubConnection;
+    private FileManager? fileManager;
+    private bool _isFullyLoaded;
+    private PersistingComponentStateSubscription persistingSubscription;
+    private HubConnection? hubConnection;
 
-  private string YoutubeUrl { get; set; } = "";
-  private string ProxyUrl { get; set; } = @"http://localhost:8086";
-  private string SelectedQuality { get; set; } = "Best";
-  private string ErrorMessage { get; set; } = "";
+    private string YoutubeUrl { get; set; } = "";
+    private string ProxyUrl { get; set; } = @"http://localhost:8086";
+    private string SelectedQuality { get; set; } = "Best";
+    private string ErrorMessage { get; set; } = "";
 
-  private string? DownloadFolderName { get; set; }
+    private string? DownloadFolderName { get; set; }
 
-  private List<YoutubeDownloadQueueItem> _youtubeDownloadQueueItems = new();
-  private bool _isLoadingTheList = false;
+    private List<YoutubeDownloadQueueItem> _youtubeDownloadQueueItems = new();
+    private bool _isLoadingTheList = false;
 
-  private DateTime _lastUiUpdateTime = DateTime.MinValue;
-  private TimeSpan _uiUpdateInterval = TimeSpan.FromSeconds(1);
+    private DateTime _lastUiUpdateTime = DateTime.MinValue;
+    private TimeSpan _uiUpdateInterval = TimeSpan.FromSeconds(1);
 
-  private bool _autoStartPausedDownloads = true;
-  private int _maxAutoStartConcurrency = 3;
+    private bool _autoStartPausedDownloads = true;
+    private int _maxAutoStartConcurrency = 3;
 
-  protected override async Task OnInitializedAsync()
-  {
-    persistingSubscription = _persistentState.RegisterOnPersisting(PersistItems);
-
-    // Loading downloads list
-    if (_persistentState.TryTakeFromJson<List<YoutubeDownloadQueueItem>>(nameof(_youtubeDownloadQueueItems), out var savedItems) && savedItems != null)
+    protected override async Task OnInitializedAsync()
     {
-      _youtubeDownloadQueueItems = savedItems;
-    }
-    else
-    {
-      await LoadDownloadItemsList();
-    }
+        persistingSubscription = _persistentState.RegisterOnPersisting(PersistItems);
 
-    await InitializeHubConnection();
-  }
-
-  protected override async Task OnAfterRenderAsync(bool firstRender)
-  {
-    await base.OnAfterRenderAsync(firstRender);
-
-    if (!firstRender) return;
-    if (_isFullyLoaded) return;
-
-    _isFullyLoaded = true;
-    await InvokeAsync(StateHasChanged);
-  }
-
-  public async ValueTask DisposeAsync()
-  {
-    persistingSubscription.Dispose();
-
-    if (hubConnection is not null)
-    {
-      await hubConnection.DisposeAsync();
-    }
-  }
-
-  private Task PersistItems()
-  {
-    _persistentState.PersistAsJson(nameof(_youtubeDownloadQueueItems), _youtubeDownloadQueueItems);
-    return Task.CompletedTask;
-  }
-
-  private async Task InitializeHubConnection()
-  {
-    // Get Basic Auth credentials from environment variables or configuration
-    var basicAuthUsername = Environment.GetEnvironmentVariable("BASIC_AUTH_USERNAME");
-    var basicAuthPassword = Environment.GetEnvironmentVariable("BASIC_AUTH_PASSWORD");
-
-    // Determine the correct hub URL based on the environment
-    var hubUrl = Environment.GetEnvironmentVariable("SIGNALR_HUB_URL")
-                 ?? NavigationManager.BaseUri.TrimEnd('/') + "/DownloadProgressHub";
-
-    if (!string.IsNullOrWhiteSpace(basicAuthUsername) && !string.IsNullOrWhiteSpace(basicAuthPassword))
-    {
-      string credentials = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes($"{basicAuthUsername}:{basicAuthPassword}"));
-
-      hubConnection = new HubConnectionBuilder()
-        .WithUrl(hubUrl, options => options.Headers.Add("Authorization", $"Basic {credentials}"))
-        .WithAutomaticReconnect()
-        .Build();
-    }
-    else
-    {
-      hubConnection = new HubConnectionBuilder()
-        .WithUrl(hubUrl)
-        .WithAutomaticReconnect()
-        .Build();
-    }
-
-    hubConnection.On<int, string>("DownloadStateChanged", OnDownloadStateUpdateAsync);
-    hubConnection.On<int, string>("DownloadLogUpdate", OnDownloadLogUpdateAsync);
-
-    try
-    {
-      await hubConnection.StartAsync();
-    }
-    catch (Exception ex)
-    {
-      ErrorMessage = $"Failed to connect to progress updates: {ex.Message}";
-    }
-  }
-
-  private async Task OnDownloadStateUpdateAsync(int itemId, string newStatus)
-  {
-    var item = _youtubeDownloadQueueItems.FirstOrDefault(x => x.Id == itemId);
-    if (item != null)
-    {
-      await InvokeAsync(() =>
-      {
-        item.Status = Enum.Parse<EQueueItemStatus>(newStatus);
-        if (newStatus != EQueueItemStatus.Downloading.ToString())
+        // Loading downloads list
+        if (_persistentState.TryTakeFromJson<List<YoutubeDownloadQueueItem>>(nameof(_youtubeDownloadQueueItems), out var savedItems) && savedItems != null)
         {
-          ThrottleUIUpdate(true);
+            _youtubeDownloadQueueItems = savedItems;
         }
-      });
-    }
-    else
-    {
-      await LoadDownloadItemsList();
-      ThrottleUIUpdate(true);
-    }
-  }
-
-  private async Task OnDownloadLogUpdateAsync(int itemId, string logLine)
-  {
-    var item = _youtubeDownloadQueueItems.FirstOrDefault(x => x.Id == itemId);
-    if (item != null)
-    {
-      await InvokeAsync(() =>
-      {
-        item.OutputLog.Add(logLine);
-        ThrottleUIUpdate();
-      });
-      await YoutubeDownloadQueueService.AppendLogAsync(itemId, logLine);
-    }
-    else
-    {
-      await LoadDownloadItemsList();
-      ThrottleUIUpdate(true);
-    }
-  }
-
-  private async Task LoadDownloadItemsList()
-  {
-    try
-    {
-      _isLoadingTheList = true;
-      _youtubeDownloadQueueItems = await YoutubeDownloadQueueService.GetQueueItemsAsync();
-      await StartPausedDownloads();
-    }
-    catch (Exception exception)
-    {
-      ErrorMessage = $"An Error Occurred While Getting Items List: {exception.Message}";
-    }
-    finally
-    {
-      _isLoadingTheList = false;
-    }
-  }
-
-  private async Task AddDownload()
-  {
-    if (string.IsNullOrWhiteSpace(YoutubeUrl))
-    {
-      ErrorMessage = "Please enter a YouTube URL";
-      return;
-    }
-
-    try
-    {
-      var newYoutubeDownload = await YoutubeDownloadQueueService.AddQueueItemAsync(YoutubeUrl, SelectedQuality, ProxyUrl, DownloadFolderName);
-      YoutubeUrl = "";
-      ErrorMessage = "";
-      await LoadDownloadItemsList();
-      ThrottleUIUpdate();
-    }
-    catch (Exception exception)
-    {
-      ErrorMessage = $"An Error Occurred While Adding The URL: {exception.Message}";
-    }
-  }
-
-  private void ClearErrorMessage()
-  {
-    ErrorMessage = "";
-  }
-
-  private async Task StartDownload(YoutubeDownloadQueueItem item)
-  {
-    try
-    {
-      item.Quality = SelectedQuality;
-      item.Proxy = ProxyUrl;
-      item.DownloadFolder = DownloadFolderName;
-      await YoutubeDownloadQueueService.StartDownloadAsync(item);
-    }
-    catch (Exception exception)
-    {
-      ErrorMessage = $"An Error Occurred While Trying To Download: {exception.Message}";
-    }
-  }
-
-  private async Task CancelDownload(YoutubeDownloadQueueItem item)
-  {
-    try
-    {
-      await YoutubeDownloadQueueService.CancelDownloadAsync(item.Id);
-    }
-    catch (Exception exception)
-    {
-      ErrorMessage = $"An Error Occurred While Canceling The Download: {exception.Message}";
-    }
-  }
-
-  private async Task RemoveDownload(YoutubeDownloadQueueItem item)
-  {
-    try
-    {
-      await YoutubeDownloadQueueService.DeleteQueueItemAsync(item.Id);
-      await LoadDownloadItemsList();
-      ThrottleUIUpdate(true);
-    }
-    catch (Exception exception)
-    {
-      ErrorMessage = $"An Error Occurred While Deleting The Item: {exception.Message}";
-    }
-  }
-
-  private async Task HandleUrlInputKeyDown(KeyboardEventArgs e)
-  {
-    if (e.Key == "Enter")
-    {
-      await AddDownload();
-    }
-  }
-
-  private async Task RefreshFileManager()
-  {
-    try
-    {
-      if (fileManager is not null)
-      {
-        await InvokeAsync(fileManager.RefreshFiles);
-      }
-    }
-    catch (Exception exception)
-    {
-      ErrorMessage = $"An Error Occurred While Refreshing Files: {exception.Message}";
-    }
-  }
-
-  private void ThrottleUIUpdate(bool forceUpdate = false)
-  {
-    var now = DateTime.Now;
-    if (forceUpdate || (now - _lastUiUpdateTime >= _uiUpdateInterval))
-    {
-      _lastUiUpdateTime = now;
-      InvokeAsync(StateHasChanged);
-      InvokeAsync(RefreshFileManager);
-    }
-  }
-
-  private void OpenSupportedSites()
-  {
-    var options = new DialogOptions
-    {
-      MaxWidth = MaxWidth.Large,
-      FullWidth = true,
-      CloseButton = true
-    };
-
-    DialogService.Show<MarkdownViewerDialog>("Supported Sites", options);
-  }
-
-  private void OpenFileInfo(YoutubeDownloadQueueItem item)
-  {
-    var parameters = new DialogParameters
+        else
         {
-            { "Url", item.Url },
-            { "Proxy", item.Proxy }
-        };
-    var options = new DialogOptions
+            await LoadDownloadItemsList();
+        }
+
+        await InitializeHubConnection();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await base.OnAfterRenderAsync(firstRender);
+
+        if (!firstRender) return;
+        if (_isFullyLoaded) return;
+
+        _isFullyLoaded = true;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        persistingSubscription.Dispose();
+
+        if (hubConnection is not null)
+        {
+            await hubConnection.DisposeAsync();
+        }
+    }
+
+    private Task PersistItems()
+    {
+        _persistentState.PersistAsJson(nameof(_youtubeDownloadQueueItems), _youtubeDownloadQueueItems);
+        return Task.CompletedTask;
+    }
+
+    private async Task InitializeHubConnection()
+    {
+        // Get Basic Auth credentials from environment variables or configuration
+        var basicAuthUsername = Environment.GetEnvironmentVariable("BASIC_AUTH_USERNAME");
+        var basicAuthPassword = Environment.GetEnvironmentVariable("BASIC_AUTH_PASSWORD");
+
+        // Determine the correct hub URL based on the environment
+        var hubUrl = Environment.GetEnvironmentVariable("SIGNALR_HUB_URL")
+                     ?? NavigationManager.BaseUri.TrimEnd('/') + "/DownloadProgressHub";
+
+        if (!string.IsNullOrWhiteSpace(basicAuthUsername) && !string.IsNullOrWhiteSpace(basicAuthPassword))
+        {
+            string credentials = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes($"{basicAuthUsername}:{basicAuthPassword}"));
+
+            hubConnection = new HubConnectionBuilder()
+              .WithUrl(hubUrl, options => options.Headers.Add("Authorization", $"Basic {credentials}"))
+              .WithAutomaticReconnect()
+              .Build();
+        }
+        else
+        {
+            hubConnection = new HubConnectionBuilder()
+              .WithUrl(hubUrl)
+              .WithAutomaticReconnect()
+              .Build();
+        }
+
+        hubConnection.On<int, string>("DownloadStateChanged", OnDownloadStateUpdateAsync);
+        hubConnection.On<int, string>("DownloadLogUpdate", OnDownloadLogUpdateAsync);
+
+        try
+        {
+            await hubConnection.StartAsync();
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Failed to connect to progress updates: {ex.Message}";
+        }
+    }
+
+    private async Task OnDownloadStateUpdateAsync(int itemId, string newStatus)
+    {
+        var item = _youtubeDownloadQueueItems.FirstOrDefault(x => x.Id == itemId);
+        if (item != null)
+        {
+            await InvokeAsync(() =>
+            {
+                item.Status = Enum.Parse<EQueueItemStatus>(newStatus);
+                if (newStatus != EQueueItemStatus.Downloading.ToString())
+                {
+                    ThrottleUIUpdate(true);
+                }
+            });
+        }
+        else
+        {
+            await LoadDownloadItemsList();
+            ThrottleUIUpdate(true);
+        }
+    }
+
+    private async Task OnDownloadLogUpdateAsync(int itemId, string logLine)
+    {
+        var item = _youtubeDownloadQueueItems.FirstOrDefault(x => x.Id == itemId);
+        if (item != null)
+        {
+            await InvokeAsync(() =>
+            {
+                item.OutputLog.Add(logLine);
+                ThrottleUIUpdate();
+            });
+            await YoutubeDownloadQueueService.AppendLogAsync(itemId, logLine);
+        }
+        else
+        {
+            await LoadDownloadItemsList();
+            ThrottleUIUpdate(true);
+        }
+    }
+
+    private async Task LoadDownloadItemsList()
+    {
+        try
+        {
+            _isLoadingTheList = true;
+            _youtubeDownloadQueueItems = await YoutubeDownloadQueueService.GetQueueItemsAsync();
+            await StartPausedDownloads();
+        }
+        catch (Exception exception)
+        {
+            ErrorMessage = $"An Error Occurred While Getting Items List: {exception.Message}";
+        }
+        finally
+        {
+            _isLoadingTheList = false;
+        }
+    }
+
+    private async Task AddDownload()
+    {
+        if (string.IsNullOrWhiteSpace(YoutubeUrl))
+        {
+            ErrorMessage = "Please enter a YouTube URL";
+            return;
+        }
+
+        try
+        {
+            var newYoutubeDownload = await YoutubeDownloadQueueService.AddQueueItemAsync(YoutubeUrl, SelectedQuality, ProxyUrl, DownloadFolderName);
+            YoutubeUrl = "";
+            ErrorMessage = "";
+            await LoadDownloadItemsList();
+            ThrottleUIUpdate();
+        }
+        catch (Exception exception)
+        {
+            ErrorMessage = $"An Error Occurred While Adding The URL: {exception.Message}";
+        }
+    }
+
+    private void ClearErrorMessage()
+    {
+        ErrorMessage = "";
+    }
+
+    private async Task StartDownload(YoutubeDownloadQueueItem item)
+    {
+        try
+        {
+            item.Quality = SelectedQuality;
+            item.Proxy = ProxyUrl;
+            item.DownloadFolder = DownloadFolderName;
+            await YoutubeDownloadQueueService.StartDownloadAsync(item);
+        }
+        catch (Exception exception)
+        {
+            ErrorMessage = $"An Error Occurred While Trying To Download: {exception.Message}";
+        }
+    }
+
+    private async Task CancelDownload(YoutubeDownloadQueueItem item)
+    {
+        try
+        {
+            await YoutubeDownloadQueueService.CancelDownloadAsync(item.Id);
+        }
+        catch (Exception exception)
+        {
+            ErrorMessage = $"An Error Occurred While Canceling The Download: {exception.Message}";
+        }
+    }
+
+    private async Task RemoveDownload(YoutubeDownloadQueueItem item)
+    {
+        try
+        {
+            await YoutubeDownloadQueueService.DeleteQueueItemAsync(item.Id);
+            await LoadDownloadItemsList();
+            ThrottleUIUpdate(true);
+        }
+        catch (Exception exception)
+        {
+            ErrorMessage = $"An Error Occurred While Deleting The Item: {exception.Message}";
+        }
+    }
+
+    private async Task HandleUrlInputKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await AddDownload();
+        }
+    }
+
+    private async Task RefreshFileManager()
+    {
+        try
+        {
+            if (fileManager is not null)
+            {
+                await InvokeAsync(fileManager.RefreshFiles);
+            }
+        }
+        catch (Exception exception)
+        {
+            ErrorMessage = $"An Error Occurred While Refreshing Files: {exception.Message}";
+        }
+    }
+
+    private void ThrottleUIUpdate(bool forceUpdate = false)
+    {
+        var now = DateTime.Now;
+        if (forceUpdate || (now - _lastUiUpdateTime >= _uiUpdateInterval))
+        {
+            _lastUiUpdateTime = now;
+            InvokeAsync(StateHasChanged);
+            InvokeAsync(RefreshFileManager);
+        }
+    }
+
+    private void OpenSupportedSites()
+    {
+        var options = new DialogOptions
     {
       MaxWidth = MaxWidth.Large,
       FullWidth = true,
       CloseButton = true
     };
 
-    DialogService.Show<FileInfoDialog>("File Info", parameters, options);
-  }
+        DialogService.Show<MarkdownViewerDialog>("Supported Sites", options);
+    }
+
+    private void GetFileInfo()
+    {
+        if (!string.IsNullOrWhiteSpace(YoutubeUrl))
+        {
+            var parameters = new DialogParameters
+                {
+                    { "Url", YoutubeUrl },
+                    { "Proxy", ProxyUrl },
+                    { "isYoutubeUrl", true }
+                };
+            var options = new DialogOptions
+                {
+                    MaxWidth = MaxWidth.Large,
+                    FullWidth = true,
+                    CloseButton = true
+                };
+
+            DialogService.Show<FileInfoDialog>("File Info", parameters, options);
+        }
+        else
+        {
+            ErrorMessage = "Please enter a YouTube URL";
+        }
+    }
 
   private async Task StartPausedDownloads()
   {
