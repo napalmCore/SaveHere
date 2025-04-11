@@ -18,14 +18,14 @@
 <MudSnackbarProvider />
 
 <LoadingIndicator IsLoaded="_isFullyLoaded">
-  <MudPaper Class="px-5 pt-4 mx-5 mt-5 sv-paper" Elevation="5">
+    <MudPaper Class="px-5 pt-4 mx-5 mt-5 sv-paper" Elevation="5">
 
-    <MudStack Row>
+        <MudStack Row>
 
-      <MudTextField @bind-Value="UrlText" Label="File URL" Variant="Variant.Outlined" Margin="Margin.Dense"
-                    HelperText="Enter The File URL To Upload To The Server" HelperTextOnFocus="true" Adornment="Adornment.End"
-                    AdornmentIcon="@Icons.Material.Filled.InsertLink" AdornmentColor="Color.Info" Clearable="true"
-                    Immediate="true" @onkeydown="HandleUrlInputKeyDown" TextUpdateSuppression="false" />
+            <MudTextField @bind-Value="UrlText" Label="File URL" Variant="Variant.Outlined" Margin="Margin.Dense"
+                          HelperText="Enter The File URL To Upload To The Server" HelperTextOnFocus="true" Adornment="Adornment.End"
+                          AdornmentIcon="@Icons.Material.Filled.InsertLink" AdornmentColor="Color.Info" Clearable="true"
+                          Immediate="true" @onkeydown="HandleUrlInputKeyDown" TextUpdateSuppression="false" />
 
             <MudButtonGroup Color="Color.Primary" Variant="Variant.Filled"
                             Style="text-transform:none; box-shadow: none !important; height:40px; margin-top:0.5rem; margin-left:0.5rem;">
@@ -35,35 +35,35 @@
                            Size="Size.Small" Style="height:40px;">Info</MudButton>
             </MudButtonGroup>
 
-    </MudStack>
+        </MudStack>
 
-    <MudStack id="my-mudstack-row-1" Row>
-      <MudCheckBox @bind-Value="_autoStartPausedDownloads"
-                   Label="Autostart Paused Downloads"
-                   Color="Color.Primary"
-                   T="bool" />
+        <MudStack id="my-mudstack-row-1" Row>
+            <MudCheckBox @bind-Value="_autoStartPausedDownloads"
+                         Label="Autostart Paused Downloads"
+                         Color="Color.Primary"
+                         T="bool" />
 
-      <MudNumericField @bind-Value="_maxAutoStartConcurrency"
-                       Label=""
-                       HelperText="Maximum downloads to start concurrently"
-                       Min="1"
-                       Max="10"
-                       Variant="Variant.Outlined"
-                       Margin="Margin.Dense" />
-    </MudStack>
+            <MudNumericField @bind-Value="_maxAutoStartConcurrency"
+                             Label=""
+                             HelperText="Maximum downloads to start concurrently"
+                             Min="1"
+                             Max="10"
+                             Variant="Variant.Outlined"
+                             Margin="Margin.Dense" />
+        </MudStack>
 
-    <MudStack id="my-mudstack-row-1" Row Class="mt-3">
-      <MudTextField @bind-Value="DownloadFolderName"
-                    Label="Download Folder Name (Optional)"
-                    Variant="Variant.Outlined"
-                    Margin="Margin.Dense"
-                    HelperText="Enter a folder name to save the download in. Will be created if it doesn't exist."
-                    Clearable="true" />
-    </MudStack>
+        <MudStack id="my-mudstack-row-1" Row Class="mt-3">
+            <MudTextField @bind-Value="DownloadFolderName"
+                          Label="Download Folder Name (Optional)"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          HelperText="Enter a folder name to save the download in. Will be created if it doesn't exist."
+                          Clearable="true" />
+        </MudStack>
 
-  </MudPaper>
+    </MudPaper>
 
-  @if (!string.IsNullOrWhiteSpace(ErrorMessage))
+    @if (!string.IsNullOrWhiteSpace(ErrorMessage))
     {
         <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Dense="true" Elevation="10" ContentAlignment="HorizontalAlignment.Center" Class="mt-3 mx-5" ShowCloseIcon="true" CloseIconClicked="ClearErrorMessage">
             @ErrorMessage
@@ -127,7 +127,7 @@
                         {
                                     if (context.Status == EQueueItemStatus.Downloading) await CancelDownload(context); else await StartDownload(context);
                         }
-                            ">
+                                ">
                                 @(context.Status == EQueueItemStatus.Downloading ? "Stop" : "Start")
                             </MudButton>
                             <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small" OnClick="async () => await DeleteQueueItem(context)">Delete</MudButton>
@@ -142,7 +142,54 @@
                             <MudTd ColSpan="5" Style="justify-content: start; width:100%;">
                                 <MudPaper Class="pa-5" Elevation="0" Outlined="true" Style="justify-content: start; width:100%;">
                                     <MudStack>
-                                        <MudCheckBox @bind-Value="@context.bShouldGetFilenameFromHttpHeaders" Label="Use Headers For Filename" Color="Color.Primary" />
+                                        <MudCheckBox @bind-Value="@context.bShouldGetFilenameFromHttpHeaders"
+                                                     Label="Use Headers For Filename" Color="Color.Primary" />
+
+                                        <!-- Speed Graph Card -->
+                                        <MudPaper Class="pa-4 mt-4" Elevation="1" Style="width: 100%;">
+                                            <MudStack>
+                                                <MudText Typo="Typo.h6" Class="mb-3">Download Speed History</MudText>
+
+                                                @if (context.SpeedHistory.Any())
+                                                {
+                                                    <div style="position: relative; height: 300px; width: 100%;">
+                                                        <!-- Chart Container -->
+                                                        <MudChart ChartType="ChartType.Line"
+                                                                  ChartSeries="@_speedSeries"
+                                                                  ChartOptions="@_chartOptions"
+                                                                  Width="100%"
+                                                                  Height="300px" />
+
+                                                        <!-- Current Speed Label -->
+                                                        <MudText Style="position: absolute; right: 0; top: 50%; transform: translateY(-50%);"
+                                                                 Typo="Typo.body1" Color="Color.Info">
+                                                            @Math.Round(context.CurrentDownloadSpeed / 1024 / 1024, 1) MB/s
+                                                        </MudText>
+                                                    </div>
+                                                }
+                                                else
+                                                {
+                                                    <MudText Color="Color.Secondary" Class="my-4" Style="width: 100%; text-align: center;">
+                                                        Speed graph will appear when download starts
+                                                    </MudText>
+                                                }
+
+                                                <MudStack Row Justify="Justify.SpaceBetween" Class="mt-2">
+                                                    <MudChip T="string"
+                                                             Color="Color.Info"
+                                                             Variant="Variant.Outlined"
+                                                             Icon="@Icons.Material.Filled.Speed">
+                                                        Current: @Helpers.FormatSpeed(context.CurrentDownloadSpeed)
+                                                    </MudChip>
+                                                    <MudChip T="string"
+                                                             Color="Color.Tertiary"
+                                                             Variant="Variant.Outlined"
+                                                             Icon="@Icons.Material.Filled.AvTimer">
+                                                        Average: @Helpers.FormatSpeed(context.AverageDownloadSpeed)
+                                                    </MudChip>
+                                                </MudStack>
+                                            </MudStack>
+                                        </MudPaper>
                                     </MudStack>
                                 </MudPaper>
                             </MudTd>
@@ -286,13 +333,20 @@
             item.CurrentDownloadSpeed = update.CurrentSpeed;
             item.AverageDownloadSpeed = update.AverageSpeed;
 
-            await RefreshFileManager();
+            // Add speed to history (keep last 60 entries)
+            item.SpeedHistory.Add(update.CurrentSpeed);
+            if (item.SpeedHistory.Count > 60)
+            {
+                item.SpeedHistory.RemoveAt(0);
+            }
 
+            UpdateSpeedChart(item);
+
+            await RefreshFileManager();
             await InvokeAsync(StateHasChanged);
         }
         else
         {
-            // If we don't have the item in our list, refresh the whole list
             await LoadDownloadItemsList();
             await InvokeAsync(StateHasChanged);
         }
@@ -383,177 +437,201 @@
         }
     }
 
-  public async Task AddURL()
-  {
-    if (!string.IsNullOrWhiteSpace(UrlText))
+    public async Task AddURL()
     {
-      try
-      {
-        var newFileDownload = new FileDownloadQueueItem() { InputUrl = UrlText, DownloadFolder = DownloadFolderName };
-        _context.FileDownloadQueueItems.Add(newFileDownload);
-        await _context.SaveChangesAsync();
-
-        UrlText = "";
-        StateHasChanged();
-
-        await LoadDownloadItemsList();
-      }
-      catch (Exception exception)
-      {
-        ErrorMessage = $"An Error Occurred While Adding The URL: {exception.Message}";
-      }
-    }
-    else
-    {
-      ErrorMessage = "Please Enter A Valid URL";
-    }
-  }
-
-  private void ClearErrorMessage()
-  {
-    ErrorMessage = "";
-  }
-
-  private async Task StartDownload(FileDownloadQueueItem item)
-  {
-    try
-    {
-      await DownloadQueueService.StartDownloadAsync(item.Id, DownloadFolderName);
-    }
-    catch (Exception exception)
-    {
-      ErrorMessage = $"An Error Occurred While Trying To Download: {exception.Message}";
-    }
-  }
-
-  private async Task CancelDownload(FileDownloadQueueItem item)
-  {
-    try
-    {
-      await DownloadQueueService.CancelDownloadAsync(item.Id);
-    }
-    catch (Exception exception)
-    {
-      ErrorMessage = $"An Error Occurred While Canceling The Download: {exception.Message}";
-    }
-  }
-
-  private async Task DeleteQueueItem(FileDownloadQueueItem item)
-  {
-    try
-    {
-      var itemToDelete = await _context.FileDownloadQueueItems.FindAsync(item.Id);
-      if (itemToDelete != null)
-      {
-        _context.FileDownloadQueueItems.Remove(itemToDelete);
-        DownloadState.RemoveTokenSource(item.Id);
-        await _context.SaveChangesAsync();
-        await LoadDownloadItemsList();
-      }
-    }
-    catch (Exception exception)
-    {
-      ErrorMessage = $"An Error Occurred While Deleting The Item: {exception.Message}";
-    }
-  }
-
-  private async Task DeleteSelectedFileDownloadQueueItems()
-  {
-    try
-    {
-      foreach (var item in SelectedItems)
-      {
-        var itemToDelete = await _context.FileDownloadQueueItems.FindAsync(item.Id);
-        if (itemToDelete != null)
+        if (!string.IsNullOrWhiteSpace(UrlText))
         {
-          _context.FileDownloadQueueItems.Remove(itemToDelete);
-          DownloadState.RemoveTokenSource(item.Id);
+            try
+            {
+                var newFileDownload = new FileDownloadQueueItem() { InputUrl = UrlText, DownloadFolder = DownloadFolderName };
+                _context.FileDownloadQueueItems.Add(newFileDownload);
+                await _context.SaveChangesAsync();
+
+                UrlText = "";
+                StateHasChanged();
+
+                await LoadDownloadItemsList();
+            }
+            catch (Exception exception)
+            {
+                ErrorMessage = $"An Error Occurred While Adding The URL: {exception.Message}";
+            }
         }
-      }
-      await _context.SaveChangesAsync();
-      await LoadDownloadItemsList();
+        else
+        {
+            ErrorMessage = "Please Enter A Valid URL";
+        }
     }
-    catch (Exception exception)
+
+    private void ClearErrorMessage()
     {
-      ErrorMessage = $"An Error Occurred While Deleting Selected Items: {exception.Message}";
+        ErrorMessage = "";
     }
-  }
 
-  private void ToggleMoreOptions(FileDownloadQueueItem item)
-  {
-    item.bShowMoreOptions = !item.bShowMoreOptions;
-  }
-
-  private async Task HandleUrlInputKeyDown(KeyboardEventArgs e)
-  {
-    if (e.Key == "Enter")
+    private async Task StartDownload(FileDownloadQueueItem item)
     {
-      await AddURL();
+        try
+        {
+            await DownloadQueueService.StartDownloadAsync(item.Id, DownloadFolderName);
+        }
+        catch (Exception exception)
+        {
+            ErrorMessage = $"An Error Occurred While Trying To Download: {exception.Message}";
+        }
     }
-  }
 
-  private async Task RefreshFileManager()
-  {
-    try
+    private async Task CancelDownload(FileDownloadQueueItem item)
     {
-      if (fileManager is not null)
-      {
-        await InvokeAsync(fileManager.RefreshFiles);
-      }
+        try
+        {
+            await DownloadQueueService.CancelDownloadAsync(item.Id);
+        }
+        catch (Exception exception)
+        {
+            ErrorMessage = $"An Error Occurred While Canceling The Download: {exception.Message}";
+        }
     }
-    catch (Exception exception)
+
+    private async Task DeleteQueueItem(FileDownloadQueueItem item)
     {
-      ErrorMessage = $"An Error Occurred While Refreshing Files: {exception.Message}";
+        try
+        {
+            var itemToDelete = await _context.FileDownloadQueueItems.FindAsync(item.Id);
+            if (itemToDelete != null)
+            {
+                _context.FileDownloadQueueItems.Remove(itemToDelete);
+                DownloadState.RemoveTokenSource(item.Id);
+                await _context.SaveChangesAsync();
+                await LoadDownloadItemsList();
+            }
+        }
+        catch (Exception exception)
+        {
+            ErrorMessage = $"An Error Occurred While Deleting The Item: {exception.Message}";
+        }
     }
-  }
 
-  private async Task StartPausedDownloads()
-  {
-    if (!_autoStartPausedDownloads)
+    private async Task DeleteSelectedFileDownloadQueueItems()
     {
-      return; // Autostart is disabled
+        try
+        {
+            foreach (var item in SelectedItems)
+            {
+                var itemToDelete = await _context.FileDownloadQueueItems.FindAsync(item.Id);
+                if (itemToDelete != null)
+                {
+                    _context.FileDownloadQueueItems.Remove(itemToDelete);
+                    DownloadState.RemoveTokenSource(item.Id);
+                }
+            }
+            await _context.SaveChangesAsync();
+            await LoadDownloadItemsList();
+        }
+        catch (Exception exception)
+        {
+            ErrorMessage = $"An Error Occurred While Deleting Selected Items: {exception.Message}";
+        }
     }
 
-    // Calculate how many items are already downloading
-    int currentActiveDownloads = _fileDownloadQueueItems
-        .Count(item => item.Status == EQueueItemStatus.Downloading);
-
-    // If we're already at or above the concurrency limit, exit the function
-    if (currentActiveDownloads >= _maxAutoStartConcurrency)
+    private void ToggleMoreOptions(FileDownloadQueueItem item)
     {
-      return;
+        item.bShowMoreOptions = !item.bShowMoreOptions;
     }
 
-    // Find all paused items waiting to be started
-    var pausedItems = _fileDownloadQueueItems
-        .Where(item => item.Status == EQueueItemStatus.Paused)
-        .ToList();
-
-    if (!pausedItems.Any())
+    private async Task HandleUrlInputKeyDown(KeyboardEventArgs e)
     {
-      return; // No paused items to start
+        if (e.Key == "Enter")
+        {
+            await AddURL();
+        }
     }
 
-    int startedCount = 0;
-    foreach (var item in pausedItems)
+    private async Task RefreshFileManager()
     {
-      // Break if the total would exceed the concurrency limit
-      if (currentActiveDownloads + startedCount >= _maxAutoStartConcurrency)
-      {
-        break;
-      }
-
-      try
-      {
-        await StartDownload(item);
-        startedCount++;
-      }
-      catch (Exception ex)
-      {
-        ErrorMessage = $"Error autostarting download '{item.InputUrl}': {ex.Message}";
-        Console.WriteLine($"Error autostarting download '{item.InputUrl}': {ex.Message}");
-      }
+        try
+        {
+            if (fileManager is not null)
+            {
+                await InvokeAsync(fileManager.RefreshFiles);
+            }
+        }
+        catch (Exception exception)
+        {
+            ErrorMessage = $"An Error Occurred While Refreshing Files: {exception.Message}";
+        }
     }
-  }
+
+    private async Task StartPausedDownloads()
+    {
+        if (!_autoStartPausedDownloads)
+        {
+            return; // Autostart is disabled
+        }
+
+        // Calculate how many items are already downloading
+        int currentActiveDownloads = _fileDownloadQueueItems
+            .Count(item => item.Status == EQueueItemStatus.Downloading);
+
+        // If we're already at or above the concurrency limit, exit the function
+        if (currentActiveDownloads >= _maxAutoStartConcurrency)
+        {
+            return;
+        }
+
+        // Find all paused items waiting to be started
+        var pausedItems = _fileDownloadQueueItems
+            .Where(item => item.Status == EQueueItemStatus.Paused)
+            .ToList();
+
+        if (!pausedItems.Any())
+        {
+            return; // No paused items to start
+        }
+
+        int startedCount = 0;
+        foreach (var item in pausedItems)
+        {
+            // Break if the total would exceed the concurrency limit
+            if (currentActiveDownloads + startedCount >= _maxAutoStartConcurrency)
+            {
+                break;
+            }
+
+            try
+            {
+                await StartDownload(item);
+                startedCount++;
+            }
+            catch (Exception ex)
+            {
+                ErrorMessage = $"Error autostarting download '{item.InputUrl}': {ex.Message}";
+                Console.WriteLine($"Error autostarting download '{item.InputUrl}': {ex.Message}");
+            }
+        }
+    }
+
+    private readonly ChartOptions _chartOptions = new()
+        {
+            LineStrokeWidth = 3,
+            YAxisLines = true,
+            XAxisLines = false,    // Hide X axis lines
+            InterpolationOption = InterpolationOption.Straight,
+            ChartPalette = new[] { Colors.DeepPurple.Accent3 },
+            YAxisTicks = 5
+        };
+
+    private List<ChartSeries> _speedSeries = new();
+
+    private void UpdateSpeedChart(FileDownloadQueueItem item)
+    {
+        _speedSeries = new List<ChartSeries>
+        {
+            new ChartSeries
+            {
+                Name = "Download Speed",
+                Data = item.SpeedHistory.Select(s => Math.Round(s / 1024 / 1024, 2)).ToArray()
+            }
+        };
+    }
 
 }

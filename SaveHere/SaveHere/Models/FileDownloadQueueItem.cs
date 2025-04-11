@@ -23,5 +23,8 @@ namespace SaveHere.Models
     public double AverageDownloadSpeed { get; set; } = 0;
 
     public string? DownloadFolder { get; set; }
+
+    //Track the download speed history of a file
+    public List<double> SpeedHistory { get; set; } = new List<double>();
   }
 }
