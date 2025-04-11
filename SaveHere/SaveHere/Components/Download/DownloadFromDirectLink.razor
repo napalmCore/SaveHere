@@ -52,6 +52,20 @@
                        Margin="Margin.Dense" />
     </MudStack>
 
+     <MudStack id="my-mudstack-row-1" Row>
+      <MudCheckBox @bind-Value="_autoStartPausedDownloads"
+                   Label="Add speed limit to download"
+                   Color="Color.Primary"
+                   T="bool" />
+
+      <MudNumericField @bind-Value="_maxBytesPerSecond"
+                       Label=""
+                       HelperText="Speed limit(Maximum bytes per second)"
+                       Min="10000"
+                       Variant="Variant.Outlined"
+                       Margin="Margin.Dense" />
+    </MudStack>
+
     <MudStack id="my-mudstack-row-1" Row Class="mt-3">
       <MudTextField @bind-Value="DownloadFolderName"
                     Label="Download Folder Name (Optional)"
@@ -183,6 +197,7 @@
 
     private bool _autoStartPausedDownloads = true;
     private int _maxAutoStartConcurrency = 3;
+    private int _maxBytesPerSecond = 500000;
 
     protected override async Task OnInitializedAsync()
     {
@@ -389,7 +404,7 @@
     {
       try
       {
-        var newFileDownload = new FileDownloadQueueItem() { InputUrl = UrlText, DownloadFolder = DownloadFolderName };
+        var newFileDownload = new FileDownloadQueueItem() { InputUrl = UrlText, MaxBytesPerSecond=_maxBytesPerSecond ,DownloadFolder = DownloadFolderName };
         _context.FileDownloadQueueItems.Add(newFileDownload);
         await _context.SaveChangesAsync();
 

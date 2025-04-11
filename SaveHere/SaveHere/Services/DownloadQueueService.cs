@@ -333,6 +333,8 @@ namespace SaveHere.Services
             await _progressHubService.BroadcastProgressUpdate(downloadProgress);
           }
 
+          double timePerReadInMilliseconds = 1000.0 / queueItem.MaxBytesPerSecond * buffer.Length;
+
           // when we don't know the file size
           if (!contentLength.HasValue)
           {
@@ -345,6 +347,7 @@ namespace SaveHere.Services
               }
 
               await stream.WriteAsync(buffer, 0, bytesRead, cancellationToken);
+              await Task.Delay((int)timePerReadInMilliseconds);
               totalBytesRead += bytesRead;
               bytesReadInLastPeriod += bytesRead;
               bytesReadInTotal += bytesRead;
@@ -373,6 +376,7 @@ namespace SaveHere.Services
               }
 
               await stream.WriteAsync(buffer, 0, bytesRead, cancellationToken);
+              await Task.Delay((int)timePerReadInMilliseconds);
               totalBytesRead += bytesRead;
               bytesReadInLastPeriod += bytesRead;
               bytesReadInTotal += bytesRead;
