@@ -20,5 +20,7 @@ namespace SaveHere.Models
     public double CurrentDownloadSpeed { get; set; } = 0;
     public double AverageDownloadSpeed { get; set; } = 0;
     public string? DownloadFolder { get; set; }
+
+    public List<double> SpeedHistory { get; set; } = [];
   }
 }

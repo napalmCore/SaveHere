@@ -139,7 +139,7 @@
             <MudStack Row="true" Style="gap:5px;">
               <MudButton Variant="Variant.Filled" Color="@(context.Status == EQueueItemStatus.Downloading ? Color.Error : Color.Success)" Size="Size.Small" Style="min-width:75px;" OnClick="async() =>
                 {
-                    if (context.Status == EQueueItemStatus.Downloading) await CancelDownload(context); else await StartDownload(context);
+                  if (context.Status == EQueueItemStatus.Downloading) await CancelDownload(context); else await StartDownload(context);
                 }">
               @(context.Status == EQueueItemStatus.Downloading ? "Stop" : "Start")
             </MudButton>
@@ -156,6 +156,52 @@
                 <MudPaper Class="pa-5" Elevation="0" Outlined="true" Style="justify-content: start; width:100%;">
                   <MudStack>
                     <MudCheckBox @bind-Value="@context.bShouldGetFilenameFromHttpHeaders" Label="Use Headers For Filename" Color="Color.Primary" />
+
+                    <!-- Speed Graph Card -->
+                    <MudPaper Class="pa-4 mt-4" Elevation="1" Style="width: 100%;">
+                      <MudStack>
+                        <MudText Typo="Typo.h6" Class="mb-3">Download Speed History</MudText>
+
+                        @if (context.SpeedHistory.Any())
+                        {
+                          <div style="position: relative; height: 300px; width: 100%;">
+                            <!-- Chart Container -->
+                            <MudChart ChartType="ChartType.Line"
+                                      ChartSeries="@_speedSeries"
+                                      ChartOptions="@_chartOptions"
+                                      Width="100%"
+                                      Height="300px" />
+
+                            <!-- Current Speed Label -->
+                            <MudText Style="position: absolute; right: 0; top: 50%; transform: translateY(-50%);"
+                                     Typo="Typo.body1" Color="Color.Info">
+                              @Math.Round(context.CurrentDownloadSpeed / 1024 / 1024, 1) MB/s
+                            </MudText>
+                          </div>
+                        }
+                        else
+                        {
+                          <MudText Color="Color.Secondary" Class="my-4" Style="width: 100%; text-align: center;">
+                            Speed graph will appear when download starts
+                          </MudText>
+                        }
+
+                        <MudStack Row Justify="Justify.SpaceBetween" Class="mt-2">
+                          <MudChip T="string"
+                                   Color="Color.Info"
+                                   Variant="Variant.Outlined"
+                                   Icon="@Icons.Material.Filled.Speed">
+                            Current: @Helpers.FormatSpeed(context.CurrentDownloadSpeed)
+                          </MudChip>
+                          <MudChip T="string"
+                                   Color="Color.Tertiary"
+                                   Variant="Variant.Outlined"
+                                   Icon="@Icons.Material.Filled.AvTimer">
+                            Average: @Helpers.FormatSpeed(context.AverageDownloadSpeed)
+                          </MudChip>
+                        </MudStack>
+                      </MudStack>
+                    </MudPaper>
                   </MudStack>
                 </MudPaper>
               </MudTd>
@@ -198,6 +244,18 @@
   private bool _useMaxDownloadSpeedLimit = false;
   private int _maxAutoStartConcurrency = 3;
   private int _maxBytesPerSecond = -1;
+
+  private readonly ChartOptions _chartOptions = new()
+  {
+    LineStrokeWidth = 3,
+    YAxisLines = true,
+    XAxisLines = false,    // Hide X axis lines
+    InterpolationOption = InterpolationOption.Straight,
+    ChartPalette = new[] { Colors.DeepPurple.Accent3 },
+    YAxisTicks = 5
+  };
+
+  private List<ChartSeries> _speedSeries = new();
 
   protected override async Task OnInitializedAsync()
   {
@@ -301,13 +359,20 @@
       item.CurrentDownloadSpeed = update.CurrentSpeed;
       item.AverageDownloadSpeed = update.AverageSpeed;
 
-      await RefreshFileManager();
+      // Add speed to history (keep last 60 entries)
+      item.SpeedHistory.Add(update.CurrentSpeed);
+      if (item.SpeedHistory.Count > 60)
+      {
+        item.SpeedHistory.RemoveAt(0);
+      }
 
+      UpdateSpeedChart(item);
+
+      await RefreshFileManager();
       await InvokeAsync(StateHasChanged);
     }
     else
     {
-      // If we don't have the item in our list, refresh the whole list
       await LoadDownloadItemsList();
       await InvokeAsync(StateHasChanged);
     }
@@ -574,4 +639,15 @@
     }
   }
 
+  private void UpdateSpeedChart(FileDownloadQueueItem item)
+  {
+    _speedSeries = new List<ChartSeries>
+      {
+        new ChartSeries
+        {
+          Name = "Download Speed",
+          Data = item.SpeedHistory.Select(s => Math.Round(s / 1024 / 1024, 2)).ToArray()
+        }
+      };
+  }
 }
