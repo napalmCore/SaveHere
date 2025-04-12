@@ -16,8 +16,8 @@ namespace SaveHere.Services
     Task StartDownloadAsync(int id, string? downloadFolderName);
     Task PauseDownloadAsync(int id);
     Task CancelDownloadAsync(int id);
-        Task<VideoInfo> GetFileInfo(string url);
-    }
+    Task<VideoInfo> GetFileInfo(string url);
+  }
 
   public class DownloadQueueService : IDownloadQueueService
   {
@@ -333,6 +333,8 @@ namespace SaveHere.Services
             await _progressHubService.BroadcastProgressUpdate(downloadProgress);
           }
 
+          double timePerReadInMilliseconds = 1000.0 / queueItem.MaxBytesPerSecond * buffer.Length;
+
           // when we don't know the file size
           if (!contentLength.HasValue)
           {
@@ -345,6 +347,7 @@ namespace SaveHere.Services
               }
 
               await stream.WriteAsync(buffer, 0, bytesRead, cancellationToken);
+              if (queueItem.MaxBytesPerSecond > 0) await Task.Delay((int)timePerReadInMilliseconds);
               totalBytesRead += bytesRead;
               bytesReadInLastPeriod += bytesRead;
               bytesReadInTotal += bytesRead;
@@ -373,6 +376,7 @@ namespace SaveHere.Services
               }
 
               await stream.WriteAsync(buffer, 0, bytesRead, cancellationToken);
+              if (queueItem.MaxBytesPerSecond > 0) await Task.Delay((int)timePerReadInMilliseconds);
               totalBytesRead += bytesRead;
               bytesReadInLastPeriod += bytesRead;
               bytesReadInTotal += bytesRead;
@@ -429,62 +433,62 @@ namespace SaveHere.Services
       }
     }
 
-        public async Task<VideoInfo> GetFileInfo(string url)
+    public async Task<VideoInfo> GetFileInfo(string url)
+    {
+      var fileInfo = new VideoInfo();
+      try
+      {
+        HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Head, url);
+        HttpResponseMessage response = await _httpClient.SendAsync(request);
+
+        // Check if authentication is required
+        if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized ||
+            response.StatusCode == System.Net.HttpStatusCode.Forbidden)
         {
-            var fileInfo = new VideoInfo();
-            try
-            {
-                HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Head, url);
-                HttpResponseMessage response = await _httpClient.SendAsync(request);
-
-                // Check if authentication is required
-                if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized ||
-                    response.StatusCode == System.Net.HttpStatusCode.Forbidden)
-                {
-                    fileInfo.RequiresLogin = true;
-                    fileInfo.Errors = "Access denied: authentication required.";
-                    return fileInfo;
-                }
-
-                if (!response.IsSuccessStatusCode)
-                {
-                    fileInfo.Errors = $"Failed to retrieve file. Status Code: {response.StatusCode}";
-                    return fileInfo;
-                }
-
-                fileInfo.Title = GetTitle(response, url);
-                fileInfo.Filename = fileInfo.Title;
-                fileInfo.Ext = GetFileExtension(fileInfo.Title);
-                fileInfo.FileSize = GetFileSize(response);
-
-            }
-            catch (Exception ex)
-            {
-                fileInfo.Errors = $"Error: {ex.Message}";
-            }
-
-            return fileInfo;
+          fileInfo.RequiresLogin = true;
+          fileInfo.Errors = "Access denied: authentication required.";
+          return fileInfo;
         }
 
-        private string GetTitle(HttpResponseMessage response, string url)
+        if (!response.IsSuccessStatusCode)
         {
-            if (response.Content.Headers.ContentDisposition != null)
-            {
-                return response.Content.Headers.ContentDisposition.FileName?.Trim('"') ?? "Unknown";
-            }
-
-            Uri uri = new Uri(url);
-            return HttpUtility.UrlDecode(uri.Segments[^1]); // Extract title from URL
+          fileInfo.Errors = $"Failed to retrieve file. Status Code: {response.StatusCode}";
+          return fileInfo;
         }
 
-        private string GetFileExtension(string title)
-        {
-            return title.Contains('.') ? title.Substring(title.LastIndexOf('.') + 1) : "Unknown";
-        }
+        fileInfo.Title = GetTitle(response, url);
+        fileInfo.Filename = fileInfo.Title;
+        fileInfo.Ext = GetFileExtension(fileInfo.Title);
+        fileInfo.FileSize = GetFileSize(response);
 
-        private long? GetFileSize(HttpResponseMessage response)
-        {
-            return response.Content.Headers.ContentLength ?? null;
-        }
+      }
+      catch (Exception ex)
+      {
+        fileInfo.Errors = $"Error: {ex.Message}";
+      }
+
+      return fileInfo;
     }
+
+    private string GetTitle(HttpResponseMessage response, string url)
+    {
+      if (response.Content.Headers.ContentDisposition != null)
+      {
+        return response.Content.Headers.ContentDisposition.FileName?.Trim('"') ?? "Unknown";
+      }
+
+      Uri uri = new Uri(url);
+      return HttpUtility.UrlDecode(uri.Segments[^1]); // Extract title from URL
+    }
+
+    private string GetFileExtension(string title)
+    {
+      return title.Contains('.') ? title.Substring(title.LastIndexOf('.') + 1) : "Unknown";
+    }
+
+    private long? GetFileSize(HttpResponseMessage response)
+    {
+      return response.Content.Headers.ContentLength ?? null;
+    }
+  }
 }

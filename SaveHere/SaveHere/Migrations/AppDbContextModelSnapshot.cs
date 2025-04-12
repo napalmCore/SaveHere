@@ -234,6 +234,9 @@ namespace SaveHere.Migrations
             b.Property<int>("ProgressPercentage")
                       .HasColumnType("INTEGER");
 
+            b.Property<int>("MaxBytesPerSecond")
+                       .HasColumnType("INTEGER");
+
             b.Property<int>("Status")
                       .HasColumnType("INTEGER");
 
