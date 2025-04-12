@@ -14,14 +14,11 @@ namespace SaveHere.Models
     public EQueueItemStatus Status { get; set; } = EQueueItemStatus.Paused;
 
     public int ProgressPercentage { get; set; } = 0;
-
+    public int MaxBytesPerSecond { get; set; } = 50000;
     public bool bShowMoreOptions { get; set; } = false;
-
     public bool bShouldGetFilenameFromHttpHeaders { get; set; } = true;
-
     public double CurrentDownloadSpeed { get; set; } = 0;
     public double AverageDownloadSpeed { get; set; } = 0;
-
     public string? DownloadFolder { get; set; }
 
     //Track the download speed history of a file

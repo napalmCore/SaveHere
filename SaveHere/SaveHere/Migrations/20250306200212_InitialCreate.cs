@@ -58,6 +58,7 @@ namespace SaveHere.Migrations
                   .Annotation("Sqlite:Autoincrement", true),
             InputUrl = table.Column<string>(type: "TEXT", nullable: false),
             Status = table.Column<int>(type: "INTEGER", nullable: false),
+            MaxBytesPerSecond = table.Column<int>(type: "INTEGER", nullable: false),
             ProgressPercentage = table.Column<int>(type: "INTEGER", nullable: false),
             bShowMoreOptions = table.Column<bool>(type: "INTEGER", nullable: false),
             bShouldGetFilenameFromHttpHeaders = table.Column<bool>(type: "INTEGER", nullable: false),

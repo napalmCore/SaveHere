@@ -27,13 +27,13 @@
                           AdornmentIcon="@Icons.Material.Filled.InsertLink" AdornmentColor="Color.Info" Clearable="true"
                           Immediate="true" @onkeydown="HandleUrlInputKeyDown" TextUpdateSuppression="false" />
 
-            <MudButtonGroup Color="Color.Primary" Variant="Variant.Filled"
-                            Style="text-transform:none; box-shadow: none !important; height:40px; margin-top:0.5rem; margin-left:0.5rem;">
-                <MudButton StartIcon="@Icons.Material.Filled.Add" OnClick="AddURL"
-                           Size="Size.Small" Style="height:40px;">Add</MudButton>
-                <MudButton StartIcon="@Icons.Material.Filled.Info" OnClick="ShowInfo"
-                           Size="Size.Small" Style="height:40px;">Info</MudButton>
-            </MudButtonGroup>
+      <MudButtonGroup Color="Color.Primary" Variant="Variant.Filled"
+                      Style="text-transform:none; box-shadow: none !important; height:40px; margin-top:0.5rem; margin-left:0.5rem;">
+        <MudButton StartIcon="@Icons.Material.Filled.Add" OnClick="AddURL"
+                   Size="Size.Small" Style="height:40px;">Add</MudButton>
+        <MudButton StartIcon="@Icons.Material.Filled.Info" OnClick="ShowInfo"
+                   Size="Size.Small" Style="height:40px;">Info</MudButton>
+      </MudButtonGroup>
 
         </MudStack>
 
@@ -201,243 +201,269 @@
     }
 
     <FileManager @ref="fileManager" />
+
 </LoadingIndicator>
 
 @code {
-    [Inject] public required AppDbContext _context { get; set; }
-    [Inject] private PersistentComponentState _persistentState { get; set; } = default!;
-    [Inject] public required DownloadStateService DownloadState { get; set; }
-    [Inject] public IDownloadQueueService DownloadQueueService { get; set; } = default!;
-    [Inject] private NavigationManager NavigationManager { get; set; } = default!;
-    [Inject] private IDialogService DialogService { get; set; } = default!;
+  [Inject] public required AppDbContext _context { get; set; }
+  [Inject] private PersistentComponentState _persistentState { get; set; } = default!;
+  [Inject] public required DownloadStateService DownloadState { get; set; }
+  [Inject] public IDownloadQueueService DownloadQueueService { get; set; } = default!;
+  [Inject] private NavigationManager NavigationManager { get; set; } = default!;
+  [Inject] private IDialogService DialogService { get; set; } = default!;
 
-    private bool _isFullyLoaded;
-    private PersistingComponentStateSubscription persistingSubscription;
+  private bool _isFullyLoaded;
+  private PersistingComponentStateSubscription persistingSubscription;
 
-    private HubConnection? hubConnection;
+  private HubConnection? hubConnection;
 
-    private FileManager? fileManager;
+  private FileManager? fileManager;
 
-    private string UrlText { get; set; } = "";
-    private string ErrorMessage { get; set; } = "";
+  private string UrlText { get; set; } = "";
+  private string ErrorMessage { get; set; } = "";
 
-    private string? DownloadFolderName { get; set; }
+  private string? DownloadFolderName { get; set; }
 
-    private List<FileDownloadQueueItem> _fileDownloadQueueItems = new();
-    private bool _isLoadingTheList = false;
+  private List<FileDownloadQueueItem> _fileDownloadQueueItems = new();
+  private bool _isLoadingTheList = false;
 
-    private HashSet<FileDownloadQueueItem> SelectedItems = new HashSet<FileDownloadQueueItem>();
+  private HashSet<FileDownloadQueueItem> SelectedItems = new HashSet<FileDownloadQueueItem>();
 
-    private bool _autoStartPausedDownloads = true;
-    private int _maxAutoStartConcurrency = 3;
+  private bool _autoStartPausedDownloads = true;
+  private bool _useMaxDownloadSpeedLimit = false;
+  private int _maxAutoStartConcurrency = 3;
+  private int _maxBytesPerSecond = -1;
 
-    protected override async Task OnInitializedAsync()
+  protected override async Task OnInitializedAsync()
+  {
+    persistingSubscription = _persistentState.RegisterOnPersisting(PersistItems);
+
+    // Loading downloads list
+    if (_persistentState.TryTakeFromJson<List<FileDownloadQueueItem>>(nameof(_fileDownloadQueueItems), out var savedItems) && savedItems != null)
     {
-        persistingSubscription = _persistentState.RegisterOnPersisting(PersistItems);
-
-        // Loading downloads list
-        if (_persistentState.TryTakeFromJson<List<FileDownloadQueueItem>>(nameof(_fileDownloadQueueItems), out var savedItems) && savedItems != null)
-        {
-            _fileDownloadQueueItems = savedItems;
-        }
-        else
-        {
-            await LoadDownloadItemsList();
-        }
-
-        await InitializeHubConnection();
+      _fileDownloadQueueItems = savedItems;
+    }
+    else
+    {
+      await LoadDownloadItemsList();
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    await InitializeHubConnection();
+  }
+
+  protected override async Task OnAfterRenderAsync(bool firstRender)
+  {
+    await base.OnAfterRenderAsync(firstRender);
+
+    if (!firstRender) return;
+    if (_isFullyLoaded) return;
+
+    _isFullyLoaded = true;
+    await InvokeAsync(StateHasChanged);
+  }
+
+  public async ValueTask DisposeAsync()
+  {
+    persistingSubscription.Dispose();
+
+    if (hubConnection is not null)
     {
-        await base.OnAfterRenderAsync(firstRender);
+      await hubConnection.DisposeAsync();
+    }
+  }
 
-        if (!firstRender) return;
-        if (_isFullyLoaded) return;
+  private Task PersistItems()
+  {
+    _persistentState.PersistAsJson(nameof(_fileDownloadQueueItems), _fileDownloadQueueItems);
+    return Task.CompletedTask;
+  }
 
-        _isFullyLoaded = true;
+  private async Task InitializeHubConnection()
+  {
+    // Get Basic Auth credentials from environment variables or configuration
+    var basicAuthUsername = Environment.GetEnvironmentVariable("BASIC_AUTH_USERNAME");
+    var basicAuthPassword = Environment.GetEnvironmentVariable("BASIC_AUTH_PASSWORD");
+
+    // Determine the correct hub URL based on the environment
+    var hubUrl = Environment.GetEnvironmentVariable("SIGNALR_HUB_URL")
+                 ?? NavigationManager.BaseUri.TrimEnd('/') + "/DownloadProgressHub";
+
+    if (!string.IsNullOrWhiteSpace(basicAuthUsername) && !string.IsNullOrWhiteSpace(basicAuthPassword))
+    {
+      string credentials = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes($"{basicAuthUsername}:{basicAuthPassword}"));
+
+      hubConnection = new HubConnectionBuilder()
+        .WithUrl(hubUrl, options => options.Headers.Add("Authorization", $"Basic {credentials}"))
+        .WithAutomaticReconnect()
+        .Build();
+    }
+    else
+    {
+      hubConnection = new HubConnectionBuilder()
+        .WithUrl(hubUrl)
+        .WithAutomaticReconnect()
+        .Build();
+    }
+
+    hubConnection.On<DownloadProgress>("DownloadProgressUpdate", OnDownloadProgressUpdateAsync);
+    hubConnection.On<int, string>("DownloadStateChanged", OnDownloadStateUpdateAsync);
+
+    try
+    {
+      await hubConnection.StartAsync();
+
+      // Subscribe to updates for all current downloads
+      // if (_fileDownloadQueueItems != null)
+      // {
+      //   foreach (var item in _fileDownloadQueueItems.Where(x => x.Status == EQueueItemStatus.Downloading))
+      //   {
+      //     await hubConnection.SendAsync("SubscribeToDownload", item.Id);
+      //   }
+      // }
+    }
+    catch (Exception ex)
+    {
+      ErrorMessage = $"Failed to connect to progress updates: {ex.Message}";
+    }
+  }
+
+  private async Task OnDownloadProgressUpdateAsync(DownloadProgress update)
+  {
+    var item = _fileDownloadQueueItems.FirstOrDefault(x => x.Id == update.ItemId);
+    if (item != null)
+    {
+      item.ProgressPercentage = update.ProgressPercentage;
+      item.CurrentDownloadSpeed = update.CurrentSpeed;
+      item.AverageDownloadSpeed = update.AverageSpeed;
+
+      // Add speed to history (keep last 60 entries)
+      item.SpeedHistory.Add(update.CurrentSpeed);
+      if (item.SpeedHistory.Count > 60)
+      {
+          item.SpeedHistory.RemoveAt(0);
+      }
+
+      UpdateSpeedChart(item);
+
+      await RefreshFileManager();
+      await InvokeAsync(StateHasChanged);
+    }
+    else
+    {
+        await LoadDownloadItemsList();
         await InvokeAsync(StateHasChanged);
     }
+  }
 
-    public async ValueTask DisposeAsync()
+  private async Task OnDownloadStateUpdateAsync(int itemId, string newStatus)
+  {
+    var item = _fileDownloadQueueItems.FirstOrDefault(x => x.Id == itemId);
+    if (item != null)
     {
-        persistingSubscription.Dispose();
-
-        if (hubConnection is not null)
+      await InvokeAsync(() =>
+      {
+        item.Status = Enum.Parse<EQueueItemStatus>(newStatus);
+        if (newStatus != EQueueItemStatus.Downloading.ToString())
         {
-            await hubConnection.DisposeAsync();
+          InvokeAsync(RefreshFileManager);
         }
+        StateHasChanged();
+      });
     }
-
-    private Task PersistItems()
+    else
     {
-        _persistentState.PersistAsJson(nameof(_fileDownloadQueueItems), _fileDownloadQueueItems);
-        return Task.CompletedTask;
+      await LoadDownloadItemsList();
+      await InvokeAsync(StateHasChanged);
     }
+  }
 
-    private async Task InitializeHubConnection()
+  private async Task LoadDownloadItemsList()
+  {
+    try
     {
-        // Get Basic Auth credentials from environment variables or configuration
-        var basicAuthUsername = Environment.GetEnvironmentVariable("BASIC_AUTH_USERNAME");
-        var basicAuthPassword = Environment.GetEnvironmentVariable("BASIC_AUTH_PASSWORD");
+      _isLoadingTheList = true;
+      var items = await DownloadQueueService.GetQueueItemsAsync();
 
-        // Determine the correct hub URL based on the environment
-        var hubUrl = Environment.GetEnvironmentVariable("SIGNALR_HUB_URL")
-                     ?? NavigationManager.BaseUri.TrimEnd('/') + "/DownloadProgressHub";
-
-        if (!string.IsNullOrWhiteSpace(basicAuthUsername) && !string.IsNullOrWhiteSpace(basicAuthPassword))
+      // Update the list while preserving existing items to prevent UI flicker
+      foreach (var newItem in items)
+      {
+        var existingItem = _fileDownloadQueueItems.FirstOrDefault(x => x.Id == newItem.Id);
+        if (existingItem != null)
         {
-            string credentials = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes($"{basicAuthUsername}:{basicAuthPassword}"));
-
-            hubConnection = new HubConnectionBuilder()
-              .WithUrl(hubUrl, options => options.Headers.Add("Authorization", $"Basic {credentials}"))
-              .WithAutomaticReconnect()
-              .Build();
+          existingItem.Status = newItem.Status;
+          existingItem.ProgressPercentage = newItem.ProgressPercentage;
+          existingItem.CurrentDownloadSpeed = newItem.CurrentDownloadSpeed;
+          existingItem.AverageDownloadSpeed = newItem.AverageDownloadSpeed;
         }
         else
         {
-            hubConnection = new HubConnectionBuilder()
-              .WithUrl(hubUrl)
-              .WithAutomaticReconnect()
-              .Build();
+          _fileDownloadQueueItems.Add(newItem);
         }
+      }
 
-        hubConnection.On<DownloadProgress>("DownloadProgressUpdate", OnDownloadProgressUpdateAsync);
-        hubConnection.On<int, string>("DownloadStateChanged", OnDownloadStateUpdateAsync);
-
-        try
-        {
-            await hubConnection.StartAsync();
-
-            // Subscribe to updates for all current downloads
-            // if (_fileDownloadQueueItems != null)
-            // {
-            //   foreach (var item in _fileDownloadQueueItems.Where(x => x.Status == EQueueItemStatus.Downloading))
-            //   {
-            //     await hubConnection.SendAsync("SubscribeToDownload", item.Id);
-            //   }
-            // }
-        }
-        catch (Exception ex)
-        {
-            ErrorMessage = $"Failed to connect to progress updates: {ex.Message}";
-        }
+      // Remove items that no longer exist
+      _fileDownloadQueueItems.RemoveAll(x => !items.Any(y => y.Id == x.Id));
     }
-
-    private async Task OnDownloadProgressUpdateAsync(DownloadProgress update)
+    catch (Exception exception)
     {
-        var item = _fileDownloadQueueItems.FirstOrDefault(x => x.Id == update.ItemId);
-        if (item != null)
-        {
-            item.ProgressPercentage = update.ProgressPercentage;
-            item.CurrentDownloadSpeed = update.CurrentSpeed;
-            item.AverageDownloadSpeed = update.AverageSpeed;
-
-            // Add speed to history (keep last 60 entries)
-            item.SpeedHistory.Add(update.CurrentSpeed);
-            if (item.SpeedHistory.Count > 60)
-            {
-                item.SpeedHistory.RemoveAt(0);
-            }
-
-            UpdateSpeedChart(item);
-
-            await RefreshFileManager();
-            await InvokeAsync(StateHasChanged);
-        }
-        else
-        {
-            await LoadDownloadItemsList();
-            await InvokeAsync(StateHasChanged);
-        }
+      ErrorMessage = $"An Error Occurred While Getting Items List: {exception.Message}";
     }
-
-    private async Task OnDownloadStateUpdateAsync(int itemId, string newStatus)
+    finally
     {
-        var item = _fileDownloadQueueItems.FirstOrDefault(x => x.Id == itemId);
-        if (item != null)
-        {
-            await InvokeAsync(() =>
-            {
-                item.Status = Enum.Parse<EQueueItemStatus>(newStatus);
-                if (newStatus != EQueueItemStatus.Downloading.ToString())
-                {
-                    InvokeAsync(RefreshFileManager);
-                }
-                StateHasChanged();
-            });
-        }
-        else
-        {
-            await LoadDownloadItemsList();
-            await InvokeAsync(StateHasChanged);
-        }
+      _isLoadingTheList = false;
+      await StartPausedDownloads();
     }
+  }
 
-    private async Task LoadDownloadItemsList()
+  public void ShowInfo()
+  {
+    if (!string.IsNullOrWhiteSpace(UrlText))
     {
-        try
-        {
-            _isLoadingTheList = true;
-            var items = await DownloadQueueService.GetQueueItemsAsync();
-
-            // Update the list while preserving existing items to prevent UI flicker
-            foreach (var newItem in items)
-            {
-                var existingItem = _fileDownloadQueueItems.FirstOrDefault(x => x.Id == newItem.Id);
-                if (existingItem != null)
-                {
-                    existingItem.Status = newItem.Status;
-                    existingItem.ProgressPercentage = newItem.ProgressPercentage;
-                    existingItem.CurrentDownloadSpeed = newItem.CurrentDownloadSpeed;
-                    existingItem.AverageDownloadSpeed = newItem.AverageDownloadSpeed;
-                }
-                else
-                {
-                    _fileDownloadQueueItems.Add(newItem);
-                }
-            }
-
-            // Remove items that no longer exist
-            _fileDownloadQueueItems.RemoveAll(x => !items.Any(y => y.Id == x.Id));
-        }
-        catch (Exception exception)
-        {
-            ErrorMessage = $"An Error Occurred While Getting Items List: {exception.Message}";
-        }
-        finally
-        {
-            _isLoadingTheList = false;
-            await StartPausedDownloads();
-        }
-    }
-
-    public async Task ShowInfo()
-    {
-        if (!string.IsNullOrWhiteSpace(UrlText))
-        {
-            var output = DownloadQueueService.GetFileInfo(UrlText);
-            var parameters = new DialogParameters
+      var output = DownloadQueueService.GetFileInfo(UrlText);
+      var parameters = new DialogParameters
             {
                 { "Url", UrlText },
                 { "isYoutubeUrl", false }
             };
-            var options = new DialogOptions
-                {
-                    MaxWidth = MaxWidth.Large,
-                    FullWidth = true,
-                    CloseButton = true
-                };
+      var options = new DialogOptions
+      {
+        MaxWidth = MaxWidth.Large,
+        FullWidth = true,
+        CloseButton = true
+      };
 
-            DialogService.Show<FileInfoDialog>("File Info", parameters, options);
-        }
-        else
-        {
-            ErrorMessage = "Please Enter A Valid URL";
-        }
+      DialogService.Show<FileInfoDialog>("File Info", parameters, options);
     }
+    else
+    {
+      ErrorMessage = "Please Enter A Valid URL";
+    }
+  }
 
-    public async Task AddURL()
+  public async Task AddURL()
+  {
+    if (!string.IsNullOrWhiteSpace(UrlText))
+    {
+      try
+      {
+        int mbs = _maxBytesPerSecond;
+        if (!_useMaxDownloadSpeedLimit) mbs = -1;
+
+        var newFileDownload = new FileDownloadQueueItem() { InputUrl = UrlText, MaxBytesPerSecond = mbs, DownloadFolder = DownloadFolderName };
+        _context.FileDownloadQueueItems.Add(newFileDownload);
+        await _context.SaveChangesAsync();
+
+        UrlText = "";
+        StateHasChanged();
+
+        await LoadDownloadItemsList();
+      }
+      catch (Exception exception)
+      {
+        ErrorMessage = $"An Error Occurred While Adding The URL: {exception.Message}";
+      }
+    }
+    else
     {
         if (!string.IsNullOrWhiteSpace(UrlText))
         {
