@@ -52,6 +52,20 @@
                        Margin="Margin.Dense" />
     </MudStack>
 
+    <MudStack id="my-mudstack-row-1" Row>
+      <MudCheckBox @bind-Value="_useMaxDownloadSpeedLimit"
+                   Label="Add speed limit to download"
+                   Color="Color.Primary"
+                   T="bool" />
+
+      <MudNumericField @bind-Value="_maxBytesPerSecond"
+                       Label=""
+                       HelperText="Speed limit(Maximum bytes per second)"
+                       Min="10000"
+                       Variant="Variant.Outlined"
+                       Margin="Margin.Dense" />
+    </MudStack>
+
     <MudStack id="my-mudstack-row-1" Row Class="mt-3">
       <MudTextField @bind-Value="DownloadFolderName"
                     Label="Download Folder Name (Optional)"
@@ -125,7 +139,7 @@
             <MudStack Row="true" Style="gap:5px;">
               <MudButton Variant="Variant.Filled" Color="@(context.Status == EQueueItemStatus.Downloading ? Color.Error : Color.Success)" Size="Size.Small" Style="min-width:75px;" OnClick="async() =>
                 {
-                    if (context.Status == EQueueItemStatus.Downloading) await CancelDownload(context); else await StartDownload(context);
+                  if (context.Status == EQueueItemStatus.Downloading) await CancelDownload(context); else await StartDownload(context);
                 }">
               @(context.Status == EQueueItemStatus.Downloading ? "Stop" : "Start")
             </MudButton>
@@ -141,8 +155,7 @@
               <MudTd ColSpan="5" Style="justify-content: start; width:100%;">
                 <MudPaper Class="pa-5" Elevation="0" Outlined="true" Style="justify-content: start; width:100%;">
                   <MudStack>
-                    <MudCheckBox @bind-Value="@context.bShouldGetFilenameFromHttpHeaders"
-                                 Label="Use Headers For Filename" Color="Color.Primary" />
+                    <MudCheckBox @bind-Value="@context.bShouldGetFilenameFromHttpHeaders" Label="Use Headers For Filename" Color="Color.Primary" />
 
                     <!-- Speed Graph Card -->
                     <MudPaper Class="pa-4 mt-4" Elevation="1" Style="width: 100%;">
@@ -231,6 +244,18 @@
   private bool _useMaxDownloadSpeedLimit = false;
   private int _maxAutoStartConcurrency = 3;
   private int _maxBytesPerSecond = -1;
+
+  private readonly ChartOptions _chartOptions = new()
+  {
+    LineStrokeWidth = 3,
+    YAxisLines = true,
+    XAxisLines = false,    // Hide X axis lines
+    InterpolationOption = InterpolationOption.Straight,
+    ChartPalette = new[] { Colors.DeepPurple.Accent3 },
+    YAxisTicks = 5
+  };
+
+  private List<ChartSeries> _speedSeries = new();
 
   protected override async Task OnInitializedAsync()
   {
@@ -450,7 +475,7 @@
         var newFileDownload = new FileDownloadQueueItem() { InputUrl = UrlText, MaxBytesPerSecond = mbs, DownloadFolder = DownloadFolderName };
         _context.FileDownloadQueueItems.Add(newFileDownload);
         await _context.SaveChangesAsync();
-        
+
         UrlText = "";
         StateHasChanged();
 
@@ -614,28 +639,15 @@
     }
   }
 
-  private readonly ChartOptions _chartOptions = new()
-  {
-    LineStrokeWidth = 3,
-    YAxisLines = true,
-    XAxisLines = false,    // Hide X axis lines
-    InterpolationOption = InterpolationOption.Straight,
-    ChartPalette = new[] { Colors.DeepPurple.Accent3 },
-    YAxisTicks = 5
-  };
-
-  private List<ChartSeries> _speedSeries = new();
-
   private void UpdateSpeedChart(FileDownloadQueueItem item)
   {
     _speedSeries = new List<ChartSeries>
+      {
+        new ChartSeries
         {
-            new ChartSeries
-            {
-                Name = "Download Speed",
-                Data = item.SpeedHistory.Select(s => Math.Round(s / 1024 / 1024, 2)).ToArray()
-            }
-        };
+          Name = "Download Speed",
+          Data = item.SpeedHistory.Select(s => Math.Round(s / 1024 / 1024, 2)).ToArray()
+        }
+      };
   }
-
 }
