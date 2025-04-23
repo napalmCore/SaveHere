@@ -231,17 +231,25 @@ namespace SaveHere.Services
                 fileName = string.Join("_", fileName.Split(Path.GetInvalidFileNameChars(), StringSplitOptions.RemoveEmptyEntries)).TrimEnd('.');
         if (string.IsNullOrWhiteSpace(fileName)) fileName = "unnamed_" + DateTime.Now.ToString("yyyyMMddHHmmss");
 
-        // Try to determine the file extension based on common mime types if the filename doesn't have one already
-        if (string.IsNullOrEmpty(Path.GetExtension(fileName)))
-        {
-          var contentType = response.Content.Headers.ContentType?.MediaType;
-                    if (contentType != null && Helpers.Helpers.CommonMimeTypes.TryGetValue(contentType, out var extension))
-          {
-            fileName += extension;
-          }
-        }
+                // Try to determine the file extension based on common mime types if the filename doesn't have one already
+                if (string.IsNullOrEmpty(Path.GetExtension(fileName)))
+                {
+                    var contentTypeHeader = response.Content.Headers.ContentType;
 
-        var downloadPath = Path.Combine(Directory.GetCurrentDirectory(), "downloads");
+                    if (contentTypeHeader != null)
+                    {
+                        var mediaType = contentTypeHeader.MediaType;
+
+                        if (!string.IsNullOrWhiteSpace(mediaType) &&
+                            Helpers.Helpers.CommonMimeTypes.TryGetValue(mediaType, out var extension))
+                        {
+                            fileName += extension;
+                        }
+                    }
+                }
+
+
+                var downloadPath = Path.Combine(Directory.GetCurrentDirectory(), "downloads");
 
         // Adding custom folders if required
         if (!string.IsNullOrWhiteSpace(queueItem.DownloadFolder))
