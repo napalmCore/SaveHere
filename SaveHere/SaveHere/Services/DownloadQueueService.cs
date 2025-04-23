@@ -199,17 +199,10 @@ namespace SaveHere.Services
 
         }
 
-          var fileName = "";
+          var fileName = string.IsNullOrEmpty(queueItem.CustomFileName)
+          ? Helpers.Helpers.ExtractFileNameFromUrl(queueItem.InputUrl)
+          : queueItem.CustomFileName;
 
-          if (!string.IsNullOrWhiteSpace(queueItem.CustomFileName))
-          {
-               fileName = queueItem.CustomFileName;
-          }
-
-          else
-          {
-               fileName = Helpers.Helpers.ExtractFileNameFromUrl(queueItem.InputUrl);
-          }
 
        var response = await httpClient.GetAsync(queueItem.InputUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
        response.EnsureSuccessStatusCode();
