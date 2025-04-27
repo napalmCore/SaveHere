@@ -279,7 +279,7 @@
     var authState = await AuthProvider.GetAuthenticationStateAsync();
     userId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "anonymous";
     userFolderPath = DirectoryBrowser.GetUserDownloadsPath(userId);
-    DownloadFolderName = userId;
+    // DownloadFolderName = userId;
     persistingSubscription = _persistentState.RegisterOnPersisting(PersistItems);
 
     // Loading downloads list

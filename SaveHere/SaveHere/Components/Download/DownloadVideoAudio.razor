@@ -251,7 +251,7 @@
         var authState = await AuthProvider.GetAuthenticationStateAsync();
         userId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "anonymous";
         userFolderPath = DirectoryBrowser.GetUserDownloadsPath(userId);
-        DownloadFolderName = userId;
+        // DownloadFolderName = userId;
 
         // Loading downloads list
         if (_persistentState.TryTakeFromJson<List<YoutubeDownloadQueueItem>>(nameof(_youtubeDownloadQueueItems), out var savedItems) && savedItems != null)
