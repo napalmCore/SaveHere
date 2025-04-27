@@ -7,6 +7,8 @@
 @using SaveHere.Services
 @using System.Net
 @using Microsoft.AspNetCore.SignalR.Client
+@using SaveHere.Helpers
+@using System.Security.Claims
 
 @inject AppDbContext _context
 @inject PersistentComponentState _persistentState
@@ -15,6 +17,7 @@
 @inject IYtdlpService YtdlpService
 @inject IYoutubeDownloadQueueService YoutubeDownloadQueueService
 @inject IDialogService DialogService
+@inject AuthenticationStateProvider AuthProvider
 
 @rendermode InteractiveServer
 @attribute [StreamRendering]
@@ -213,7 +216,7 @@
         }
     }
 
-    <FileManager @ref="fileManager" />
+    <FileManager UserId="@userId" CurrentPath="@userFolderPath" @ref="fileManager" />
 </LoadingIndicator>
 
 @code {
@@ -221,7 +224,8 @@
     private bool _isFullyLoaded;
     private PersistingComponentStateSubscription persistingSubscription;
     private HubConnection? hubConnection;
-
+    private string userId { get; set; } =  "";
+    private string userFolderPath { get; set; } = string.Empty;
     private string YoutubeUrl { get; set; } = "";
     private string ProxyUrl { get; set; } = @"http://localhost:8086";
     private string SelectedQuality { get; set; } = "Best";
@@ -242,6 +246,12 @@
     protected override async Task OnInitializedAsync()
     {
         persistingSubscription = _persistentState.RegisterOnPersisting(PersistItems);
+
+         // Retrieve the user ID from the authentication state
+        var authState = await AuthProvider.GetAuthenticationStateAsync();
+        userId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "anonymous";
+        userFolderPath = DirectoryBrowser.GetUserDownloadsPath(userId);
+        DownloadFolderName = userId;
 
         // Loading downloads list
         if (_persistentState.TryTakeFromJson<List<YoutubeDownloadQueueItem>>(nameof(_youtubeDownloadQueueItems), out var savedItems) && savedItems != null)
@@ -391,7 +401,8 @@
 
         try
         {
-            var newYoutubeDownload = await YoutubeDownloadQueueService.AddQueueItemAsync(YoutubeUrl, CustomFileName, SelectedQuality, ProxyUrl, DownloadFolderName);
+            var validatedFolder = ValidateUserDownloadFolder(DownloadFolderName);
+            var newYoutubeDownload = await YoutubeDownloadQueueService.AddQueueItemAsync(YoutubeUrl, CustomFileName, SelectedQuality, ProxyUrl, validatedFolder);
             YoutubeUrl = "";
             ErrorMessage = "";
             await LoadDownloadItemsList();
@@ -414,7 +425,7 @@
         {
             item.Quality = SelectedQuality;
             item.Proxy = ProxyUrl;
-            item.DownloadFolder = DownloadFolderName;
+            item.DownloadFolder = ValidateUserDownloadFolder(DownloadFolderName);
             item.CustomFileName = CustomFileName;
             await YoutubeDownloadQueueService.StartDownloadAsync(item);
         }
@@ -569,5 +580,18 @@
       }
     }
   }
+ private string ValidateUserDownloadFolder(string? folder)
+  {
+    if (string.IsNullOrWhiteSpace(folder))
+      return userFolderPath;
+
+    var combinedPath = Path.GetFullPath(Path.Combine(userFolderPath, folder));
+
+    if (!combinedPath.StartsWith(userFolderPath, StringComparison.OrdinalIgnoreCase))
+      throw new InvalidOperationException("Invalid folder path.");
+
+    return combinedPath;
+  }
+
 
 }
