@@ -9,10 +9,11 @@
 @using System.Net
 @using System.Diagnostics
 @using Microsoft.AspNetCore.SignalR.Client
+@using System.Security.Claims
 
 @rendermode InteractiveServer
 @attribute [StreamRendering]
-
+@inject AuthenticationStateProvider AuthProvider
 <MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
@@ -226,7 +227,7 @@
     </MudPaper>
   }
 
-  <FileManager @ref="fileManager" />
+  <FileManager UserId="@userId" CurrentPath="@userFolderPath" @ref="fileManager" />
 </LoadingIndicator>
 
 @code {
@@ -246,7 +247,8 @@
 
   private string UrlText { get; set; } = "";
   private string ErrorMessage { get; set; } = "";
-
+  private string userId { get; set; } = "";
+  private string userFolderPath { get; set; } = string.Empty;
     private string? CustomFileName { get; set; }
   private string? DownloadFolderName { get; set; }
 
@@ -274,6 +276,10 @@
 
   protected override async Task OnInitializedAsync()
   {
+    var authState = await AuthProvider.GetAuthenticationStateAsync();
+    userId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "anonymous";
+    userFolderPath = DirectoryBrowser.GetUserDownloadsPath(userId);
+    DownloadFolderName = userId;
     persistingSubscription = _persistentState.RegisterOnPersisting(PersistItems);
 
     // Loading downloads list
@@ -486,8 +492,8 @@
       {
         int mbs = _maxBytesPerSecond;
         if (!_useMaxDownloadSpeedLimit) mbs = -1;
-
-        var newFileDownload = new FileDownloadQueueItem() { InputUrl = UrlText, CustomFileName = CustomFileName, MaxBytesPerSecond = mbs, DownloadFolder = DownloadFolderName };
+        var validatedFolder = ValidateUserDownloadFolder(DownloadFolderName);
+        var newFileDownload = new FileDownloadQueueItem() { InputUrl = UrlText, CustomFileName = CustomFileName, MaxBytesPerSecond = mbs, DownloadFolder = validatedFolder };
         _context.FileDownloadQueueItems.Add(newFileDownload);
         await _context.SaveChangesAsync();
 
@@ -516,7 +522,8 @@
   {
     try
     {
-      await DownloadQueueService.StartDownloadAsync(item.Id, CustomFileName, DownloadFolderName);
+      var validatedFolder = ValidateUserDownloadFolder(DownloadFolderName);
+      await DownloadQueueService.StartDownloadAsync(item.Id, CustomFileName, validatedFolder);
     }
     catch (Exception exception)
     {
@@ -664,5 +671,17 @@
           Data = item.SpeedHistory.Select(s => Math.Round(s / 1024 / 1024, 2)).ToArray()
         }
       };
+  }
+  private string ValidateUserDownloadFolder(string? folder)
+  {
+    if (string.IsNullOrWhiteSpace(folder))
+      return userFolderPath;
+
+    var combinedPath = Path.GetFullPath(Path.Combine(userFolderPath, folder));
+
+    if (!combinedPath.StartsWith(userFolderPath, StringComparison.OrdinalIgnoreCase))
+      throw new InvalidOperationException("Invalid folder path.");
+
+    return combinedPath;
   }
 }
