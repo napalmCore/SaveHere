@@ -26,6 +26,9 @@ namespace SaveHere.Services
     private const string GITHUB_API_URL = "https://api.github.com/repos/yt-dlp/yt-dlp/releases/latest";
     private const string SUPPORTED_SITES_URL = "https://raw.githubusercontent.com/yt-dlp/yt-dlp/refs/heads/master/supportedsites.md";
     private const string SUPPORTED_SITES_FILENAME = "supportedsites.md";
+
+    private const string VERSION_FILE_PATH = "version.txt";
+
     private readonly string _basePath;
     private readonly string _executableName;
     private readonly IProgressHubService _progressHubService;
@@ -100,7 +103,7 @@ namespace SaveHere.Services
     {
       try
       {
-        var versionFile = Path.Combine(_basePath, "version.txt");
+        var versionFile = Path.Combine(_basePath, VERSION_FILE_PATH);
 
         if (!File.Exists(versionFile))
           return true;
@@ -154,7 +157,7 @@ namespace SaveHere.Services
         }
 
         // Save version information
-        await File.WriteAllTextAsync(Path.Combine(_basePath, "version.txt"), release.TagName);
+        await File.WriteAllTextAsync(Path.Combine(_basePath, VERSION_FILE_PATH), release.TagName);
 
         _logger.LogInformation("Successfully downloaded yt-dlp version {Version}", release.TagName);
       }
