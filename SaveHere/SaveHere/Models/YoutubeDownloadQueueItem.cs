@@ -22,6 +22,7 @@ namespace SaveHere.Models
       public string PersistedLog { get; set; } = string.Empty; // For saving logs in the database
 
       public string? DownloadFolder { get; set; }
+      public string? SubtitleLanguage { get; set; } = "en";
     }
   }
 }
