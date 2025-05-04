@@ -3,24 +3,25 @@
 namespace SaveHere.Helpers
 {
   public static class Helpers
-  {
-    public static string FormatSpeed(double speed)
+  { 
+    enum BufferSizeFormat
     {
-      if (speed == 0) return "0";
-      else if (speed < 1024) return $"{speed:F2} B/s";
-      else if (speed < 1024 * 1024) return $"{speed / 1024:F2} KB/s";
-      else if (speed < 1024 * 1024 * 1024) return $"{speed / 1024 / 1024:F2} MB/s";
-      else return $"{speed / 1024 / 1024 / 1024:F2} GB/s";
+        B = 1,
+        KB = B * 1024,
+        MB = KB * 1024,
+        GB = MB * 1024
     }
 
     public static string FormatSize(double size)
     {
-      if (size == 0) return "0";
-      else if (size < 1024) return $"{size:F2} B";
-      else if (size < 1024 * 1024) return $"{size / 1024:F2} KB";
-      else if (size < 1024 * 1024 * 1024) return $"{size / 1024 / 1024:F2} MB";
-      else return $"{size / 1024 / 1024 / 1024:F2} GB";
+        foreach (BufferSizeFormat unit in Enum.GetValues<BufferSizeFormat>().Cast<BufferSizeFormat>().OrderByDescending(v => (int)v))
+        {
+            if (size >= (int)unit)
+                return $"{size / (int)unit:F2} {unit}";
+        }
+        return $"{size:F2} B";
     }
+    public static string FormatSpeed  (double speed) => FormatSize(speed) + "/s";  
 
     public static string ExtractFileNameFromUrl(string url)
     {
