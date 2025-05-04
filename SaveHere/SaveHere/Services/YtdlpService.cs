@@ -15,7 +15,7 @@ namespace SaveHere.Services
     Task<string> GetExecutablePath();
     Task<string> GetSupportedSitesFilePath();
     Task UpdateSupportedSitesFile();
-    Task DownloadVideo(int itemId, string url, string? customFileName, string quality, string proxy, string? downloadFolder, CancellationToken cancellationToken);
+    Task DownloadVideo(int itemId, string url, string? customFileName, string quality, string proxy, string? downloadFolder, string? subtitleLanguage, CancellationToken cancellationToken);
     Task<VideoInfo?> GetVideoInfo(string url, string proxy);
   }
 
@@ -203,7 +203,7 @@ namespace SaveHere.Services
       return client;
     }
 
-        public async Task DownloadVideo(int itemId, string url, string? customfilename, string quality, string proxy, string? downloadFolder, CancellationToken cancellationToken)
+        public async Task DownloadVideo(int itemId, string url, string? customfilename, string quality, string proxy, string? downloadFolder, string? subtitleLanguage, CancellationToken cancellationToken)
         {
             var executablePath = await GetExecutablePath();
 
@@ -224,7 +224,11 @@ namespace SaveHere.Services
                 : "";
 
             const string mergeOption = "--merge-output-format mp4";
-
+            string subtitleArgs = "";
+            if (!string.IsNullOrWhiteSpace(subtitleLanguage))
+            {
+                subtitleArgs = $"--write-sub --write-auto-sub --sub-lang \"{subtitleLanguage}\"";
+            }
             // Determine download path
             string fullDownloadPath = DirectoryBrowser.DownloadsPath;
             if (!string.IsNullOrWhiteSpace(downloadFolder))
@@ -250,7 +254,7 @@ namespace SaveHere.Services
             string outputOption = $"-o \"{outputTemplate}\"";
 
             // Combine all args
-            string finalArgs = $"{formatOption} {proxyOption} {mergeOption} {outputOption} \"{url}\"";
+            string finalArgs = $"{formatOption} {proxyOption} {mergeOption} {subtitleArgs} {outputOption} \"{url}\"";
 
             var startInfo = new ProcessStartInfo
             {

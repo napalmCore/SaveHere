@@ -51,6 +51,23 @@
                            Size="Size.Small" Style="height:40px;">Info</MudButton>
             </MudButtonGroup>
     </MudStack>
+    <MudStack Row Class="mt-2">
+        <MudCheckBox @bind-Value="_downloadSubtitles"
+                    Label="Download Subtitles"
+                    Color="Color.Primary" />
+
+        <MudSelect T="string" @bind-Value="_subtitleLanguage"
+                Label="Subtitle Language"
+                Variant="Variant.Outlined"
+                Margin="Margin.Dense"
+                Class="ml-4"
+                Disabled="@(!_downloadSubtitles)">
+            <MudSelectItem Value="@("en")">English</MudSelectItem>
+            <MudSelectItem Value="@("vi")">Vietnamese</MudSelectItem>
+            <MudSelectItem Value="@("ja")">Japanese</MudSelectItem>
+            <MudSelectItem Value="@("auto")">Auto-detect</MudSelectItem>
+        </MudSelect>
+    </MudStack>
 
         <MudStack Row>
             <MudTextField @bind-Value="CustomFileName"
@@ -243,6 +260,9 @@
     private bool _autoStartPausedDownloads = true;
     private int _maxAutoStartConcurrency = 3;
 
+    private bool _downloadSubtitles = false;
+    private string? _subtitleLanguage = "en";
+
     protected override async Task OnInitializedAsync()
     {
         persistingSubscription = _persistentState.RegisterOnPersisting(PersistItems);
@@ -402,7 +422,7 @@
         try
         {
             var validatedFolder = ValidateUserDownloadFolder(DownloadFolderName);
-            var newYoutubeDownload = await YoutubeDownloadQueueService.AddQueueItemAsync(YoutubeUrl, CustomFileName, SelectedQuality, ProxyUrl, validatedFolder);
+            var newYoutubeDownload = await YoutubeDownloadQueueService.AddQueueItemAsync(YoutubeUrl, CustomFileName, SelectedQuality, ProxyUrl, validatedFolder, _subtitleLanguage);
             YoutubeUrl = "";
             ErrorMessage = "";
             await LoadDownloadItemsList();
