@@ -214,12 +214,13 @@ namespace SaveHere.Services
       // Format option
       var formatOption = quality switch
       {
-        "Best" or null or "" => "-f best",
+        "Best" => "-f \"bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best\"",
+        null or "" => "-f \"bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best\"",
         _ => quality.Split(" --", 2) switch
         {
           [var format, var extras] => $"-f \"{format}\" --{extras}",
           [var format] => $"-f \"{format}\"",
-          _ => "-f best\""
+          _ => "-f \"bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best\""
         }
       };
 
@@ -227,7 +228,6 @@ namespace SaveHere.Services
           ? $"--proxy \"{proxy}\""
           : "";
 
-      const string mergeOption = "--merge-output-format mp4";
       string subtitleArgs = "";
       if (!string.IsNullOrWhiteSpace(subtitleLanguage))
       {
@@ -258,7 +258,7 @@ namespace SaveHere.Services
       string outputOption = $"-o \"{outputTemplate}\"";
 
       // Combine all args
-      string finalArgs = $"{formatOption} {proxyOption} {mergeOption} {subtitleArgs} {outputOption} \"{url}\"";
+      string finalArgs = $"{formatOption} {proxyOption} {subtitleArgs} {outputOption} \"{url}\"";
 
       var startInfo = new ProcessStartInfo
       {
