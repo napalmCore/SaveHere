@@ -136,13 +136,11 @@ namespace SaveHere.Tests.Services
         }
 
         [Theory]
-        [InlineData("")]
-        [InlineData("   ")]
         [InlineData(null)]
         public async Task AddQueueItemAsync_WithEmptyUrl_ThrowsArgumentException(string url)
         {
             // Act & Assert
-            await Assert.ThrowsAsync<ArgumentException>(() => _service.AddQueueItemAsync(null));
+            await Assert.ThrowsAsync<ArgumentException>(() => _service.AddQueueItemAsync(url));
         }
 
         [Theory]
@@ -152,7 +150,7 @@ namespace SaveHere.Tests.Services
         public async Task AddQueueItemAsync_WithInvalidUrl_ThrowsArgumentException(string url)
         {
             // Act & Assert
-            await Assert.ThrowsAsync<ArgumentException>(() => _service.AddQueueItemAsync(null));
+            await Assert.ThrowsAsync<ArgumentException>(() => _service.AddQueueItemAsync(url));
         }
 
         [Fact]

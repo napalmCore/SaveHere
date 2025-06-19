@@ -126,10 +126,10 @@ namespace SaveHere.Tests.Services
         [Fact]
         public void RenameItem_WithValidFile_ReturnsTrue()
         {
-            File.Delete(Path.Combine(".", "newname.txt"));
+            File.Delete(Path.Combine(_testDirectory, "newname.txt"));
 
             // Arrange
-            var testFile = Path.Combine(".", "oldname.txt");
+            var testFile = Path.Combine(_testDirectory, "oldname.txt");
             File.WriteAllText(testFile, "test content");
             var fileItem = new FileItem
             {
